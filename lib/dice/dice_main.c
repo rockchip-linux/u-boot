@@ -4,11 +4,15 @@
  */
 
 #include <dm.h>
+#include <android_image.h>
 #include <hexdump.h>
 #include <misc.h>
+#include <memalign.h>
 #include <dice/android.h>
 #include <dice/dice.h>
 #include <dice/ops.h>
+#include <part.h>
+#include <spl.h>
 #include <linux/stringify.h>
 #include <tee/optee.h>
 
@@ -455,6 +459,147 @@ int dice_finish(void)
 	return 0;
 }
 
+static void dice_parse_profile_versions(const char *cmdline,
+					const char *needle,
+					uint8_t *android_version,
+					uint8_t *widevine_version)
+{
+	const char *profile;
+	char *endp;
+	ulong version;
+
+	*android_version = 0;
+	*widevine_version = 0;
+
+	profile = strstr(cmdline, needle);
+	if (!profile)
+		return;
+
+	profile += strlen(needle);
+	version = simple_strtoul(profile, &endp, 10);
+	if (endp == profile || version > U8_MAX)
+		return;
+
+	*android_version = version;
+#ifdef CONFIG_DICE_WIDEVINE
+	if (*endp != ',')
+		return;
+
+	profile = endp + 1;
+	version = simple_strtoul(profile, &endp, 10);
+	if (endp == profile || version > U8_MAX)
+		return;
+
+	*widevine_version = version;
+#endif
+}
+
+static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
+{
+	const char *needle = "dice_profile=";
+	const char *dice_profile_hdr[] = {
+		"android.",
+#ifdef CONFIG_DICE_WIDEVINE
+		"widevine.",
+#endif
+	};
+	struct disk_partition part;
+	struct blk_desc *desc;
+	struct vendor_boot_img_hdr_v34 *vboot_hdr = NULL;
+	struct andr_img_hdr *hdr = NULL;
+	const char *cmdline = NULL;
+	uint8_t android_version;
+	uint8_t widevine_version;
+	lbaint_t blkcnt;
+	int ret = 0;
+
+	if (i >= ARRAY_SIZE(dice_profile_hdr))
+		return -EINVAL;
+
+#ifdef CONFIG_SPL_BUILD
+	struct spl_load_info *info;
+
+	info = glb_spl_load_info();
+	desc = info ? info->priv : NULL;
+#else
+	desc = plat_bootdev();
+#endif
+	if (!desc) {
+		printf("DICE: no dev desc found\n");
+		return -ENODEV;
+	}
+
+	if (part_get_info_by_name(desc, PART_VENDOR_BOOT, &part) > 0) {
+		blkcnt = DIV_ROUND_UP(sizeof(*vboot_hdr), desc->blksz);
+		vboot_hdr = memalign(ARCH_DMA_MINALIGN, blkcnt * desc->blksz);
+		if (!vboot_hdr)
+			return -ENOMEM;
+		if (blk_dread(desc, part.start, blkcnt, vboot_hdr) == blkcnt &&
+		    !memcmp(vboot_hdr->magic, VENDOR_BOOT_MAGIC,
+			    VENDOR_BOOT_MAGIC_SIZE))
+			cmdline = (const char *)vboot_hdr->cmdline;
+	}
+
+	if (!cmdline && part_get_info_by_name(desc, PART_BOOT, &part) > 0) {
+		blkcnt = DIV_ROUND_UP(sizeof(*hdr), desc->blksz);
+		hdr = memalign(ARCH_DMA_MINALIGN, blkcnt * desc->blksz);
+		if (!hdr) {
+			ret = -ENOMEM;
+			goto out;
+		}
+		if (blk_dread(desc, part.start, blkcnt, hdr) == blkcnt &&
+		    !memcmp(hdr->magic, ANDR_BOOT_MAGIC, ANDR_BOOT_MAGIC_SIZE))
+			cmdline = hdr->cmdline;
+	}
+	if (!cmdline) {
+		printf("Dice: Can't find boot and vendor_boot cmdline\n");
+		ret = -EINVAL;
+		goto out;
+	}
+
+#ifdef DICE_STATIC_PROFILE
+	cmdline = DICE_STATIC_PROFILE;
+#endif
+	debug("Dice: cmdline: %s\n", cmdline);
+	if (!strstr(cmdline, needle)) {
+		printf("Dice: Can't find '%s' in cmdline !\n", needle);
+		printf("Dice: cmdline: %s\n", cmdline);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	dice_parse_profile_versions(cmdline, needle,
+				    &android_version, &widevine_version);
+	if (i == 0) {
+		if (android_version == 0) {
+			printf("Dice: invalid android profile version(%d)\n",
+			       android_version);
+			ret = -EINVAL;
+			goto out;
+		}
+		DiceCtx->profile_version = android_version;
+	}
+#ifdef CONFIG_DICE_WIDEVINE
+	else {
+		if (widevine_version == 0) {
+			printf("Dice: invalid widevine profile version(%d)\n",
+			       widevine_version);
+			ret = -EINVAL;
+			goto out;
+		}
+		DiceCtx->profile_version = widevine_version;
+	}
+#endif
+	snprintf(DiceCtx->profile_name, sizeof(DiceCtx->profile_name), "%s%d",
+		 dice_profile_hdr[i], DiceCtx->profile_version);
+	printf("DICE: %s\n", DiceCtx->profile_name);
+
+out:
+	free(vboot_hdr);
+	free(hdr);
+	return ret;
+}
+
 int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 {
 	struct DiceContext *DiceCtx[DICE_CNT];
@@ -462,38 +607,12 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 	uint8_t brom_uds[DICE_CDI_SIZE];
 	int clear_uds = 0;
 	int valid_otp_uds = 0;
-	int i, err;
-	char *DiceProfileName[] = {
-		"android." __stringify(CONFIG_DICE_ANDROID_VERSION),
-		"widevine." __stringify(CONFIG_DICE_WIDEVINE_VERSION),
-	};
+	int i, err = 0;
 
-	/* Android */
 	DiceCtx[0] = (void *)CONFIG_DICE_BUF_ADDR;
-	DiceFlow[0].component_name = name;
-	DiceFlow[0].component_version = 1;
-	DiceFlow[0].code_hash = code_hash;
-	DiceFlow[0].code_hash_len = code_hash_len;
-	/* Widevine */
 #ifdef CONFIG_DICE_WIDEVINE
 	DiceCtx[1] = (void *)CONFIG_DICE_BUF_ADDR + CONFIG_DICE_BUF_SIZE / DICE_CNT;
-	/*
-	 * last stage component must use a fixed info.
-	 *
-	 * it leads a different 'DiceCtx->last_subject_{private,public}_key'
-	 * from android flow.
-	 */
-	if (!strcmp(name, "kernel")) {
-		DiceFlow[1].component_name = "Widevine";
-		DiceFlow[1].component_version = CONFIG_DICE_WIDEVINE_VERSION;
-	} else {
-		DiceFlow[1].component_name = name;
-		DiceFlow[1].component_version = 1;
-	}
-	DiceFlow[1].code_hash = code_hash;
-	DiceFlow[1].code_hash_len = code_hash_len;
 #endif
-
 	/* Read UDS only once ! */
 	if (DiceCtx[0]->cert_chain_size == 0) {
 		err = dice_read_uds(brom_uds);
@@ -519,22 +638,48 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(DiceCtx); i++) {
-		/* 1. DICE initialization (first time only) */
+		/*
+		 * 1. DICE initialization (first time only)
+		 */
 		if (DiceCtx[i]->cert_chain_size == 0) {
 			debug("DICE: Initializing BCC...\n");
 
 			DiceCtx[i]->magic = DICE_CTX_MAGIC;
 			DiceCtx[i]->cert_chain = (void *)DiceCtx[i] + DICE_CTX_HDR_SIZE;
 			DiceCtx[i]->cert_max_count = DICE_CERT_MAX;
-			strcpy(DiceCtx[i]->profile_name, DiceProfileName[i]);
+			err = dice_set_profile_name(DiceCtx[i], i);
+			if (err) {
+				printf("DICE: set profile name failed, ret=%d\n", err);
+				goto out;
+			}
 			memcpy(DiceCtx[i]->next_cdi_attest, brom_uds, DICE_CDI_SIZE);
 			memcpy(DiceCtx[i]->next_cdi_seal, brom_uds, DICE_CDI_SIZE);
 		}
 
-		/* 2. DICE main flow */
+		/*
+		 * 2. DICE main flow
+		 */
+		DiceFlow[i].component_name = name;
+		DiceFlow[i].component_version = 1;
+		DiceFlow[i].code_hash = code_hash;
+		DiceFlow[i].code_hash_len = code_hash_len;
+#ifdef CONFIG_DICE_WIDEVINE
+		/*
+		 * FIXUP: Last stage component must use a fixed info.
+		 *
+		 * it leads a different 'DiceCtx->last_subject_{private,public}_key'
+		 * from android flow.
+		 */
+		if (i == 1 && !strcmp(name, "kernel")) {
+			DiceFlow[i].component_name = "Widevine";
+			DiceFlow[i].component_version = DiceCtx[i]->profile_version;
+		}
+#endif
 		err = dice_measure_component(DiceCtx[i], &DiceFlow[i]);
-		if (err)
+		if (err) {
+			printf("DICE: measure failed, ret=%d\n", err);
 			goto out;
+		}
 	}
 out:
 	if (clear_uds)
@@ -542,4 +687,3 @@ out:
 
 	return err;
 }
-

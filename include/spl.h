@@ -371,6 +371,8 @@ struct spl_load_info {
 #endif
 };
 
+struct spl_load_info *glb_spl_load_info(void);
+
 static inline int spl_get_bl_len(struct spl_load_info *info)
 {
 #if IS_ENABLED(CONFIG_SPL_LOAD_BLOCK)

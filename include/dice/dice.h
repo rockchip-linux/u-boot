@@ -27,6 +27,7 @@ extern "C" {
 
 #define DICE_DEBUG 		0
 #define DICE_STATIC_BROM_UDS	0
+//#define DICE_STATIC_PROFILE	"dice_profile=16,19"
 
 #define DICE_CDI_SIZE 32
 #define DICE_HASH_SIZE 32	/* sha256! */
@@ -61,6 +62,7 @@ struct DiceFlow {
  */
 struct DiceContext {
 	u32 magic;
+	uint8_t profile_version;
 	char profile_name[32];
 
 	uint8_t next_cdi_attest[DICE_CDI_SIZE];

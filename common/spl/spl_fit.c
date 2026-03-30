@@ -47,6 +47,8 @@ struct spl_fit_info {
 	int conf_node;		/* FDT offset to selected configuration node */
 };
 
+static struct spl_load_info *g_spl_load_info;
+
 __weak ulong board_spl_fit_size_align(ulong size)
 {
 	return size;
@@ -1301,6 +1303,11 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 	return 0;
 }
 
+struct spl_load_info *glb_spl_load_info(void)
+{
+	return g_spl_load_info;
+}
+
 int spl_load_simple_fit(struct spl_image_info *spl_image,
 			struct spl_load_info *info,
 			ulong offset, void *fit) /* @offset: in bytes */
@@ -1312,6 +1319,7 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	mpb_init_1(*info);
 #endif
 	printf("Trying fit image at 0x%lx sector\n", offset / info->bl_len);
+	g_spl_load_info = info;
 	for (i = 0; i < CONFIG_SPL_FIT_IMAGE_MULTIPLE; i++) {
 		if (i > 0) {
 			offset += i * (CONFIG_SPL_FIT_IMAGE_KB << 10);

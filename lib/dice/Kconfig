@@ -22,22 +22,11 @@ config DICE_BUF_SIZE
 	help
 	  This option define the size of DICE memory buffer.
 
-config DICE_ANDROID_VERSION
-	int "DICE Android version"
-	help
-	  This assign the DICE Android version.
-
 config DICE_WIDEVINE
 	bool "DICE support Widevine"
 	depends on ANDROID_BOOT_IMAGE
 	default y
 	help
 	  This option provides support for Widevine.
-
-config DICE_WIDEVINE_VERSION
-	int "DICE Widevine version"
-	depends on DICE_WIDEVINE
-	help
-	  This assign the DICE Widevine version.
 
 endif # DICE
