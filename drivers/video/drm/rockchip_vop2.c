@@ -6020,7 +6020,6 @@ static int rockchip_vop2_init(struct display_state *state)
 	u16 vsync_len = mode->crtc_vsync_end - mode->crtc_vsync_start;
 	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
 	u16 vact_end = vact_st + vdisplay;
-	bool yuv_overlay = false;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 line_flag_offset = (cstate->crtc_id * 4);
 	u32 val, act_end;
@@ -6128,11 +6127,9 @@ static int rockchip_vop2_init(struct display_state *state)
 	if (cstate->splice_mode)
 		vop2_dither_setup(vop2, conn_state->bus_format, cstate->splice_crtc_id);
 
-	yuv_overlay = is_yuv_output(conn_state->bus_format) ? 1 : 0;
+	cstate->yuv_overlay = is_yuv_output(conn_state->bus_format) ? 1 : 0;
 	vop2_mask_write(vop2, RK3568_OVL_CTRL, EN_MASK, cstate->crtc_id,
-			yuv_overlay, false);
-
-	cstate->yuv_overlay = yuv_overlay;
+			cstate->yuv_overlay, false);
 
 	vop2_writel(vop2, RK3568_VP0_DSP_HTOTAL_HS_END + vp_offset,
 		    (htotal << 16) | hsync_len);
@@ -6190,7 +6187,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	}
 
 	vop2_mask_write(vop2, RK3568_OVL_CTRL, OVL_MODE_SEL_MASK,
-			OVL_MODE_SEL_SHIFT + cstate->crtc_id, yuv_overlay, false);
+			OVL_MODE_SEL_SHIFT + cstate->crtc_id, cstate->yuv_overlay, false);
 
 	/*
 	 * From rk3538/rk3572, the WIN CSC will convert the data to YUV full range
@@ -6198,9 +6195,10 @@ static int rockchip_vop2_init(struct display_state *state)
 	 */
 	if (vop2->version >= VOP_VERSION_RK3572)
 		vop2_mask_write(vop2, RK3568_OVL_CTRL, OVL_YUV_FULL_MODE_MASK,
-				OVL_YUV_FULL_MODE_SHIFT + cstate->crtc_id, yuv_overlay, false);
+				OVL_YUV_FULL_MODE_SHIFT + cstate->crtc_id,
+				cstate->yuv_overlay, false);
 
-	if (yuv_overlay) {
+	if (cstate->yuv_overlay) {
 		/*
 		 * From rk3538/rk3572, the background should be set to full range
 		 * when at yuv overlay mode.
@@ -6216,12 +6214,12 @@ static int rockchip_vop2_init(struct display_state *state)
 	if (cstate->splice_mode) {
 		vop2_mask_write(vop2, RK3568_OVL_CTRL, OVL_MODE_SEL_MASK,
 				OVL_MODE_SEL_SHIFT + cstate->splice_crtc_id,
-				yuv_overlay, false);
+				cstate->yuv_overlay, false);
 		vop2_writel(vop2, RK3568_VP0_DSP_BG + (cstate->splice_crtc_id * 0x100), val);
 	}
 
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			POST_DSP_OUT_R2Y_SHIFT, yuv_overlay, false);
+			POST_DSP_OUT_R2Y_SHIFT, cstate->yuv_overlay, false);
 
 	if (vp->xmirror_en)
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
