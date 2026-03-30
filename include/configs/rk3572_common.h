@@ -39,6 +39,9 @@
 #define GICD_BASE			0x2a601000
 #define GICC_BASE			0x2a602000
 
+#define DICE_BUF_ADDR			0x48200000
+#define DICE_BUF_SIZE			0x4000
+
 /* rockusb */
 #define CONFIG_ROCKUSB_G_DNL_PID	0x351a
 #define ROCKUSB_FSG_BUFLEN		0x400000

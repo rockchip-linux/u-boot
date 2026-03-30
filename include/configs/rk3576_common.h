@@ -19,6 +19,9 @@
 #define GICD_BASE                       0x2a701000
 #define GICC_BASE                       0x2a702000
 
+#define DICE_BUF_ADDR			0x48200000
+#define DICE_BUF_SIZE			0x4000
+
 /* secure otp */
 #define OTP_UBOOT_ROLLBACK_OFFSET	0x610
 #define OTP_UBOOT_ROLLBACK_WORDS	2	/* 64 bits, 2 words */
