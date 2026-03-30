@@ -11,17 +11,6 @@ config SPL_DICE
 	help
 	  This option provides DICE support in SPL.
 
-config DICE_BUF_ADDR
-	hex "DICE memory buffer addr"
-	help
-	  This option define the start address of DICE memory buffer.
-
-config DICE_BUF_SIZE
-	hex "DICE memory buffer size"
-	default 0x4000
-	help
-	  This option define the size of DICE memory buffer.
-
 config DICE_WIDEVINE
 	bool "DICE support Widevine"
 	depends on ANDROID_BOOT_IMAGE

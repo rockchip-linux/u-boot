@@ -16,6 +16,14 @@
 #include <linux/stringify.h>
 #include <tee/optee.h>
 
+#ifndef DICE_BUF_ADDR
+#error "DICE_BUF_ADDR must be defined in platform header"
+#endif
+
+#ifndef DICE_BUF_SIZE
+#error "DICE_BUF_SIZE must be defined in platform header"
+#endif
+
 #if DICE_DEBUG
 static void dice_dump_context(struct DiceContext *DiceCtx)
 {
@@ -291,9 +299,9 @@ static int dice_measure_component(struct DiceContext *DiceCtx,
 	memset(next_cdi_seal, 0, DICE_CDI_SIZE);
 
 	/* Validate BCC size */
-	if (DiceCtx->cert_chain_size > CONFIG_DICE_BUF_SIZE) {
-		printf("Dice: BCC size overflow: %u > %d\n",
-		       DiceCtx->cert_chain_size, CONFIG_DICE_BUF_SIZE);
+	if (DiceCtx->cert_chain_size > DICE_BUF_SIZE) {
+		printf("Dice: BCC size overflow: %u > 0x%x\n",
+		       DiceCtx->cert_chain_size, DICE_BUF_SIZE);
 		return -EINVAL;
 	}
 #if DICE_DEBUG
@@ -368,18 +376,15 @@ static int dice_read_uds(u8 *buffer)
 int dice_start(void)
 {
 	printf("DICE: 0x%08lx - 0x%08lx\n",
-	       (ulong)CONFIG_DICE_BUF_ADDR,
-	       (ulong)CONFIG_DICE_BUF_ADDR + CONFIG_DICE_BUF_SIZE);
-	memset((void *)CONFIG_DICE_BUF_ADDR, 0, CONFIG_DICE_BUF_SIZE);
+	       (ulong)DICE_BUF_ADDR, (ulong)DICE_BUF_ADDR + DICE_BUF_SIZE);
+	memset((void *)DICE_BUF_ADDR, 0, DICE_BUF_SIZE);
 
 	return 0;
 }
 
 int dice_finish(void)
 {
-	struct DiceContext *DiceCtx_wv = (void *)CONFIG_DICE_BUF_ADDR +
-					CONFIG_DICE_BUF_SIZE / DICE_CNT;
-	struct DiceContext *DiceCtx_km = (void *)CONFIG_DICE_BUF_ADDR;
+	struct DiceContext *DiceCtx_km = (void *)DICE_BUF_ADDR;
 	int ret;
 
 	printf("DICE(%s): 0x%08lx - 0x%08lx, cert_count=%d\n",
@@ -423,6 +428,9 @@ int dice_finish(void)
 	}
 
 #ifdef CONFIG_DICE_WIDEVINE
+	struct DiceContext *DiceCtx_wv =
+			(void *)DICE_BUF_ADDR + DICE_BUF_SIZE / DICE_CNT;
+
 	printf("DICE(%s): 0x%08lx - 0x%08lx, cert_count=%d\n",
 		DiceCtx_wv->profile_name,
 		(ulong)DiceCtx_wv->cert_chain,
@@ -609,9 +617,9 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 	int valid_otp_uds = 0;
 	int i, err = 0;
 
-	DiceCtx[0] = (void *)CONFIG_DICE_BUF_ADDR;
+	DiceCtx[0] = (void *)DICE_BUF_ADDR;
 #ifdef CONFIG_DICE_WIDEVINE
-	DiceCtx[1] = (void *)CONFIG_DICE_BUF_ADDR + CONFIG_DICE_BUF_SIZE / DICE_CNT;
+	DiceCtx[1] = (void *)DICE_BUF_ADDR + DICE_BUF_SIZE / DICE_CNT;
 #endif
 	/* Read UDS only once ! */
 	if (DiceCtx[0]->cert_chain_size == 0) {
