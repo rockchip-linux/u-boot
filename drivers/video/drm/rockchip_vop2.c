@@ -2799,6 +2799,7 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 			POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 0, false);
 	if (!acm_data.acm_enable) {
 		writel(0, vop2->regs + RK3528_ACM_CTRL);
+		cstate->acm_en = false;
 		return;
 	}
 
@@ -2842,6 +2843,7 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	}
 
 	writel(1, vop2->regs + RK3528_ACM_FETCH_DONE);
+	cstate->acm_en = true;
 }
 
 static void vop3_get_csc_info_from_bcsh(struct bp_bcsh_info *bcsh_info,

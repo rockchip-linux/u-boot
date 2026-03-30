@@ -281,6 +281,7 @@ struct crtc_state {
 	bool bcsh_en;
 	bool splice_mode;
 	bool soft_te;
+	bool acm_en;
 	bool overscan_by_win_scale;
 	u8 splice_crtc_id;
 	u8 dsc_id;
