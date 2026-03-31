@@ -485,6 +485,9 @@ static int sys_shutdown(struct udevice *dev)
 	fuel_gauge_get_voltage(fg);
 	fuel_gauge_update_get_soc(fg);
 
+	/* show charge picture stable before shutdown */
+	mdelay(1000);
+
 	flush();
 	mdelay(50);
 	pmic_shutdown(pmic);
