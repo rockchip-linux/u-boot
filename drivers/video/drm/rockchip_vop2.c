@@ -6921,7 +6921,7 @@ static void rk3576_extra_alpha(struct display_state *state)
 	struct vop2 *vop2 = cstate->private;
 	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	const struct vop2_zpos *vop2_zpos;
-	struct vop2_alpha_config alpha_config;
+	struct vop2_alpha_config alpha_config = {};
 	struct vop2_alpha alpha;
 	struct vop2_win_data *extra_win_data = NULL, *win_data;
 	u32 vp_offset;
