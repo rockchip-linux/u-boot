@@ -684,7 +684,7 @@ static int sgm41542_probe(struct udevice *dev)
 	charger->dev = dev;
 
 	/* Disable OTG 5V output */
-	ret = sgm41542_update_bits(charger, SGM4154x_CHRG_CTRL_5,
+	ret = sgm41542_update_bits(charger, SGM4154x_CHRG_CTRL_1,
 				   SGM4154x_OTG_EN_MASK,
 				   0);
 	if (ret) {
