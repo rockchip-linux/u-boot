@@ -130,3 +130,10 @@ elif grep -q '^CONFIG_ARM64_BOOT_AARCH32=y' .config ; then
 else
 	ARCH="arm"
 fi
+
+# FIT load address encoding: 64-bit platforms use /bits/ 64, 32-bit use plain format
+if [ "${U_ARCH}" == "arm64" ]; then
+	FIT_ADDR_PREFIX="/bits/ 64 "
+else
+	FIT_ADDR_PREFIX=""
+fi
