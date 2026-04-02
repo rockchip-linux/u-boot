@@ -2620,6 +2620,7 @@ void rockchip_display_fixup(void *blob)
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
 	int offset;
+	int dmc_offset;
 	int ret;
 	const struct device_node *np;
 	const char *path;
@@ -2627,6 +2628,7 @@ void rockchip_display_fixup(void *blob)
 	u64 aligned_memory_size;
 	ulong vidcon_fb_addr = 0;
 	bool is_logo_init = 0;
+	u8 active_display_num = 0;
 
 	if (fdt_node_offset_by_compatible(blob, 0, memory_compatible) >= 0) {
 		list_for_each_entry(s, &rockchip_display_list, head) {
@@ -2788,6 +2790,17 @@ void rockchip_display_fixup(void *blob)
 			FDT_SET_U32("cubic_lut,offset", get_cubic_lut_offset(s->crtc_state.crtc_id));
 
 #undef FDT_SET_U32
+		active_display_num++;
+	}
+
+	if (active_display_num > 1) {
+		dmc_offset = fdt_path_offset(blob, "/dmc");
+		if (offset < 0) {
+			printf("DMC node is not available\n");
+			return;
+		}
+		if (!fdt_getprop(blob, dmc_offset, "delayed-freq-scaling", NULL))
+			fdt_setprop_empty(blob, dmc_offset, "delayed-freq-scaling");
 	}
 }
 
