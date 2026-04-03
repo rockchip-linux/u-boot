@@ -6926,7 +6926,7 @@ static void rk3576_extra_alpha(struct display_state *state)
 	struct vop2_win_data *extra_win_data = NULL, *win_data;
 	u32 vp_offset;
 	u32 offset;
-	u8 extra_win_zpos;
+	u8 extra_win_zpos = vop2->data->nr_layers; /* Init as an invalid value */
 	int i = 0;
 
 	if (vp->has_extra_layer) {
@@ -6941,9 +6941,12 @@ static void rk3576_extra_alpha(struct display_state *state)
 			}
 		}
 
+		if (extra_win_zpos >= vop2->data->nr_layers)
+			return;
+
 		/* check other win which zpos is higher than extra_win only can be esmart 1/3*/
 		for (; i < vp->active_layers; i++) {
-			vop2_zpos = &vop2_zpos[i];
+			vop2_zpos = &vp->vop2_zpos[i];
 			win_data = vop2_find_win_by_phys_id(vop2, vop2_zpos->plane_id);
 			if (win_data->phys_id != ROCKCHIP_VOP2_ESMART1 &&
 			    win_data->phys_id != ROCKCHIP_VOP2_ESMART3)
