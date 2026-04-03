@@ -31,11 +31,11 @@ static SPINAND_OP_VARIANTS(update_cache_variants,
 static int c5fxgm_ooblayout_ecc(struct mtd_info *mtd, int section,
 				struct mtd_oob_region *region)
 {
-	if (section > 3)
+	if (section)
 		return -ERANGE;
 
-	region->offset = (16 * section) + 8;
-	region->length = 10;
+	region->offset = 64;
+	region->length = 64;
 
 	return 0;
 }
@@ -43,11 +43,11 @@ static int c5fxgm_ooblayout_ecc(struct mtd_info *mtd, int section,
 static int c5fxgm_ooblayout_free(struct mtd_info *mtd, int section,
 				 struct mtd_oob_region *region)
 {
-	if (section > 3)
+	if (section)
 		return -ERANGE;
 
-	region->offset = (16 * section) + 2;
-	region->length = 4;
+	region->offset = 1;
+	region->length = 63;
 
 	return 0;
 }
