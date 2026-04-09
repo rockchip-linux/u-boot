@@ -318,6 +318,7 @@ static const struct udevice_id rockchip_keylad_ids[] = {
 	{
 		.compatible = "rockchip,keylad",
 	},
+	{}
 };
 
 U_BOOT_DRIVER(rockchip_keylad) = {
