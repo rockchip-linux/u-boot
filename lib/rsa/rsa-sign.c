@@ -705,6 +705,18 @@ static void rsa_convert_big_endian(uint32_t *dst, const uint32_t *src,
 		dst[i] = fdt32_to_cpu(src[total_wd - 1 - i]);
 }
 
+static int rsa_get_or_create_subnode(void *keydest, int parent,
+				     const char *name)
+{
+	int noffset;
+
+	noffset = fdt_subnode_offset(keydest, parent, name);
+	if (noffset == -FDT_ERR_NOTFOUND)
+		noffset = fdt_add_subnode(keydest, parent, name);
+
+	return noffset;
+}
+
 static int rsa_set_key_hash(void *keydest, int key_node,
 			    int key_len, const char *csum_algo)
 {
@@ -737,7 +749,7 @@ static int rsa_set_key_hash(void *keydest, int key_node,
 	/* hash@c node: n, e, c */
 	c = rsa_key + CONFIG_RSA_N_SIZE + CONFIG_RSA_E_SIZE;
 	rsa_convert_big_endian(c, rsa_c, key_len, CONFIG_RSA_C_SIZE);
-	hash_node = fdt_add_subnode(keydest, key_node, hash_c);
+	hash_node = rsa_get_or_create_subnode(keydest, key_node, hash_c);
 	if (hash_node < 0)
 		goto err_nospc;
 	ret = calculate_hash(rsa_key, key_len * 3, csum_algo, value, &value_len);
@@ -753,7 +765,7 @@ static int rsa_set_key_hash(void *keydest, int key_node,
 	/* hash@np node: n, e, np */
 	np = rsa_key + CONFIG_RSA_N_SIZE + CONFIG_RSA_E_SIZE;
 	rsa_convert_big_endian(np, rsa_np, key_len, CONFIG_RSA_C_SIZE);
-	hash_node = fdt_add_subnode(keydest, key_node, hash_np);
+	hash_node = rsa_get_or_create_subnode(keydest, key_node, hash_np);
 	if (hash_node < 0)
 		goto err_nospc;
 
