@@ -91,6 +91,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define VCCIO0_IOC_GPIO1A_IOMUX_SEL_0	0x00020
 #define VCCIO0_IOC_GPIO1A_IOMUX_SEL_1	0x00024
 #define VCCIO0_IOC_GPIO1B_IOMUX_SEL_0	0x00028
+#define VCCIO0_3_IOC_GPIO1A_DS_0	0x00120
+#define VCCIO0_3_IOC_GPIO1A_DS_1	0x00124
+#define VCCIO0_3_IOC_GPIO1B_DS_0	0x00128
 
 #define VCCIO1_2_4_IOC_BASE		0x26084000
 #define VCCIO1_IOC_GPIO2A_IOMUX_SEL_0	0x00040
@@ -404,6 +407,18 @@ int arch_cpu_init(void)
 	/* Enabled SDMMC iomux in default except FSPI1_M0 boot */
 	if (readl(VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_IOMUX_SEL_0) != 0x1111)
 		board_set_iomux(UCLASS_MMC, 1, 0);
+
+	/* Set the EMMC IO drive strength when the IOMUX is configured for EMMC. */
+	if (readl(VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1A_IOMUX_SEL_0) == 0x1111) {
+		/*
+		 * set the emmc io drive strength:
+		 * data and cmd: 50ohm
+		 * clock: 35ohm
+		 */
+		writel(0x77772222, VCCIO0_3_IOC_BASE + VCCIO0_3_IOC_GPIO1A_DS_0);
+		writel(0x77772222, VCCIO0_3_IOC_BASE + VCCIO0_3_IOC_GPIO1A_DS_1);
+		writel(0x07770242, VCCIO0_3_IOC_BASE + VCCIO0_3_IOC_GPIO1B_DS_0);
+	}
 #endif
 
 #if defined(CONFIG_UFS)
