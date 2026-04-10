@@ -2282,7 +2282,7 @@ static int __maybe_unused rk3572_dclk_vop_set_parent(struct clk *clk,
 			     sel << DCLK0_VOP_SRC_SEL_SHIFT);
 		break;
 	case DCLK_VP0:
-		if (!strcmp(clock_dev_name, "clk_hdmiphy_pixel0"))
+		if (!strcmp(clock_dev_name, "hdmiphypll_clk0"))
 			sel = 1;
 		else
 			sel = 0;
@@ -2290,7 +2290,7 @@ static int __maybe_unused rk3572_dclk_vop_set_parent(struct clk *clk,
 			     sel << DCLK0_VOP_SEL_SHIFT);
 		break;
 	case DCLK_VP1:
-		if (!strcmp(clock_dev_name, "clk_hdmiphy_pixel0"))
+		if (!strcmp(clock_dev_name, "hdmiphypll_clk0"))
 			sel = 1;
 		else
 			sel = 0;
