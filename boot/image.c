@@ -14,7 +14,6 @@
 #include <log.h>
 #include <malloc.h>
 #include <u-boot/crc.h>
-#include <u-boot/lz4.h>
 
 #ifdef CONFIG_SHOW_BOOT_PROGRESS
 #include <status_led.h>
@@ -65,6 +64,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #include <lzma/LzmaDec.h>
 #include <lzma/LzmaTools.h>
 #include <u-boot/crc.h>
+
+int ulz4fn(const void *src, size_t srcn, void *dst, size_t *dstn);
 
 static const table_entry_t uimage_arch[] = {
 	{	IH_ARCH_INVALID,	"invalid",	"Invalid ARCH",	},
