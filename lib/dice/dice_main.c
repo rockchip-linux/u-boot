@@ -515,6 +515,7 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 	struct blk_desc *desc;
 	struct vendor_boot_img_hdr_v34 *vboot_hdr = NULL;
 	struct andr_img_hdr *hdr = NULL;
+	char *boot_cmdline = NULL;
 	const char *cmdline = NULL;
 	uint8_t android_version;
 	uint8_t widevine_version;
@@ -537,6 +538,7 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 		return -ENODEV;
 	}
 
+	/* Relation: GKI must be enabled when DICE=y, but GKI=y not require DICE=y */
 	if (part_get_info_by_name(desc, PART_VENDOR_BOOT, &part) > 0) {
 		blkcnt = DIV_ROUND_UP(sizeof(*vboot_hdr), desc->blksz);
 		vboot_hdr = memalign(ARCH_DMA_MINALIGN, blkcnt * desc->blksz);
@@ -544,8 +546,9 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 			return -ENOMEM;
 		if (blk_dread(desc, part.start, blkcnt, vboot_hdr) == blkcnt &&
 		    !memcmp(vboot_hdr->magic, VENDOR_BOOT_MAGIC,
-			    VENDOR_BOOT_MAGIC_SIZE))
+			    VENDOR_BOOT_MAGIC_SIZE)) {
 			cmdline = (const char *)vboot_hdr->cmdline;
+		}
 	}
 
 	if (!cmdline && part_get_info_by_name(desc, PART_BOOT, &part) > 0) {
@@ -556,8 +559,20 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 			goto out;
 		}
 		if (blk_dread(desc, part.start, blkcnt, hdr) == blkcnt &&
-		    !memcmp(hdr->magic, ANDR_BOOT_MAGIC, ANDR_BOOT_MAGIC_SIZE))
-			cmdline = hdr->cmdline;
+		    !memcmp(hdr->magic, ANDR_BOOT_MAGIC, ANDR_BOOT_MAGIC_SIZE)) {
+			size_t cmdline_len = strlen(hdr->cmdline);
+			size_t extra_len = strlen(hdr->extra_cmdline);
+
+			boot_cmdline = malloc(cmdline_len + extra_len + 1);
+			if (!boot_cmdline) {
+				ret = -ENOMEM;
+				goto out;
+			}
+
+			strcpy(boot_cmdline, hdr->cmdline);
+			strcpy(boot_cmdline + cmdline_len, hdr->extra_cmdline);
+			cmdline = boot_cmdline;
+		}
 	}
 	if (!cmdline) {
 		printf("Dice: Can't find boot and vendor_boot cmdline\n");
@@ -568,10 +583,10 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 #ifdef DICE_STATIC_PROFILE
 	cmdline = DICE_STATIC_PROFILE;
 #endif
-	debug("Dice: cmdline: %s\n", cmdline);
+	debug("Dice: %s cmdline: %s\n", part.name, cmdline);
 	if (!strstr(cmdline, needle)) {
-		printf("Dice: Can't find '%s' in cmdline !\n", needle);
-		printf("Dice: cmdline: %s\n", cmdline);
+		printf("Dice: Can't find '%s' in %s cmdline !\n", needle, part.name);
+		printf("Dice: %s cmdline: %s\n", part.name, cmdline);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -603,6 +618,7 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 	printf("DICE: %s\n", DiceCtx->profile_name);
 
 out:
+	free(boot_cmdline);
 	free(vboot_hdr);
 	free(hdr);
 	return ret;
