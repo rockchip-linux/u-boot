@@ -36,6 +36,8 @@
 #define OTPC_USE_USER_MASK		GENMASK(16, 16)
 #define OTPC_USER_FSM_ENABLE		BIT(0)
 #define OTPC_USER_FSM_ENABLE_MASK	GENMASK(16, 16)
+#define OTPC_LOCK			BIT(0)
+#define OTPC_LOCK_MASK			GENMASK(16, 16)
 #define OTPC_SBPI_DONE			BIT(1)
 #define OTPC_USER_DONE			BIT(2)
 
@@ -90,13 +92,14 @@
 #define RV1126_OTP_NVM_RDATA		0x24
 #define RV1126_OTP_READ_ST		0x30
 
-#define RK3538_OTPC_SBPI_CTRL		0x01f8
-#define RK3538_OTPC_SBPI_CMD_VALID_PRE	0x02c0
-#define RK3538_OTPC_USER_CTRL		0x00e4
-#define RK3538_OTPC_USER_ADDR		0x01d8
-#define RK3538_OTPC_USER_ENABLE		0x00ac
-#define RK3538_OTPC_USER_Q		0x02d8
-#define RK3538_OTPC_INT_STATUS		0x016c
+#define RK3538_OTPC_SBPI_CTRL           0x01f8
+#define RK3538_OTPC_SBPI_CMD_VALID_PRE  0x02c0
+#define RK3538_OTPC_USER_CTRL           0x00e4
+#define RK3538_OTPC_USER_ADDR           0x01d8
+#define RK3538_OTPC_USER_ENABLE         0x00ac
+#define RK3538_OTPC_USER_Q              0x02d8
+#define RK3538_OTPC_INT_STATUS          0x016c
+#define RK3538_OTPC_LOCK_CTRL           0x01C4
 
 struct rockchip_otp_plat {
 	void __iomem *base;
@@ -221,12 +224,12 @@ static int rockchip_rk3538_otp_read(struct udevice *dev, int offset,
 				    void *buf, int size)
 {
 	struct rockchip_otp_plat *otp = dev_get_plat(dev);
-	u16 *buffer = buf;
-	int user_off = offset >> 1;
-	int NeedEcc = false;
+	u8 *out_buf = buf;
 	int ret;
+	int i;
+	bool NeedEcc = false;
 
-	/* disable ecc */
+	writel(OTPC_LOCK | OTPC_LOCK_MASK, otp->base + RK3538_OTPC_LOCK_CTRL);
 	writel(0x02 << 8 | 0xff << (16 + 8), otp->base + RK3538_OTPC_SBPI_CTRL);
 	writel(0xffff0001, otp->base + RK3538_OTPC_SBPI_CMD_VALID_PRE);
 	writel(0xfa, otp->base + OTPC_SBPI_CMD0_OFFSET);
@@ -240,15 +243,22 @@ static int rockchip_rk3538_otp_read(struct udevice *dev, int offset,
 	ret = rockchip_otp_poll_timeout(otp, OTPC_SBPI_DONE,
 					RK3538_OTPC_INT_STATUS);
 	if (ret) {
-		printf("%s timeout during ecc disable\n", __func__);
-		goto read_end;
+		printf("%s timeout during ecc config\n", __func__);
+		goto unlock;
 	}
 
-	writel(OTPC_USE_USER | OTPC_USE_USER_MASK, otp->base + RK3538_OTPC_USER_CTRL);
+	writel(OTPC_USE_USER | OTPC_USE_USER_MASK,
+	       otp->base + RK3538_OTPC_USER_CTRL);
 	udelay(5);
 
-	while (size--) {
-		writel(user_off++ | OTPC_USER_ADDR_MASK,
+	for (i = 0; i < size; i++) {
+		int byte_offset = offset + i;
+		int hw_addr = byte_offset >> 1; /* hw_addr: half word addr */
+		int byte_in_hw = byte_offset & 1;
+		u32 reg_val;
+		u8 byte_val;
+
+		writel(hw_addr | OTPC_USER_ADDR_MASK,
 		       otp->base + RK3538_OTPC_USER_ADDR);
 
 		writel(OTPC_USER_FSM_ENABLE | OTPC_USER_FSM_ENABLE_MASK,
@@ -257,15 +267,25 @@ static int rockchip_rk3538_otp_read(struct udevice *dev, int offset,
 		ret = rockchip_otp_poll_timeout(otp, OTPC_USER_DONE,
 						RK3538_OTPC_INT_STATUS);
 		if (ret) {
-			printf("%s timeout during ns_otp read\n", __func__);
-			goto read_end;
+			printf("%s timeout reading byte %d\n", __func__,
+			       byte_offset);
+			goto disable_user;
 		}
 
-		*buffer++ = (u16)(readl(otp->base + RK3538_OTPC_USER_Q) & 0xFFFF);
+		reg_val = readl(otp->base + RK3538_OTPC_USER_Q) & 0xFFFF;
+
+		if (byte_in_hw == 0)
+			byte_val = reg_val & 0xFF;
+		else
+			byte_val = (reg_val >> 8) & 0xFF;
+
+		out_buf[i] = byte_val;
 	}
 
-read_end:
-	writel(0x0 | OTPC_USE_USER_MASK, otp->base + OTPC_USER_CTRL);
+disable_user:
+	writel(0x0 | OTPC_USE_USER_MASK, otp->base + RK3538_OTPC_USER_CTRL);
+unlock:
+	writel(OTPC_LOCK_MASK, otp->base + RK3538_OTPC_LOCK_CTRL);
 
 	return ret;
 }
