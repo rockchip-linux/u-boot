@@ -143,6 +143,19 @@ static struct list_head *kernel_dtb_get_insert_head(struct uclass *uc)
 	return uc->u_boot_dev_head;
 }
 
+static int bind_after_uboot_dev(const char *drv_name,
+				 const char *uc_drv_name[], int count)
+{
+	int i;
+
+	for (i = 0; i < count; i++) {
+		if (!strcmp(drv_name, uc_drv_name[i]))
+			return 0;
+	}
+
+	return 1;
+}
+
 void kernel_dtb_device_bind(struct uclass *uc, struct udevice *dev,
 			    const struct driver *drv, int *after_u_boot_dev)
 {
@@ -172,13 +185,17 @@ void kernel_dtb_device_bind(struct uclass *uc, struct udevice *dev,
 		UCLASS_ADC,		/* ADC for Button */
 		UCLASS_BUTTON,		/* Button */
 		UCLASS_FIRMWARE,	/* psci sysreset */
-		UCLASS_MISC,		/* RSA/Crypto... security */
+		UCLASS_MISC,		/* RSA/Crypto... security; otp/efuse */
 		UCLASS_RNG,		/* ramdom number */
 		UCLASS_SYSCON,		/* grf, pmugrf */
 		UCLASS_SYSRESET,	/* psci sysreset */
 		UCLASS_TPM,		/* Security */
 		UCLASS_TEE,		/* optee */
 		UCLASS_WDT,		/* reliable sysreset */
+	};
+	const char *misc_drv_before_uboot[] = {
+		"rockchip_otp",
+		"rockchip_efuse",
 	};
 
 	if (gd->flags & GD_FLG_KDTB_READY) {
@@ -188,7 +205,10 @@ void kernel_dtb_device_bind(struct uclass *uc, struct udevice *dev,
 
 		for (i = 0; i < ARRAY_SIZE(prior_u_boot_uclass_id); i++) {
 			if (drv->id == prior_u_boot_uclass_id[i]) {
-				*after_u_boot_dev = 1;
+				*after_u_boot_dev =
+					bind_after_uboot_dev(drv->name,
+						misc_drv_before_uboot,
+						ARRAY_SIZE(misc_drv_before_uboot));
 				break;
 			}
 		}
