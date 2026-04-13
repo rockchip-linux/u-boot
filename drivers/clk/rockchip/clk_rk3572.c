@@ -2479,6 +2479,13 @@ static int rk3572_clk_probe(struct udevice *dev)
 	       RK3572_CRU_BASE + RK3572_BIGCORE_CLKSEL_CON(1));
 	writel(BITS_WITH_WMASK(0, 0x1fU, 0),
 	       RK3572_CRU_BASE + RK3572_BIGCORE_CLKSEL_CON(1));
+
+	/* clk_extref_timeout_src_div = 256 */
+	writel(BITS_WITH_WMASK(0xff, 0xffU, 4),
+	       RK3572_CRU_BASE + RK3572_CLKSEL_CON(19));
+	/* clk_extref_timeout_128div_div = 256 */
+	writel(BITS_WITH_WMASK(0xff, 0x3ffU, 6),
+	       RK3572_CRU_BASE + RK3572_CLKSEL_CON(20));
 #endif
 
 	rk3572_clk_init(priv);
