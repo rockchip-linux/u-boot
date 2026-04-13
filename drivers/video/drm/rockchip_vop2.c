@@ -261,6 +261,7 @@
 
 #define RK3568_SYS_CTRL_LINE_FLAG0		0x70
 #define LINE_FLAG_NUM_MASK			0x1fff
+#define RK3572_LINE_FLAG_NUM_MASK		0x7fff
 #define RK3568_DSP_LINE_FLAG_NUM0_SHIFT		0
 #define RK3568_DSP_LINE_FLAG_NUM1_SHIFT		16
 
@@ -6422,9 +6423,9 @@ static int rockchip_vop2_init(struct display_state *state)
 	}
 
 	if (vop2->version >= VOP_VERSION_RK3572) {
-		vop2_mask_write(vop2, RK3572_VP0_POST_LINE_FLAG + vp_offset, LINE_FLAG_NUM_MASK,
+		vop2_mask_write(vop2, RK3572_VP0_POST_LINE_FLAG + vp_offset, RK3572_LINE_FLAG_NUM_MASK,
 				RK3568_DSP_LINE_FLAG_NUM0_SHIFT, act_end, false);
-		vop2_mask_write(vop2, RK3572_VP0_POST_LINE_FLAG + vp_offset, LINE_FLAG_NUM_MASK,
+		vop2_mask_write(vop2, RK3572_VP0_POST_LINE_FLAG + vp_offset, RK3572_LINE_FLAG_NUM_MASK,
 				RK3568_DSP_LINE_FLAG_NUM1_SHIFT, act_end, false);
 	} else {
 		vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
