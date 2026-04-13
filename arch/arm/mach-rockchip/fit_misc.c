@@ -8,15 +8,17 @@
 #include <malloc.h>
 #include <console.h>
 #include <gzip.h>
+#include <image.h>
 #include <misc.h>
 #ifdef CONFIG_SPL_BUILD
 #include <spl.h>
 #endif
+#include <tee.h>
+#include <tee/optee.h>
 #include <asm/global_data.h>
 #include <asm/arch-rockchip/atags.h>
 #include <asm/arch-rockchip/common.h>
 #include <lzma/LzmaTools.h>
-#include <tee/optee.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -293,9 +295,7 @@ int fit_board_verify_required_sigs(void)
 
 #endif /* CONFIG_IS_ENABLED(FIT) */
 
-
-#ifdef CONFIG_FIT_ROLLBACK_PROTECT
-
+#if defined(CONFIG_FIT_ROLLBACK_PROTECT) && !defined(CONFIG_SPL_BUILD)
 #define FIT_ROLLBACK_INDEX_LOCATION     0x66697472      /* "fitr" */
 
 int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
@@ -303,7 +303,6 @@ int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
 #ifdef CONFIG_OPTEE
 	u64 index;
 	int ret;
-
 
 	ret = optee_read_rollback_index(FIT_ROLLBACK_INDEX_LOCATION, &index);
 	if (ret) {
@@ -333,7 +332,4 @@ int fit_write_optee_rollback_index(u32 optee_index)
 	return 0;
 #endif
 }
-
-
 #endif
-
