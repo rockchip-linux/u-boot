@@ -167,6 +167,34 @@ static int validate_gpt_entries(gpt_header *gpt_h, gpt_entry *gpt_e)
 	return 0;
 }
 
+#ifdef CONFIG_SPL_BUILD
+static void spl_fix_factory_gpt_partition_ending_lba(gpt_header *pgpt_head,
+						     gpt_entry *pgpt_pte)
+{
+	int i;
+	uint32_t calc_crc32;
+	u64 last_usable_lba = le64_to_cpu(pgpt_head->last_usable_lba);
+	u32 entry_count = le32_to_cpu(pgpt_head->num_partition_entries);
+	u32 entry_size = le32_to_cpu(pgpt_head->sizeof_partition_entry);
+
+	/* Fix last partition ending_lba for SPI NAND factory mode. */
+	for (i = 0; i < entry_count; i++) {
+		if (pgpt_pte[i].starting_lba == 0)
+			break;
+	}
+
+	if (i == 0 || le64_to_cpu(pgpt_pte[i - 1].ending_lba) <= last_usable_lba)
+		return;
+
+	pgpt_pte[i - 1].ending_lba = cpu_to_le64(last_usable_lba);
+	calc_crc32 = efi_crc32((const unsigned char *)pgpt_pte,
+			       entry_count * entry_size);
+	pgpt_head->partition_entry_array_crc32 = cpu_to_le32(calc_crc32);
+	printf("GPT: SPL fix ending_lba to 0x%llx\n",
+	       (unsigned long long)last_usable_lba);
+}
+#endif
+
 static void prepare_backup_gpt_header(gpt_header *gpt_h)
 {
 	uint32_t calc_crc32;
@@ -1230,6 +1258,10 @@ static int is_gpt_valid(struct blk_desc *dev_desc, u64 lba,
 		printf("GPT: Failed to allocate memory for PTE\n");
 		return 0;
 	}
+
+#ifdef CONFIG_SPL_BUILD
+	spl_fix_factory_gpt_partition_ending_lba(pgpt_head, *pgpt_pte);
+#endif
 
 	if (validate_gpt_entries(pgpt_head, *pgpt_pte)) {
 		free(*pgpt_pte);
