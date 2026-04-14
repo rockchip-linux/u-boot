@@ -69,7 +69,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 __weak int soc_id_init(void) { return 0; }
-__weak int clk_cpu_raise(void) { return 0; }
+__weak int set_armclk_rate(void) { return 0; }
 __weak int rk_board_fdt_fixup(void *blob) { return 0; }
 __weak int rk_board_dm_fdt_fixup(void *blob) { return 0; }
 __weak int rk_board_init(void) { return 0; }
@@ -254,7 +254,7 @@ int board_init(void)
 	io_domain_init();
 #endif
 #ifdef CONFIG_CLK
-	clk_cpu_raise();
+	set_armclk_rate();
 #endif
 #ifdef CONFIG_DM_DVFS
 	dvfs_init(true);
