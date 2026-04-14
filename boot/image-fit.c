@@ -2436,8 +2436,9 @@ int fit_image_load_index(struct bootm_headers *images, ulong addr,
 #endif
 #endif
 		/* perform any post-processing on the image data */
-		board_fit_image_post_process((void *)fit, noffset,
-					     &load, (ulong **)&buf, &size, NULL);
+		if (board_fit_image_post_process((void *)fit, noffset, &load,
+						 (ulong **)&buf, &size, NULL))
+			return -EINVAL;
 	}
 
 	len = (ulong)size;

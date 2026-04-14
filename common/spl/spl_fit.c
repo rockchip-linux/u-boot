@@ -463,9 +463,11 @@ static int load_simple_fit(struct spl_load_info *info, ulong fit_offset,
 					length))
 		return -EPERM;
 
-	if (CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS))
-		board_fit_image_post_process((void *)fit, node, (ulong *)&load_addr,
-					     (ulong **)&src, &length, info);
+	if (CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS)) {
+		if (board_fit_image_post_process((void *)fit, node, (ulong *)&load_addr,
+						 (ulong **)&src, &length, info))
+			return -EINVAL;
+	}
 	puts("OK\n");
 
 	load_ptr = map_sysmem(load_addr, length);

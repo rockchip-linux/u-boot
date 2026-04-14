@@ -2131,8 +2131,8 @@ int board_fit_config_name_match(const char *name);
  * @size: pointer to the image size
  * Return: no return value (failure should be handled internally)
  */
-void board_fit_image_post_process(void *fit, int node, ulong *load_addr,
-				  ulong **src_addr, size_t *size, void *spec);
+int board_fit_image_post_process(void *fit, int node, ulong *load_addr,
+				 ulong **src_addr, size_t *size, void *spec);
 
 #define FDT_ERROR	((ulong)(-1))
 
