@@ -99,6 +99,13 @@ config SYSRESET_OCTEON
 	  This enables the system reset driver support for Marvell Octeon
 	  SoCs.
 
+config SYSRESET_RK8XX
+	bool "Enable support for RK8xx PMIC System Reset"
+	depends on PMIC_RK8XX && SYSRESET
+	help
+	  Enable system reset support for Rockchip RK8xx series PMICs
+	  (including RK805b, RK809, RK817, etc.).
+
 config SYSRESET_AT91
 	bool "Enable support for Microchip/Atmel reset driver"
 	depends on ARCH_AT91

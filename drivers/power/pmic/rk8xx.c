@@ -233,6 +233,11 @@ static const struct pmic_child_info rk817_codec_info[] = {
 	{ },
 };
 
+static const struct pmic_child_info rk8xx_sysreset_info[] = {
+	{ .prefix = "uboot,sysreset-rk8xx", .driver = "sysreset-rk8xx"},
+	{ },
+};
+
 static int rk8xx_reg_count(struct udevice *dev)
 {
 	struct rk8xx_priv *priv = dev_get_priv(dev);
@@ -553,6 +558,10 @@ static int rk8xx_bind(struct udevice *dev)
 		debug("%s: %s - no child found\n", __func__, dev->name);
 
 	children = pmic_bind_children(dev, dev->node_, rk817_codec_info);
+	if (!children)
+		debug("%s: %s - no child found\n", __func__, dev->name);
+
+	children = pmic_bind_children(dev, dev->node_, rk8xx_sysreset_info);
 	if (!children)
 		debug("%s: %s - no child found\n", __func__, dev->name);
 

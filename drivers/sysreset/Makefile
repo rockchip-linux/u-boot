@@ -16,6 +16,7 @@ obj-$(CONFIG_SYSRESET_MICROBLAZE) += sysreset_microblaze.o
 obj-$(CONFIG_SYSRESET_OCTEON) += sysreset_octeon.o
 obj-$(CONFIG_$(PHASE_)SYSRESET_PALMAS) += sysreset_palmas.o
 obj-$(CONFIG_$(PHASE_)SYSRESET_PSCI) += sysreset_psci.o
+obj-$(CONFIG_$(PHASE_)SYSRESET_RK8XX) += sysreset_rk8xx.o
 obj-$(CONFIG_SYSRESET_SBI) += sysreset_sbi.o
 obj-$(CONFIG_SYSRESET_SOCFPGA) += sysreset_socfpga.o
 obj-$(CONFIG_SYSRESET_SOCFPGA_SOC64) += sysreset_socfpga_soc64.o
