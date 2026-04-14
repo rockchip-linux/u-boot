@@ -1208,11 +1208,10 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 
 	/*
 	 * Booting a next-stage U-Boot may require us to append the FDT.
-	 * We allow this to fail, as the U-Boot image might embed its FDT.
 	 */
 	if (os_takes_devicetree(spl_image->os)) {
 		ret = spl_fit_append_fdt(spl_image, info, offset, &ctx);
-		if (ret < 0 && spl_image->os != IH_OS_U_BOOT)
+		if (ret < 0)
 			return ret;
 	}
 
@@ -1265,7 +1264,9 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 #elif CONFIG_IS_ENABLED(OPTEE_IMAGE)
 			spl_image->entry_point_os = image_info.load_addr;
 #endif
-			spl_fit_append_fdt(&image_info, info, offset, &ctx);
+			ret = spl_fit_append_fdt(&image_info, info, offset, &ctx);
+			if (ret < 0)
+				return ret;
 			spl_image->fdt_addr = image_info.fdt_addr;
 		}
 
