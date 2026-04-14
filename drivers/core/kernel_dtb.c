@@ -13,6 +13,9 @@
 #include <dm/root.h>
 #include <of_live.h>
 #include <memalign.h>
+#ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
+#include <asm/arch-rockchip/resource.h>
+#endif
 
 #ifdef CONFIG_SYSMEM
 /**
@@ -93,6 +96,41 @@ static int kernel_dtb_build(const void *blob)
 
 	return boot_fdt_add_sysmem_rsv_regions((void *)gd->fdt_blob);
 }
+
+#ifdef CONFIG_EMBED_KERNEL_DTB
+static void *embedded_kdtb(void)
+{
+	const void *fdt_blob_kern = gd->fdt_blob_kern;
+	void *fdt_addr;
+
+	printf("Embed: %s\n", CONFIG_EMBED_KERNEL_DTB_PATH);
+
+	/*
+	 * Alloc another space for this embed kernel dtb.
+	 * Because "fdt_addr_r" *MUST* be the fdt passed to kernel.
+	 */
+	fdt_addr = memalign(ARCH_DMA_MINALIGN, SZ_512K);
+	if (!fdt_addr)
+		return NULL;
+
+	/* dtb file ? */
+	if (!fdt_check_header(fdt_blob_kern)) {
+		memcpy(fdt_addr, fdt_blob_kern, fdt_totalsize(fdt_blob_kern));
+	} else {
+		/* resource file ? */
+		resource_read_ram_dtb((void *)fdt_blob_kern, fdt_addr);
+	}
+
+	if (!fdt_check_header(fdt_addr)) {
+		printf("Embed kfdt: 0x%08lx\n", (ulong)fdt_addr);
+		return fdt_addr;
+	}
+
+	free(fdt_addr);
+
+	return NULL;
+}
+#endif
 
 struct device_node *kernel_dtb_lookup_phandle(phandle handle)
 {
@@ -257,21 +295,11 @@ int kernel_dtb_init(void)
 #ifdef CONFIG_EMBED_KERNEL_DTB_ALWAYS
 dtb_embed:
 #endif
-	if (gd->fdt_blob_kern) {
-		fdt_addr = memalign(ARCH_DMA_MINALIGN, fdt_totalsize(gd->fdt_blob_kern));
-		if (!fdt_addr)
-			return -ENOMEM;
-
-		/*
-		 * Alloc another space for this embed kernel dtb.
-		 * Because "fdt_addr_r" *MUST* be the fdt passed to kernel.
-		 */
-		memcpy(fdt_addr, gd->fdt_blob_kern,
-		       fdt_totalsize(gd->fdt_blob_kern));
-		printf("DTB: %s\n", CONFIG_EMBED_KERNEL_DTB_PATH);
-	} else
+	fdt_addr = embedded_kdtb();
+	if (!fdt_addr || fdt_check_header((void *)fdt_addr))
 #endif
 	{
+		gd->fdt_blob_kern = NULL;
 		printf("Failed to get kernel dtb, ret=%d\n", ret);
 		return -ENOENT;
 	}
@@ -288,4 +316,3 @@ __weak int board_kernel_dtb_read(void *fdt)
 {
 	return -ENOSYS;
 }
-

@@ -1730,8 +1730,6 @@ int fdtdec_setup(void)
 #ifdef CONFIG_DM_KERNEL_DTB
 			gd->fdt_blob_kern = (ulong *)ALIGN((ulong)gd->fdt_blob +
 						fdt_totalsize(gd->fdt_blob), 8);
-			if (fdt_check_header(gd->fdt_blob_kern))
-				gd->fdt_blob_kern = NULL;
 #endif
 		} else { /* embed dtb in ELF file for testing / development */
 			fdtdec_setup_embed();

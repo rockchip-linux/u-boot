@@ -610,22 +610,13 @@ static int reserve_fdt(void)
 		 * section, then it will be relocated with other data.
 		 */
 		if (gd->fdt_blob) {
-			u32 extra_size = 0;
-
-			if (gd->fdt_blob_kern)
-				extra_size = fdt_totalsize(gd->fdt_blob_kern);
-
 			gd->boardf->fdt_size =
-				ALIGN(fdt_totalsize(gd->fdt_blob) + extra_size + 0x1000, 32);
+				ALIGN(fdt_totalsize(gd->fdt_blob) + 0x1000, 32);
 
 			gd->start_addr_sp = reserve_stack_aligned(
 				gd->boardf->fdt_size);
 			gd->boardf->new_fdt = map_sysmem(gd->start_addr_sp,
 							 gd->boardf->fdt_size);
-
-			if (gd->fdt_blob_kern)
-				gd->fdt_blob_kern = (ulong *)ALIGN((ulong)gd->boardf->new_fdt +
-						fdt_totalsize(gd->fdt_blob), 8);
 
 			debug("Reserving %lu Bytes for FDT at: %08lx\n",
 			      gd->boardf->fdt_size, gd->start_addr_sp);
