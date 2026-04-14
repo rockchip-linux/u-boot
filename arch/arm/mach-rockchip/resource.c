@@ -243,7 +243,9 @@ static int resource_setup_list(struct blk_desc *desc, ulong blk_start,
 				  et->hash, et->hash_size, in_ram);
 	}
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
-	resource_setup_logo_bmp(desc);
+	/* For embedded resource.img file, we don't have a valid 'desc' */
+	if (desc->uclass_id != UCLASS_INVALID)
+		resource_setup_logo_bmp(desc);
 #endif
 	return 0;
 }
@@ -368,16 +370,17 @@ static int resource_default(struct blk_desc *desc,
 
 static int resource_scan(void)
 {
-	struct blk_desc *desc = plat_bootdev();
+	struct blk_desc *desc;
 	__maybe_unused int ret;
 
+	if (!list_empty(&entry_head))
+		return 0;
+
+	desc = plat_bootdev();
 	if (!desc) {
 		printf("RESC: No bootdev\n");
 		return -ENODEV;
 	}
-
-	if (!list_empty(&entry_head))
-		return 0;
 
 #ifdef CONFIG_ROCKCHIP_FIT_IMAGE
 	ret = fit_image_init_resource(desc);
@@ -437,13 +440,11 @@ static struct resource_file *resource_get_file(const char *name)
 
 int resource_read_file(void *buf, const char *name, int blk_offset, int len)
 {
-	struct blk_desc *desc = plat_bootdev();
+	struct blk_desc *desc;
 	struct resource_file *f;
 	int blk_cnt;
+	int blksz;
 	ulong pos;
-
-	if (!desc)
-		return -ENODEV;
 
 	f = resource_get_file(name);
 	if (!f) {
@@ -455,9 +456,14 @@ int resource_read_file(void *buf, const char *name, int blk_offset, int len)
 		len = f->size;
 
 	if (f->in_ram) {
-		pos = f->blk_start + (f->blk_offset + blk_offset) * desc->blksz;
+		blksz = desc ? desc->blksz : 512;
+		pos = f->blk_start + (f->blk_offset + blk_offset) * blksz;
 		memcpy(buf, (char *)pos, len);
 	} else {
+		desc = plat_bootdev();
+		if (!desc)
+			return -ENODEV;
+
 		blk_cnt = DIV_ROUND_UP(len, desc->blksz);
 		if (blk_dread(desc,
 			      f->blk_start + f->blk_offset + blk_offset,
@@ -522,6 +528,28 @@ int resource_read_dtb(void *fdt_addr, char **hash, int *hash_size)
 	return 0;
 }
 
+int resource_read_ram_dtb(void *resc_addr, void *fdt_addr)
+{
+	struct blk_desc desc;
+	char *hash;
+	int hash_size = 0;
+	int ret;
+
+	if (resource_check_header(resc_addr))
+		return -EINVAL;
+
+	desc.uclass_id = UCLASS_INVALID;
+	desc.blksz = 512;
+	ret = resource_setup_ram_list(&desc, resc_addr);
+	if (ret)
+		return ret;
+
+	ret = resource_read_dtb(fdt_addr, &hash, &hash_size);
+	resource_destroy();
+
+	return ret;
+}
+
 static int do_resource_dump(struct cmd_tbl *cmdtp, int flag,
 			    int argc, char *const argv[])
 {
@@ -541,4 +569,3 @@ U_BOOT_CMD(
 	"dump resource content",
 	""
 );
-

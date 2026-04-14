@@ -64,4 +64,12 @@ int resource_read_file(void *buf, const char *name, int blk_offset, int len);
  */
 int resource_read_dtb(void *fdt_addr, char **hash, int *hash_size);
 
+/*
+ * resource_read_ram_dtb() - read dtb file from a resource image in memory
+ *
+ * @resc_addr: resource image base address
+ * @fdt_addr: destination buf to store dtb file
+ */
+int resource_read_ram_dtb(void *resc_addr, void *fdt_addr);
+
 #endif
