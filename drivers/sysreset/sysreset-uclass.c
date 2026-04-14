@@ -57,16 +57,12 @@ static void sysreset_walk_prepare(const char *mode)
 	struct sysreset_ops *ops;
 	struct udevice *dev;
 
-	if (!mode)
-		return;
-
 	for (uclass_first_device(UCLASS_SYSRESET, &dev);
 	     dev;
 	     uclass_next_device(&dev)) {
 		ops = sysreset_get_ops(dev);
 		if (ops && ops->request_prepare) {
 			ops->request_prepare(dev, mode);
-			break;
 		}
 	}
 }
@@ -133,6 +129,7 @@ void sysreset_walk_halt(enum sysreset_t type)
  */
 void reset_cpu(void)
 {
+	sysreset_walk_prepare(NULL);
 	sysreset_walk_halt(SYSRESET_WARM);
 }
 
@@ -140,6 +137,7 @@ void reset_cpu(void)
 int do_reset(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	enum sysreset_t reset_type = SYSRESET_COLD;
+	const char *mode;
 
 	if (argc > 2)
 		return CMD_RET_USAGE;
@@ -147,13 +145,15 @@ int do_reset(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	if (argc == 2) {
 		if (argv[1][0] == '-' && argv[1][1] == 'w')
 			reset_type = SYSRESET_WARM;
-		else
-			sysreset_walk_prepare(argv[1]);
+		mode = argv[1];
+	} else {
+		mode = NULL;
 	}
 
 	printf("resetting ...\n");
 	mdelay(100);
 
+	sysreset_walk_prepare(mode);
 	sysreset_walk_halt(reset_type);
 
 	return 0;
