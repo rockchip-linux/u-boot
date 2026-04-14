@@ -41,7 +41,7 @@
 #define CONFIG_BOOTCOMMAND			\
 	"boot_android ${devtype} ${devnum};"	\
 	"boot_fit;"				\
-	"run distro_bootcmd;"
+	"bootflow scan -bl;"
 #endif
 
 #endif
