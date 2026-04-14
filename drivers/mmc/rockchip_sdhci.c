@@ -163,6 +163,7 @@ struct sdhci_data {
 	u8 hs400_txclk_tapnum;
 	u8 hs400_cmd_tapnum;
 	u8 hs400_strbin_tapnum;
+	u8 ddr50_strbin_delay_num;
 };
 
 #ifdef CONFIG_ROCKCHIP_RK3399
@@ -410,7 +411,7 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 		 */
 		extra = DWCMSHC_EMMC_DLL_DLYENA |
 			DLL_STRBIN_DELAY_NUM_SEL |
-			DLL_STRBIN_DELAY_NUM_DEFAULT << DLL_STRBIN_DELAY_NUM_OFFSET;
+			data->ddr50_strbin_delay_num << DLL_STRBIN_DELAY_NUM_OFFSET;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
 	}
 
@@ -688,6 +689,7 @@ static const struct sdhci_data rk3528_data = {
 	.hs400_txclk_tapnum = 0x6,
 	.hs400_cmd_tapnum = 0x6,
 	.hs400_strbin_tapnum = 0x3,
+	.ddr50_strbin_delay_num = 10,
 };
 
 static const struct sdhci_data rk3562_data = {
@@ -699,6 +701,7 @@ static const struct sdhci_data rk3562_data = {
 	.hs400_txclk_tapnum = 0x6,
 	.hs400_cmd_tapnum = 0x6,
 	.hs400_strbin_tapnum = 0x3,
+	.ddr50_strbin_delay_num = 10,
 
 };
 
@@ -711,6 +714,7 @@ static const struct sdhci_data rk3568_data = {
 	.hs400_txclk_tapnum = 0x8,
 	.hs400_cmd_tapnum = 0x8,
 	.hs400_strbin_tapnum = 0x3,
+	.ddr50_strbin_delay_num = 16,
 };
 
 static const struct sdhci_data rk3576_data = {
@@ -721,6 +725,7 @@ static const struct sdhci_data rk3576_data = {
 	.hs400_txclk_tapnum = 0x7,
 	.hs400_cmd_tapnum = 0x7,
 	.hs400_strbin_tapnum = 0x5,
+	.ddr50_strbin_delay_num = 10,
 };
 
 static const struct sdhci_data rk3588_data = {
@@ -732,6 +737,7 @@ static const struct sdhci_data rk3588_data = {
 	.hs400_txclk_tapnum = 0x9,
 	.hs400_cmd_tapnum = 0x8,
 	.hs400_strbin_tapnum = 0x3,
+	.ddr50_strbin_delay_num = 16,
 };
 
 static const struct udevice_id sdhci_ids[] = {
