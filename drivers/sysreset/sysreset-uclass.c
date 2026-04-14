@@ -136,14 +136,6 @@ void reset_cpu(void)
 	sysreset_walk_halt(SYSRESET_WARM);
 }
 
-void reboot(const char *mode)
-{
-	if (mode) {
-		sysreset_walk_prepare(mode);
-	}
-	sysreset_walk_halt(SYSRESET_COLD);
-}
-
 #if IS_ENABLED(CONFIG_SYSRESET_CMD_RESET)
 int do_reset(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
