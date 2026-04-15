@@ -212,6 +212,7 @@ enum {
 #define RK8XX_ID_MSK	0xfff0
 
 #define RK817_PMIC_CHRG_TERM	0xe6
+#define RK817_PMIC_SYS_STS	0xf0
 #define RK817_PMIC_SYS_CFG1	0xf1
 #define RK817_PMIC_SYS_CFG3	0xf4
 #define RK817_GPIO_INT_CFG	0xfe
@@ -420,6 +421,8 @@ enum rk806_reg_id {
 #define RK817_IRQ_PWRON_RISE_MSK	BIT(1)
 #define RK817_IRQ_PLUG_OUT_MSK		BIT(1)
 #define RK817_IRQ_PLUG_IN_MSK		BIT(0)
+
+#define RK817_PWRON_STS			BIT(7)
 
 struct reg_data {
 	u8 reg;
