@@ -970,7 +970,9 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		       (spl_image.next_stage == SPL_NEXT_STAGE_KERNEL ? "Kernel" : "Unknown"),
 		       (ulong)spl_image.entry_point_bl33,
 		       (ulong)spl_image.entry_point);
+#ifndef CONFIG_ARCH_ROCKCHIP
 		spl_fixup_fdt(spl_image_fdt_addr(&spl_image));
+#endif
 		jump_to_image = &spl_invoke_atf;
 	} else if (CONFIG_IS_ENABLED(OPTEE_IMAGE) &&
 		   (os == IH_OS_OP_TEE || os == IH_OS_TEE)) {
