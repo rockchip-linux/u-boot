@@ -2075,6 +2075,7 @@ config ARCH_ROCKCHIP
 	select SPL_DM_SPI_FLASH if SPL
 	select SYS_MALLOC_F
 	select SYS_THUMB_BUILD if !ARM64
+	select PANIC_HANG
 	imply DM_SPI
 	imply DM_SPI_FLASH
 	imply MMC
