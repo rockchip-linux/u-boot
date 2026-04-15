@@ -117,6 +117,7 @@ config FIT_SIGNATURE
 	select IMAGE_SIGN_INFO
 	select FIT_FULL_CHECK
 	select FIT_RSASSA_PSS
+	select CONSOLE_DISABLE_CLI
 	help
 	  This option enables signature verification of FIT uImages,
 	  using a hash signed and verified using RSA. If
