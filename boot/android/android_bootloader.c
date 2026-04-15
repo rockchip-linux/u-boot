@@ -900,7 +900,7 @@ retry_verify:
 	    (unlocked & LOCK_MASK)) {
 		int len = 0;
 		char *bootargs, *newbootargs;
-#ifdef CONFIG_AVB_ROLLBACK_INDEX_VERIFY
+#ifdef CONFIG_LIBAVB_ROLLBACK_INDEX_VERIFY
 		if (ab_update_stored_rollback_indexes_for_slot(ops, slot_data))
 			printf("Fail to update the rollback indexes.\n");
 #endif

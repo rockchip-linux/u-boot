@@ -563,7 +563,7 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 #endif
 			} else if (type == 2) {
 				/* security storage */
-#ifdef CONFIG_RK_AVB_LIBAVB_USER
+#ifdef CONFIG_LIBAVB_USER
 				debug("%s call avb_write_permanent_attributes_all %d, %d\n",
 				      __func__, vhead->id, vhead->size);
 				rc = avb_write_permanent_attributes_all(vhead->id,
@@ -574,7 +574,7 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 					return -EIO;
 				}
 #else
-				printf("Please enable CONFIG_RK_AVB_LIBAVB_USER\n");
+				printf("Please enable CONFIG_LIBAVB_USER\n");
 #endif
 			} else if (type == 3) {
 				/* efuse or otp*/
@@ -757,7 +757,7 @@ static int rkusb_do_vs_read(struct fsg_common *common)
 #endif
 		} else if (type == 2) {
 			/* security storage */
-#ifdef CONFIG_RK_AVB_LIBAVB_USER
+#ifdef CONFIG_LIBAVB_USER
 			rc = avb_read_permanent_attributes_all(vhead->id,
 						   (char __user *)data,
 						   vhead->size);
@@ -765,7 +765,7 @@ static int rkusb_do_vs_read(struct fsg_common *common)
 				return -EIO;
 			vhead->size = rc;
 #else
-			printf("Please enable CONFIG_RK_AVB_LIBAVB_USER!\n");
+			printf("Please enable CONFIG_LIBAVB_USER!\n");
 #endif
 		} else if (type == 3) {
 			/* efuse or otp*/

@@ -483,7 +483,7 @@ int avb_write_permanent_attributes_all(u16 id, void *pbuf, u16 size)
 {
 	AvbOps* ops;
 	uint8_t lock_state;
-#ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
+#ifndef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
 	sha256_context ctx;
 	uint8_t digest[SHA256_SUM_LEN] = {0};
 	uint8_t digest_temp[SHA256_SUM_LEN] = {0};
@@ -560,7 +560,7 @@ int avb_write_permanent_attributes_all(u16 id, void *pbuf, u16 size)
 			ret = -EIO;
 			goto out;
 		}
-#ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
+#ifndef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
 		memset(digest, 0, SHA256_SUM_LEN);
 		sha256_starts(&ctx);
 		sha256_update(&ctx, (const uint8_t *)pbuf,

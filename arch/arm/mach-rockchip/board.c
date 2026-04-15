@@ -473,7 +473,7 @@ void autoboot_command_fail_handle(void)
 		run_command("fastboot usb 0;", 0);
 #endif
 
-#ifdef CONFIG_AVB_VBMETA_PUBLIC_KEY_VALIDATE
+#ifdef CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE
 	run_command("download", 0);
 	run_command("fastboot usb 0;", 0);
 #endif
@@ -840,7 +840,7 @@ void fastboot_oem_board(char *cmd_parameter, void *data, u32 size, char *respons
 			fastboot_fail("Wrong lock state", response);
 		} else {
 			lock_state = 1;
-#ifdef CONFIG_AVB_ATH_UNLOCK_SUPPORT
+#ifdef CONFIG_LIBAVB_ATH_UNLOCK_SUPPORT
 			if (avb_auth_unlock((void *)CONFIG_FASTBOOT_BUF_ADDR,
 					    &out_is_trusted)) {
 				printf("avb_auth_unlock ops error!\n");

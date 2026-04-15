@@ -70,7 +70,7 @@ static bool verify_permanent_attributes(
     const AvbAtxPermanentAttributes* attributes,
     const uint8_t expected_hash[AVB_SHA256_DIGEST_SIZE]) {
   __maybe_unused uint8_t hash[AVB_SHA256_DIGEST_SIZE];
-#ifdef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
+#ifdef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
 #ifdef CONFIG_DM_CRYPTO
   u32 cap = CRYPTO_MD5 | CRYPTO_SHA1 | CRYPTO_SHA256 | CRYPTO_RSA2048;
   uint8_t rsa_hash[256] = {0};
@@ -138,7 +138,7 @@ static bool verify_permanent_attributes(
     return false;
   }
   return true;
-#endif /* CONFIG_ROCKCHIP_PRELOADER_PUB_KEY */
+#endif /* CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY */
 
   return false;
 }

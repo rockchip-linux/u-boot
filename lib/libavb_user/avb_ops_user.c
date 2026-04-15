@@ -197,9 +197,7 @@ static AvbIOResult validate_vbmeta_public_key(AvbOps *ops,
 			   size_t public_key_metadata_length,
 			   bool *out_is_trusted)
 {
-/* remain AVB_VBMETA_PUBLIC_KEY_VALIDATE to compatible legacy code */
-#if defined(CONFIG_AVB_VBMETA_PUBLIC_KEY_VALIDATE) || \
-    defined(AVB_VBMETA_PUBLIC_KEY_VALIDATE)
+#if defined(CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE)
 	if (out_is_trusted) {
 		avb_atx_validate_vbmeta_public_key(ops,
 						   public_key_data,
@@ -384,9 +382,7 @@ AvbIOResult validate_public_key_for_partition(AvbOps *ops,
 					      bool *out_is_trusted,
 					      uint32_t *out_rollback_index_location)
 {
-/* remain AVB_VBMETA_PUBLIC_KEY_VALIDATE to compatible legacy code */
-#if defined(CONFIG_AVB_VBMETA_PUBLIC_KEY_VALIDATE) || \
-    defined(AVB_VBMETA_PUBLIC_KEY_VALIDATE)
+#if defined(CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE)
 	if (out_is_trusted) {
 		avb_atx_validate_vbmeta_public_key(ops,
 						   public_key_data,
@@ -440,7 +436,7 @@ AvbIOResult avb_write_permanent_attributes(AvbAtxOps *atx_ops,
 AvbIOResult avb_read_permanent_attributes_hash(AvbAtxOps *atx_ops,
 					       uint8_t hash[AVB_SHA256_DIGEST_SIZE])
 {
-#ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
+#ifndef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
 #ifdef CONFIG_OPTEE
 	if (optee_read_attribute_hash((uint32_t *)hash,
 				       AVB_SHA256_DIGEST_SIZE / 4)) {

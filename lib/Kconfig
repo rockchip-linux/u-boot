@@ -586,7 +586,7 @@ config LIBAVB_USER
 	  image, like vbmeta, misc, and so on. And it can provide some a/b and
 	  avb information to fastboot and kernel.
 
-config AVB_VBMETA_PUBLIC_KEY_VALIDATE
+config LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE
 	bool "Support vbmeta public key validate"
 	depends on LIBAVB_USER
 	select CONSOLE_DISABLE_CLI
@@ -597,20 +597,20 @@ config AVB_VBMETA_PUBLIC_KEY_VALIDATE
 	    - enter rockusb or fastboot when boot failed;
 	    - not allow ctrl+c to enter hush;
 
-config AVB_ROLLBACK_INDEX_VERIFY
+config LIBAVB_ROLLBACK_INDEX_VERIFY
 	bool"Android AVB verify Rollback Index"
 	depends on LIBAVB
 	help
 	  If enabled, support the android verified boot rollback index.
 
-config AVB_ATH_UNLOCK_SUPPORT
+config LIBAVB_ATH_UNLOCK_SUPPORT
 	bool "Android AVB Authenticated unlock function"
 	depends on LIBAVB
 	help
 	  Enabling authenticated unlock function can prevent lock state
 	  from invalid unlock cmd.
 
-config ROCKCHIP_PRELOADER_PUB_KEY
+config LIBAVB_RK_PRELOADER_PUB_KEY
 	bool "Rockchip AVB use pre-loader public key"
 	depends on LIBAVB && ROCKCHIP_PRELOADER_ATAGS
 	help

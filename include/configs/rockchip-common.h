@@ -31,7 +31,7 @@
 	"name=rootfs,size=-,uuid="ROOT_UUID
 
 #undef CONFIG_BOOTCOMMAND
-#if defined(CONFIG_AVB_VBMETA_PUBLIC_KEY_VALIDATE)
+#if defined(CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE)
 #define CONFIG_BOOTCOMMAND			\
 	"boot_android ${devtype} ${devnum};"
 #elif defined(CONFIG_FIT_SIGNATURE)
