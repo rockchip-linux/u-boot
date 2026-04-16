@@ -67,7 +67,19 @@
 #define CONFIG_SYS_INIT_SP_ADDR		0x53000000
 #define CONFIG_SYS_LOAD_ADDR		0x53400800
 #define CONFIG_SPL_TEXT_BASE		0x40000000
+
+/*
+ * SPL support load mcu/load binary, it determines to use malloc or
+ * zero-copy policy depend on SDRAM range. See: spl_load_fit_image().
+ *
+ * zero-copy is better to avoid enlarge CONFIG_SPL_SYS_MALLOC_F_LEN, so we
+ * use a more large available region for SPL.
+ */
+#ifdef CONFIG_SPL_BUILD
+#define SDRAM_MAX_SIZE			0xc0000000UL	/* 3GB */
+#else
 #define SDRAM_MAX_SIZE			0x40000000UL	/* 1GB */
+#endif
 #define RAM_TOP				(CONFIG_SYS_SDRAM_BASE + SDRAM_MAX_SIZE)
 
 #define CONFIG_SPL_MAX_SIZE		0x00040000
