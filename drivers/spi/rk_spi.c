@@ -234,7 +234,7 @@ static int rockchip_spi_of_to_plat(struct udevice *bus)
 			priv->rsd = rsd;
 		}
 
-		debug("%s: base=%x, max-frequency=%d, deactivate_delay=%d\n rsd=%d",
+		debug("%s: base=%x, max-frequency=%d, deactivate_delay=%d, rsd=%d\n",
 		      __func__, (uint)plat->base, plat->frequency,
 		      plat->deactivate_delay_us, priv->rsd);
 	}
