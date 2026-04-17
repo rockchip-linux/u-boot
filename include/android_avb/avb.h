@@ -32,25 +32,16 @@ extern "C" {
 #define UBOOT_RB_INDEX_OFFSET		24
 #define TRUST_RB_INDEX_OFFSET		28
 #define ROCHCHIP_RSA_PARAMETER_SIZE	64
+/* write/read permanent attributes all use. */
+#define AT_PERM_ATTR_FUSE		1
+#define AT_PERM_ATTR_CER_FUSE		2
+#define AT_LOCK_VBOOT			3
 
 struct rk_pub_key {
 	u_int32_t rsa_n[ROCHCHIP_RSA_PARAMETER_SIZE];
 	u_int32_t rsa_e[ROCHCHIP_RSA_PARAMETER_SIZE];
 	u_int32_t rsa_c[ROCHCHIP_RSA_PARAMETER_SIZE];
 };
-
-/**
- * The android things defines permanent attributes to
- * store PSK_public, product id. We can use this function
- * to write them.
- *
- * @param attributes  PSK_public, product id....
- *
- * @param size        The size of attributes.
- *
- * @return 0 if the command succeeded, -1 if it failed
- */
-AvbIOResult avb_write_permanent_attributes(uint8_t *attributes, uint32_t size);
 
 /**
  * The funtion can be use to read the device state to judge
@@ -100,7 +91,7 @@ AvbIOResult avb_write_lock_state(uint8_t lock_state);
  *
  * @return 0 if the command succeeded, -1 if it failed
  */
-AvbIOResult avb_read_perm_attr_flag(uint8_t *flag);
+AvbIOResult avb_read_permanent_attributes_flag(uint8_t *flag);
 
 /**
  * The android things uses fastboot to flash the permanent attributes.
@@ -112,7 +103,7 @@ AvbIOResult avb_read_perm_attr_flag(uint8_t *flag);
  *
  * @return 0 if the command succeeded, -1 if it failed
  */
-AvbIOResult avb_write_perm_attr_flag(uint8_t flag);
+AvbIOResult avb_write_permanent_attributes_flag(uint8_t flag);
 
 /**
  * The android things require the soc-v key hash to be flashed
@@ -158,7 +149,7 @@ AvbIOResult avb_close_optee_client(void);
  *
  * @return 0 if the command succeeded, -1 if it failed
  */
-AvbIOResult avb_write_attribute_hash(uint8_t *buf, uint8_t length);
+AvbIOResult avb_write_permanent_attributes_hash(uint8_t *buf, uint8_t length);
 
 /**
  * Get the avb state
@@ -176,7 +167,7 @@ AvbIOResult avb_get_state(char *buf);
  *
  * @param size: certificate size
  */
-AvbIOResult avb_get_perm_attr_cer(uint8_t *cer, uint32_t size);
+AvbIOResult avb_get_permanent_attributes_cer(uint8_t *cer, uint32_t size);
 
 /**
  * Set permanent attribute certificate
@@ -185,7 +176,7 @@ AvbIOResult avb_get_perm_attr_cer(uint8_t *cer, uint32_t size);
  *
  * @param size: certificate size
  */
-AvbIOResult avb_set_perm_attr_cer(uint8_t *cer, uint32_t size);
+AvbIOResult avb_set_permanent_attributes_cer(uint8_t *cer, uint32_t size);
 
 /**
  * Get public key
@@ -200,6 +191,40 @@ AvbIOResult avb_get_pub_key(struct rk_pub_key *pub_key);
  * @param buffer: rollback index location
  */
 AvbIOResult avb_read_all_rollback_index(char *buffer);
+
+/**
+ * Generate unlock challenge
+ *
+ * @param buffer: unlock challenge buffer
+ * @param challenge_len: challenge length
+ */
+int avb_generate_unlock_challenge(void *buffer, uint32_t *challenge_len);
+
+/**
+ * AVB auth unlock
+ *
+ * @param buffer: unlock challenge buffer
+ * @param out_is_trusted: unlock result
+ */
+int avb_auth_unlock(void *buffer, char *out_is_trusted);
+
+/**
+ * AVB write permanent attributes set
+ *
+ * @param id: operation id
+ * @param pbuf: permanent attributes buffer
+ * @param size: permanent attributes size
+ */
+int avb_write_permanent_attributes_all(u16 id, void *pbuf, u16 size);
+
+/**
+ * AVB read permanent attributes set
+ *
+ * @param id: operation id
+ * @param pbuf: permanent attributes buffer
+ * @param size: permanent attributes size
+ */
+int avb_read_permanent_attributes_all(u16 id, void *pbuf, u16 size);
 
 #ifdef __cplusplus
 }

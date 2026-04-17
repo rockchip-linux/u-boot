@@ -64,6 +64,17 @@ AvbOps* avb_ops_user_new(void);
 /* Frees an AvbOps instance previously allocated with avb_ops_device_new(). */
 void avb_ops_user_free(AvbOps* ops);
 
+/* Read permanent attributes. */
+AvbIOResult avb_read_permanent_attributes(AvbAtxOps *atx_ops,
+					  AvbAtxPermanentAttributes *attributes);
+
+/* Write permanent attributes. */
+AvbIOResult avb_write_permanent_attributes(AvbAtxOps *atx_ops,
+					   AvbAtxPermanentAttributes *attributes);
+
+/* Read permanent attributes hash. */
+AvbIOResult avb_read_permanent_attributes_hash(AvbAtxOps *atx_ops,
+					       uint8_t hash[AVB_SHA256_DIGEST_SIZE]);
 #ifdef __cplusplus
 }
 #endif

@@ -1356,12 +1356,15 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	uint8_t unlock = 0;
 	TEEC_Result result;
 	char oem_unlock[OEM_UNLOCK_ARG_SIZE] = {0};
-	result = optee_read_oem_unlock(&unlock);
-	if (result) {
-		printf("read oem unlock status with error : 0x%x\n", result);
-	} else {
-		snprintf(oem_unlock, OEM_UNLOCK_ARG_SIZE, "androidboot.oem_unlocked=%d", unlock);
+	bool is_unlocked;
+
+	result = optee_read_lock_state(&unlock);
+	if (!result) {
+		is_unlocked = (unlock & LOCK_MASK) ? 1 : 0;
+		snprintf(oem_unlock, OEM_UNLOCK_ARG_SIZE, "androidboot.oem_unlocked=%d", is_unlocked);
 		env_update("bootargs", oem_unlock);
+	} else {
+		printf("Can't get lock state by optee!\n");
 	}
 #endif
 

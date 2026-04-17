@@ -37,7 +37,7 @@ AvbIOResult avb_get_pub_key(struct rk_pub_key *pub_key)
 	return AVB_IO_RESULT_OK;
 }
 
-AvbIOResult avb_get_perm_attr_cer(uint8_t *cer, uint32_t size)
+AvbIOResult avb_get_permanent_attributes_cer(uint8_t *cer, uint32_t size)
 {
 #ifdef CONFIG_OPTEE
 	if (optee_read_permanent_attributes_cer((uint8_t *)cer, size)) {
@@ -51,7 +51,7 @@ AvbIOResult avb_get_perm_attr_cer(uint8_t *cer, uint32_t size)
 #endif
 }
 
-AvbIOResult avb_set_perm_attr_cer(uint8_t *cer, uint32_t size)
+AvbIOResult avb_set_permanent_attributes_cer(uint8_t *cer, uint32_t size)
 {
 #ifdef CONFIG_OPTEE
 	if (optee_write_permanent_attributes_cer((uint8_t *)cer, size))
@@ -163,7 +163,7 @@ AvbIOResult avb_read_lock_state(uint8_t *lock_state)
 #endif
 }
 
-AvbIOResult avb_write_perm_attr_flag(uint8_t flag)
+AvbIOResult avb_write_permanent_attributes_flag(uint8_t flag)
 {
 #ifdef CONFIG_OPTEE
 	if (optee_write_permanent_attributes_flag(flag)) {
@@ -177,7 +177,7 @@ AvbIOResult avb_write_perm_attr_flag(uint8_t flag)
 #endif
 }
 
-AvbIOResult avb_read_perm_attr_flag(uint8_t *flag)
+AvbIOResult avb_read_permanent_attributes_flag(uint8_t *flag)
 {
 #ifdef CONFIG_OPTEE
 	int ret;
@@ -190,8 +190,8 @@ AvbIOResult avb_read_perm_attr_flag(uint8_t *flag)
 	case TEE_ERROR_NO_DATA:
 	case TEE_ERROR_ITEM_NOT_FOUND:
 		*flag = 0;
-		if (avb_write_perm_attr_flag(*flag)) {
-			printf("avb_write_perm_attr_flag error!");
+		if (avb_write_permanent_attributes_flag(*flag)) {
+			printf("avb_write_permanent_attributes_flag error!");
 			ret = AVB_IO_RESULT_ERROR_IO;
 		} else {
 			ret = optee_read_permanent_attributes_flag(flag);
@@ -252,7 +252,7 @@ AvbIOResult avb_close_optee_client(void)
 #endif
 }
 
-AvbIOResult avb_write_attribute_hash(uint8_t *buf, uint8_t length)
+AvbIOResult avb_write_permanent_attributes_hash(uint8_t *buf, uint8_t length)
 {
 #ifdef CONFIG_OPTEE
 	if (optee_write_attribute_hash((uint32_t *)buf,
@@ -330,104 +330,22 @@ out:
 	return AVB_IO_RESULT_ERROR_IO;
 }
 
-#ifdef CONFIG_SUPPORT_EMMC_RPMB
-static int curr_device = -1;
-
-int rpmb_rollback_index_read(uint32_t offset, uint32_t bytes,
-				      void *rb_index)
-{
-
-	struct mmc *mmc;
-	uint8_t rpmb_buf[256] = {0};
-	uint32_t n;
-	char original_part;
-
-	if ((offset + bytes) > 256)
-		return -1;
-
-	if (curr_device < 0) {
-		if (get_mmc_num() > 0)
-			curr_device = 0;
-		else {
-			printf("No MMC device available");
-			return -1;
-		}
-	}
-
-	mmc = find_mmc_device(curr_device);
-	/* Switch to the RPMB partition */
-#ifndef CONFIG_BLK
-	original_part = mmc->block_dev.hwpart;
-#else
-	original_part = mmc_get_blk_desc(mmc)->hwpart;
-#endif
-	if (blk_select_hwpart_devnum(UCLASS_MMC, curr_device, MMC_PART_RPMB) !=
-	    0)
-		return -1;
-
-	n =  mmc_rpmb_read(mmc, rpmb_buf, RPMB_BASE_ADDR, 1, NULL);
-	if (n != 1)
-		return -1;
-
-	/* Return to original partition */
-	if (blk_select_hwpart_devnum(UCLASS_MMC, curr_device, original_part) !=
-	    0)
-		return -1;
-
-	memcpy(rb_index, (void*)&rpmb_buf[offset], bytes);
-
-	return 0;
-}
-
-int avb_get_bootloader_min_version(char *buffer)
-{
-	uint32_t rb_index;
-	char temp[ROLLBACK_MAX_SIZE] = {0};
-
-	if (rpmb_rollback_index_read(UBOOT_RB_INDEX_OFFSET,
-					      sizeof(uint32_t), &rb_index)) {
-		printf("Can not read uboot rollback index");
-		return -1;
-	}
-	snprintf(temp, sizeof(int) + 1, "%d", 0);
-	strncat(buffer, temp, ROLLBACK_MAX_SIZE);
-	strncat(buffer, ":", 1);
-	snprintf(temp, sizeof(uint32_t) + 1, "%d", rb_index);
-	strncat(buffer, temp, ROLLBACK_MAX_SIZE);
-	strncat(buffer, ",", 1);
-
-	if (rpmb_rollback_index_read(TRUST_RB_INDEX_OFFSET,
-					      sizeof(uint32_t), &rb_index)) {
-		printf("Can not read trust rollback index");
-		return -1;
-	}
-
-	snprintf(temp, sizeof(int) + 1, "%d", 1);
-	strncat(buffer, temp, ROLLBACK_MAX_SIZE);
-	strncat(buffer, ":", 1);
-	snprintf(temp, sizeof(uint32_t) + 1, "%d", rb_index);
-	strncat(buffer, temp, ROLLBACK_MAX_SIZE);
-
-	return 0;
-}
-#endif
-
 AvbIOResult avb_get_state(char *buf)
 {
 	char temp_flag = 0;
 	char *lock_val = NULL;
 	char *unlock_dis_val = NULL;
-	char *perm_attr_flag = NULL;
+	char *permanent_attributes_flag = NULL;
 	char *bootloader_locked_flag = NULL;
 	char *rollback_indices;
 	char min_versions[ROLLBACK_MAX_SIZE + 1] = {0};
 	int n;
 
-	if (avb_read_perm_attr_flag((uint8_t *)&temp_flag)) {
-		printf("Can not read perm_attr_flag!");
-		perm_attr_flag = "";
+	if (avb_read_permanent_attributes_flag((uint8_t *)&temp_flag)) {
+		printf("Can not read permanent_attributes_flag!");
+		permanent_attributes_flag = "";
 	} else {
-		perm_attr_flag = temp_flag ? "1" : "0";
+		permanent_attributes_flag = temp_flag ? "1" : "0";
 	}
 
 	temp_flag = 0;
@@ -457,11 +375,7 @@ AvbIOResult avb_get_state(char *buf)
 	memset(rollback_indices, 0, AVB_STATE_SIZE);
 	if (avb_read_all_rollback_index(rollback_indices))
 		printf("Can not read avb_min_ver!");
-#ifdef CONFIG_SUPPORT_EMMC_RPMB
-	/* bootloader-min-versions */
-	if (avb_get_bootloader_min_version(min_versions))
-		printf("Call avb_get_bootloader_min_version error!");
-#endif
+
 	n = snprintf(buf, AVB_STATE_SIZE - 1,
 		     "avb-perm-attr-set=%s\n"
 		     "avb-locked=%s\n"
@@ -469,7 +383,7 @@ AvbIOResult avb_get_state(char *buf)
 		     "bootloader-locked=%s\n"
 		     "avb-min-versions=%s\n"
 		     "bootloader-min-versions=%s\n",
-		     perm_attr_flag,
+		     permanent_attributes_flag,
 		     lock_val,
 		     unlock_dis_val,
 		     bootloader_locked_flag,
@@ -485,101 +399,229 @@ AvbIOResult avb_get_state(char *buf)
 	return AVB_IO_RESULT_OK;
 }
 
-AvbIOResult avb_write_permanent_attributes(uint8_t *attributes, uint32_t size)
+int avb_auth_unlock(void *buffer, char *out_is_trusted)
 {
+	AvbOps* ops;
+
+	ops = avb_ops_user_new();
+	if (ops == NULL) {
+		printf("avb_ops_user_new() failed!");
+		return -1;
+	}
+
+	if (avb_atx_validate_unlock_credential(ops->atx_ops,
+					       (AvbAtxUnlockCredential*)buffer,
+					       (bool*)out_is_trusted)) {
+		avb_ops_user_free(ops);
+		return -1;
+	}
+	avb_ops_user_free(ops);
+	if (*out_is_trusted == true)
+		return 0;
+	else
+		return -1;
+}
+
+int avb_generate_unlock_challenge(void *buffer, uint32_t *challenge_len)
+{
+	AvbOps* ops;
+	AvbIOResult result = AVB_IO_RESULT_OK;
+
+	ops = avb_ops_user_new();
+	if (ops == NULL) {
+		printf("avb_ops_user_new() failed!");
+		return -1;
+	}
+
+	result = avb_atx_generate_unlock_challenge(ops->atx_ops,
+						   (AvbAtxUnlockChallenge *)buffer);
+	avb_ops_user_free(ops);
+	*challenge_len = sizeof(AvbAtxUnlockChallenge);
+	if (result == AVB_IO_RESULT_OK)
+		return 0;
+	else
+		return -1;
+}
+
+int avb_read_permanent_attributes_all(u16 id, void *pbuf, u16 size)
+{
+	AvbOps* ops;
+	int ret = 0;
+
+	debug("%s %d\n", __func__, size);
+
+	ops = avb_ops_user_new();
+	if (ops == NULL) {
+		printf("avb_ops_user_new() failed!");
+		return -1;
+	}
+
+	switch (id) {
+	case AT_PERM_ATTR_FUSE:
+		size = sizeof(AvbAtxPermanentAttributes);
+		ret = avb_read_permanent_attributes(ops->atx_ops,
+						    (AvbAtxPermanentAttributes *)pbuf);
+		break;
+	case AT_PERM_ATTR_CER_FUSE:
+		size = 256;
+		ret = avb_get_permanent_attributes_cer((uint8_t *)pbuf, size);
+		break;
+	case AT_LOCK_VBOOT:
+		break;
+	}
+
+	avb_ops_user_free(ops);
+
+	/* return bytes when operations all succeed. */
+	if (!ret)
+		ret = size;
+
+	return ret;
+}
+
+int avb_write_permanent_attributes_all(u16 id, void *pbuf, u16 size)
+{
+	AvbOps* ops;
+	uint8_t lock_state;
 #ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
 	sha256_context ctx;
 	uint8_t digest[SHA256_SUM_LEN] = {0};
 	uint8_t digest_temp[SHA256_SUM_LEN] = {0};
-	AvbAtxPermanentAttributes perm_attr_temp[PERM_ATTR_TOTAL_SIZE] = {0};
+	uint8_t permanent_attributes_temp[PERM_ATTR_TOTAL_SIZE] = {0};
 	uint8_t flag = 0;
-	AvbOps* ops;
 #endif
-
-	if (size != PERM_ATTR_TOTAL_SIZE) {
-		debug("%s Permanent attribute size is not equal!\n", __func__);
-		return AVB_IO_RESULT_ERROR_IO;
-	}
-
-#ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
-	if (avb_read_perm_attr_flag(&flag)) {
-		debug("%s avb_read_perm_attr_flag error!\n", __func__);
-		return AVB_IO_RESULT_ERROR_IO;
-	}
+	int ret = 0;
 
 	ops = avb_ops_user_new();
 	if (ops == NULL) {
-		printf("avb_ops_user_new() failed!\n");
-		return AVB_IO_RESULT_ERROR_IO;
+		printf("avb_ops_user_new() failed!");
+		return -1;
 	}
 
-	if (flag == PERM_ATTR_SUCCESS_FLAG) {
-		if (ops->atx_ops->read_permanent_attributes_hash(ops->atx_ops, digest_temp)) {
-			debug("%s The efuse IO can not be used!\n", __func__);
-			return AVB_IO_RESULT_ERROR_IO;
+	switch (id) {
+	case AT_PERM_ATTR_FUSE:
+		if (size != PERM_ATTR_TOTAL_SIZE) {
+			debug("%s Permanent attribute size is not equal!\n", __func__);
+			ret = -EINVAL;
+			goto out;
 		}
 
-		if (memcmp(digest, digest_temp, SHA256_SUM_LEN) != 0) {
-			if (ops->atx_ops->read_permanent_attributes(ops->atx_ops, perm_attr_temp)) {
-				debug("%s avb_read_permanent_attributes error!\n", __func__);
-				return AVB_IO_RESULT_ERROR_IO;
+#ifndef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
+		if (avb_read_permanent_attributes_flag(&flag)) {
+			debug("%s avb_read_permanent_attributes_flag error!\n", __func__);
+			ret = -EIO;
+			goto out;
+		}
+
+		if (flag == PERM_ATTR_SUCCESS_FLAG) {
+			if (avb_read_permanent_attributes_hash(ops->atx_ops,
+							       digest_temp)) {
+				debug("%s The efuse IO can not be used!\n", __func__);
+				ret = -EIO;
+				goto out;
 			}
 
-			sha256_starts(&ctx);
-			sha256_update(&ctx,
-						(const uint8_t *)perm_attr_temp,
-						PERM_ATTR_TOTAL_SIZE);
-			sha256_finish(&ctx, digest);
-			if (memcmp(digest, digest_temp, SHA256_SUM_LEN) == 0) {
-				debug("%s The hash has been written!\n", __func__);
-				return AVB_IO_RESULT_OK;
+			if (memcmp(digest, digest_temp, SHA256_SUM_LEN) != 0) {
+				if (avb_read_permanent_attributes(ops->atx_ops,
+								  (AvbAtxPermanentAttributes *)permanent_attributes_temp)) {
+					debug("%s avb_read_permanent_attributes error!\n", __func__);
+					ret = -EIO;
+					goto out;
+				}
+
+				sha256_starts(&ctx);
+				sha256_update(&ctx,
+					      (const uint8_t *)permanent_attributes_temp,
+					      PERM_ATTR_TOTAL_SIZE);
+				sha256_finish(&ctx, digest);
+				if (memcmp(digest, digest_temp, SHA256_SUM_LEN) == 0) {
+					debug("%s The hash has been written!\n", __func__);
+					ret = 0;
+					goto out;
+				}
+			}
+
+			if (avb_write_permanent_attributes_flag(0)) {
+				debug("%s permanent attributes flag write failure\n", __func__);
+				ret = -EIO;
+				goto out;
 			}
 		}
-
-		if (avb_write_perm_attr_flag(0)) {
-			debug("%s Perm attr flag write failure\n", __func__);
-			return AVB_IO_RESULT_ERROR_IO;
-		}
-	}
 #endif
-	if (optee_write_permanent_attributes(attributes, size)) {
-		if (avb_write_perm_attr_flag(0)) {
-			debug("%s Perm attr flag write failure\n", __func__);
-			return AVB_IO_RESULT_ERROR_IO;
-		}
+		if (avb_write_permanent_attributes(ops->atx_ops,
+						   (AvbAtxPermanentAttributes *)pbuf)) {
+			if (avb_write_permanent_attributes_flag(0)) {
+				debug("%s permanent attributes flag write failure\n", __func__);
+				ret = -EIO;
+				goto out;
+			}
 
-		debug("%s Perm attr write failed\n", __func__);
-		return AVB_IO_RESULT_ERROR_IO;
-	}
+			debug("%s permanent attributes write failed\n", __func__);
+			ret = -EIO;
+			goto out;
+		}
 #ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
-	memset(digest, 0, SHA256_SUM_LEN);
-	sha256_starts(&ctx);
-	sha256_update(&ctx, attributes,
-				PERM_ATTR_TOTAL_SIZE);
-	sha256_finish(&ctx, digest);
+		memset(digest, 0, SHA256_SUM_LEN);
+		sha256_starts(&ctx);
+		sha256_update(&ctx, (const uint8_t *)pbuf,
+			      PERM_ATTR_TOTAL_SIZE);
+		sha256_finish(&ctx, digest);
 
-	if (avb_write_attribute_hash((uint8_t *)digest,
-					SHA256_SUM_LEN)) {
-		if (ops->atx_ops->read_permanent_attributes_hash(ops->atx_ops, digest_temp)) {
-			debug("%s The efuse IO can not be used!\n", __func__);
-			return AVB_IO_RESULT_ERROR_IO;
-		}
-
-		if (memcmp(digest, digest_temp, SHA256_SUM_LEN) != 0) {
-			if (avb_write_perm_attr_flag(0)) {
-				debug("%s Perm attr flag write failure\n", __func__);
-				return AVB_IO_RESULT_ERROR_IO;
+		if (avb_write_permanent_attributes_hash((uint8_t *)digest,
+							SHA256_SUM_LEN)) {
+			if (avb_read_permanent_attributes_hash(ops->atx_ops,
+							       digest_temp)) {
+				debug("%s The efuse IO can not be used!\n", __func__);
+				ret = -EIO;
+				goto out;
 			}
-			debug("%s The hash has been written, but is different!\n", __func__);
-			return AVB_IO_RESULT_ERROR_IO;
+
+			if (memcmp(digest, digest_temp, SHA256_SUM_LEN) != 0) {
+				if (avb_write_permanent_attributes_flag(0)) {
+					debug("%s permanent attributes flag write failure\n", __func__);
+					ret = -EIO;
+					goto out;
+				}
+				debug("%s The hash has been written, but is different!\n", __func__);
+				ret = -EIO;
+				goto out;
+			}
 		}
-	}
-	avb_ops_user_free(ops);
 #endif
-	if (avb_write_perm_attr_flag(PERM_ATTR_SUCCESS_FLAG)) {
-		debug("%s, Perm attr flag write failure\n", __func__);
-		return AVB_IO_RESULT_ERROR_IO;
+		if (avb_write_permanent_attributes_flag(PERM_ATTR_SUCCESS_FLAG)) {
+			debug("%s, permanent attributes flag write failure\n", __func__);
+			ret = -EIO;
+			goto out;
+		}
+
+		break;
+	case AT_PERM_ATTR_CER_FUSE:
+		if (size != 256) {
+			debug("%s Permanent attribute rsahash size is not equal!\n",
+			      __func__);
+			ret = -EINVAL;
+			goto out;
+		}
+		if (avb_set_permanent_attributes_cer((uint8_t *)pbuf, size)) {
+			debug("%s Set perm attr cer fail!\n", __func__);
+			ret = -EIO;
+			goto out;
+		}
+		break;
+	case AT_LOCK_VBOOT:
+		lock_state = 0;
+		if (avb_write_lock_state(lock_state)) {
+			debug("%s Write lock state failed\n", __func__);
+			ret = -EIO;
+			goto out;
+		} else {
+			debug("%s OKAY\n", __func__);
+		}
+		break;
 	}
 
-	return AVB_IO_RESULT_OK;
+out:
+	avb_ops_user_free(ops);
+
+	return ret;
 }

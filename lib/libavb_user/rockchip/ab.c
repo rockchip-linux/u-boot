@@ -250,3 +250,30 @@ AvbABFlowResult ab_set_slot_active(unsigned int *slot_number)
 	avb_ops_user_free(ops);
 	return ret;
 }
+
+int ab_init_metadata(void)
+{
+	AvbOps *ops;
+	AvbABData ab_data;
+
+	memset(&ab_data, 0, sizeof(AvbABData));
+	debug("sizeof(AvbABData) = %d\n", (int)(size_t)sizeof(AvbABData));
+
+	ops = avb_ops_user_new();
+	if (ops == NULL) {
+		printf("avb_ops_user_new() failed!\n");
+		return -1;
+	}
+
+	avb_ab_data_init(&ab_data);
+	if (ops->ab_ops->write_ab_metadata(ops->ab_ops, &ab_data) != 0) {
+		printf("do_avb_init_ab_metadata error!\n");
+		avb_ops_user_free(ops);
+		return -1;
+	}
+
+	printf("Initialize ab data to misc partition success.\n");
+	avb_ops_user_free(ops);
+
+	return 0;
+}

@@ -332,6 +332,20 @@ static AvbIOResult read_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
 	return AVB_IO_RESULT_ERROR_IO;
 }
 
+AvbIOResult write_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
+{
+	if (out_is_unlocked) {
+#ifdef CONFIG_OPTEE
+		if (optee_write_lock_state(*out_is_unlocked)) {
+			printf("%s: Fail to write lock state\n", __FILE__);
+			return AVB_IO_RESULT_ERROR_IO;
+		}
+		return AVB_IO_RESULT_OK;
+#endif
+	}
+	return AVB_IO_RESULT_ERROR_IO;
+}
+
 static AvbIOResult get_unique_guid_for_partition(AvbOps *ops,
 						 const char *partition,
 						 char *guid_buf,
@@ -406,14 +420,31 @@ AvbIOResult avb_read_permanent_attributes(AvbAtxOps *atx_ops,
 #endif
 }
 
-AvbIOResult avb_read_attribute_hash(AvbAtxOps *atx_ops,
-				    uint8_t hash[AVB_SHA256_DIGEST_SIZE])
+AvbIOResult avb_write_permanent_attributes(AvbAtxOps *atx_ops,
+					   AvbAtxPermanentAttributes *attributes)
+{
+	if (!attributes)
+		return AVB_IO_RESULT_ERROR_IO;
+#ifdef CONFIG_OPTEE
+	if(optee_write_permanent_attributes((void *)attributes, sizeof(struct AvbAtxPermanentAttributes))) {
+		printf("optee_write_permanent_attributes failed!\n");
+		return AVB_IO_RESULT_ERROR_IO;
+	}
+
+	return AVB_IO_RESULT_OK;
+#else
+	return AVB_IO_RESULT_ERROR_IO;
+#endif
+}
+
+AvbIOResult avb_read_permanent_attributes_hash(AvbAtxOps *atx_ops,
+					       uint8_t hash[AVB_SHA256_DIGEST_SIZE])
 {
 #ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
 #ifdef CONFIG_OPTEE
 	if (optee_read_attribute_hash((uint32_t *)hash,
 				       AVB_SHA256_DIGEST_SIZE / 4)) {
-		printf("optee_read_attribute_hash error!\n");
+		printf("optee_read_permanent_attributes_hash error!\n");
 		return AVB_IO_RESULT_ERROR_IO;
 	}
 
@@ -579,20 +610,6 @@ static AvbIOResult get_preloaded_partition(AvbOps* ops,
 	return ret;
 }
 
-AvbIOResult write_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
-{
-	if (out_is_unlocked) {
-#ifdef CONFIG_OPTEE
-		if (optee_write_lock_state(*out_is_unlocked)) {
-			printf("%s: Fail to write lock state\n", __FILE__);
-			return AVB_IO_RESULT_ERROR_IO;
-		}
-		return AVB_IO_RESULT_OK;
-#endif
-	}
-	return AVB_IO_RESULT_ERROR_IO;
-}
-
 AvbOps *avb_ops_user_new(void)
 {
 	AvbOps *ops = NULL;
@@ -648,7 +665,7 @@ AvbOps *avb_ops_user_new(void)
 #endif
 	/* from libavb_atx */
 	ops->atx_ops->read_permanent_attributes = avb_read_permanent_attributes;
-	ops->atx_ops->read_permanent_attributes_hash = avb_read_attribute_hash;
+	ops->atx_ops->read_permanent_attributes_hash = avb_read_permanent_attributes_hash;
 	ops->atx_ops->set_key_version = avb_set_key_version;
 	ops->atx_ops->get_random = get_random;
 

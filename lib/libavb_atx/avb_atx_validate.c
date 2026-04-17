@@ -89,9 +89,9 @@ static bool verify_permanent_attributes(
   if (ret)
     return false;
 
-  ret = avb_get_perm_attr_cer(rsa_hash, 256);
+  ret = avb_get_permanent_attributes_cer(rsa_hash, 256);
   if (ret) {
-    avb_error("get_perm_attr_cer error\n");
+    avb_error("get_permanent_attributes_cer error\n");
     return false;
   }
 

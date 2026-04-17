@@ -82,6 +82,11 @@ AvbABFlowResult ab_get_slot_data(AvbABData* ab_data);
  */
 AvbABFlowResult ab_set_slot_active(unsigned int *slot_number);
 
+/**
+ * Init ab metadata
+ */
+int ab_init_metadata(void);
+
 #ifdef __cplusplus
 }
 #endif

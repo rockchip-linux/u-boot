@@ -564,9 +564,9 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 			} else if (type == 2) {
 				/* security storage */
 #ifdef CONFIG_RK_AVB_LIBAVB_USER
-				debug("%s call rk_avb_write_perm_attr %d, %d\n",
+				debug("%s call avb_write_permanent_attributes_all %d, %d\n",
 				      __func__, vhead->id, vhead->size);
-				rc = rk_avb_write_perm_attr(vhead->id,
+				rc = avb_write_permanent_attributes_all(vhead->id,
 							    (char __user *)data,
 							    vhead->size);
 				if (rc < 0) {
@@ -758,7 +758,7 @@ static int rkusb_do_vs_read(struct fsg_common *common)
 		} else if (type == 2) {
 			/* security storage */
 #ifdef CONFIG_RK_AVB_LIBAVB_USER
-			rc = rk_avb_read_perm_attr(vhead->id,
+			rc = avb_read_permanent_attributes_all(vhead->id,
 						   (char __user *)data,
 						   vhead->size);
 			if (rc < 0)

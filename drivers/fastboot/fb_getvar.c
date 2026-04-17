@@ -398,14 +398,11 @@ static void __maybe_unused getvar_slot_suffixes(char *var_parameter, char *respo
 	char slot_suffixes[9] = {0};
 	int slot_cnt = 0;
 
-	if (ab_get_current_slot(slot_suffixes_temp)) {
-		fastboot_fail("Get current_slot failed", response);
-		return;
-	}
+	memcpy(slot_suffixes_temp, CURR_SYSTEM_SLOT_SUFFIX,
+	       strlen(CURR_SYSTEM_SLOT_SUFFIX));
 
 	while (slot_suffixes_temp[slot_cnt] != '\0') {
-		slot_suffixes[slot_cnt * 2]
-			= slot_suffixes_temp[slot_cnt];
+		slot_suffixes[slot_cnt * 2] = slot_suffixes_temp[slot_cnt];
 		slot_suffixes[slot_cnt * 2 + 1] = ',';
 		slot_cnt++;
 	}
