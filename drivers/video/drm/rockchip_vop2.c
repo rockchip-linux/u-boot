@@ -6298,8 +6298,7 @@ static int rockchip_vop2_init(struct display_state *state)
 		else
 			val = 0;
 	} else {
-		if (cstate->post_y2r_en || cstate->acm_en ||
-		    is_yuv_output(conn_state->bus_format))
+		if (cstate->yuv_overlay)
 			val = 0x20000200;/* full range */
 		else
 			val = 0;
