@@ -430,18 +430,30 @@ static int rkfw_load_kernel(struct spl_load_info *info, u32 image_sector,
 		if (spl_resource_image_check_header(head)) {
 			printf("Can't find kernel dtb in spl.");
 		} else {
-			struct resource_entry *entry;
 			char *dtb_temp;
+			u32 dtb_size;
+			int totalsize;
 
-			entry = spl_resource_image_get_dtb_entry(head);
-			if (!entry) {
+			dtb_temp = spl_read_resource_file(head, DEFAULT_DTB_FILE,
+							 &dtb_size);
+			if (!dtb_temp) {
 				ret = -EIO;
 				goto out;
 			}
 
-			dtb_temp = (char *)((char *)head + entry->f_offset * 512);
+			if (fdt_check_header(dtb_temp)) {
+				ret = -EINVAL;
+				goto out;
+			}
+
+			totalsize = fdt_totalsize(dtb_temp);
+			if (totalsize <= 0 || totalsize > dtb_size) {
+				ret = -E2BIG;
+				goto out;
+			}
+
 			memcpy((char *)CONFIG_SPL_FDT_ADDR, dtb_temp,
-			       entry->f_size);
+			       totalsize);
 		}
 #endif
 	} else {

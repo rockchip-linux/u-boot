@@ -76,18 +76,8 @@ struct resource_img_hdr {
 	uint32_t	e_nums;
 };
 
-struct resource_entry {
-	char		tag[4];
-	char		name[MAX_FILE_NAME_LEN];
-	char		hash[MAX_HASH_LEN];
-	uint32_t	hash_size;
-	uint32_t	f_offset;
-	uint32_t	f_size;
-};
-
 int spl_resource_image_check_header(const struct resource_img_hdr *hdr);
-
-struct resource_entry *
-	spl_resource_image_get_dtb_entry(const struct resource_img_hdr *hdr);
+void *spl_read_resource_file(const struct resource_img_hdr *hdr,
+			     const char *file_name, u32 *file_size);
 
 #endif

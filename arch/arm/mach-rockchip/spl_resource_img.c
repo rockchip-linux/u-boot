@@ -7,6 +7,15 @@
 #include <linux/list.h>
 #include <asm/arch/spl_resource_img.h>
 
+struct resource_entry {
+	char		tag[4];
+	char		name[MAX_FILE_NAME_LEN];
+	char		hash[MAX_HASH_LEN];
+	uint32_t	hash_size;
+	uint32_t	blk_offset;
+	uint32_t	size;		/* in byte */
+};
+
 int spl_resource_image_check_header(const struct resource_img_hdr *hdr)
 {
 	int ret;
@@ -30,21 +39,26 @@ int spl_resource_image_check_header(const struct resource_img_hdr *hdr)
 	return ret;
 }
 
-struct resource_entry *spl_resource_image_get_dtb_entry(const struct
-							resource_img_hdr *hdr)
+void *spl_read_resource_file(const struct resource_img_hdr *hdr,
+			     const char *file_name, u32 *file_size)
 {
 	int i;
-	struct resource_entry *entry = NULL;
+	struct resource_entry *entry;
 
-	if (!hdr)
+	if (!hdr || !file_name)
 		return NULL;
 
 	for (i = 0; i < hdr->e_nums; i++) {
 		entry = (struct resource_entry *)((char *)hdr
 				+ (hdr->blks + hdr->e_blks * i) * 512);
-		if (!memcmp(entry->name, DEFAULT_DTB_FILE, strlen(DEFAULT_DTB_FILE)))
-			break;
+		if (memcmp(entry->tag, ENTRY_TAG, ENTRY_TAG_SIZE))
+			continue;
+		if (!strcmp(entry->name, file_name)) {
+			if (file_size)
+				*file_size = entry->size;
+			return (void *)hdr + entry->blk_offset * 512;
+		}
 	}
 
-	return entry;
+	return NULL;
 }
