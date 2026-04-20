@@ -63,7 +63,7 @@ obj-$(CONFIG_MOS_SUPPORT) += mos.o
 ifndef CONFIG_SUPPORT_USBPLUG
 obj-$(CONFIG_$(SPL_TPL_)RAM) += sdram.o
 endif
-obj-$(CONFIG_SPL_KERNEL_BOOT) += spl_resource_img.o
+obj-$(CONFIG_SPL_ROCKCHIP_RESOURCE_IMAGE) += spl_resource_img.o
 obj-$(CONFIG_SPL_PCIE_EP_SUPPORT) += spl_pcie_ep_boot.o
 
 obj-$(CONFIG_ROCKCHIP_PX30) += px30/

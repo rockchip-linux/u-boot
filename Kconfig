@@ -530,6 +530,12 @@ config MOS_SECONDARY_SPL_BACKUP_ADDR
 	depends on MOS_SECONDARY
 	default 0x41840000
 
+config MOS_ONE_IMAGE
+	bool "Enable Mos one image solution support"
+	depends on SPL
+	select SPL_ROCKCHIP_RESOURCE_IMAGE
+	select SPL_ROCKCHIP_VENDOR_PARTITION
+
 config MOS_BOOTDEV_SHARED
 	bool "The boot device are shared between Multiple-OS"
 	# Primary use virtual bootdev + disk

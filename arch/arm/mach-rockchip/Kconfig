@@ -940,6 +940,14 @@ config ROCKCHIP_RESOURCE_IMAGE
 	  This enables support to get dtb or logo files from
 	  rockchip resource image format partition.
 
+config SPL_ROCKCHIP_RESOURCE_IMAGE
+	bool "Enable support for rockchip resource image in SPL"
+	depends on SPL
+	default y if SPL_KERNEL_BOOT
+	help
+	  This enables support to get dtb or logo files from
+	  rockchip resource image format partition in SPL.
+
 config ROCKCHIP_DTB_VERIFY
 	bool "Enable hash verify for DTB in the resource file"
 	depends on ROCKCHIP_RESOURCE_IMAGE

@@ -19,6 +19,7 @@
 #include <asm/arch/rk_atags.h>
 #include <asm/arch/rockchip_smccc.h>
 #include <asm/arch/vendor.h>
+#include <asm/arch/spl_resource_img.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -44,10 +45,65 @@ struct sbd_args {
 
 static ulong mos_safety_atags_base = 0;
 
+static int mos_spl_syscfg_load(void *resc_hdr)
+{
+#if defined(CONFIG_SPL_BUILD) && \
+	defined(CONFIG_SPL_ROCKCHIP_VENDOR_PARTITION) && \
+	defined(CONFIG_SPL_ROCKCHIP_RESOURCE_IMAGE)
+	const struct resource_img_hdr *hdr = resc_hdr;
+	char name[MAX_FILE_NAME_LEN];
+	void *addr;
+	u32 file_size;
+	int fdt_size;
+	int len;
+
+	if (spl_resource_image_check_header(hdr)) {
+		printf("Invalid syscfg resource\n");
+		return -EINVAL;
+	}
+
+	/* read syscfg id for syscfg file name */
+	len = vendor_storage_read(SYSCFG_ID, name, sizeof(name) - 1);
+	if (len <= 0) {
+		printf("Can't get SYSCFG_ID in vendor storage, len=%d\n", len);
+		return len;
+	}
+
+	printf("syscfg: %s\n", name);
+
+	/* get syscfg file ! */
+	name[len] = '\0';
+	addr = spl_read_resource_file(hdr, name, &file_size);
+	if (!addr) {
+		printf("Can't read %s from syscfg resource\n", name);
+		return -ENOENT;
+	}
+
+	if (fdt_check_header(addr)) {
+		printf("Invalid syscfg from resource\n");
+		return -EINVAL;
+	}
+
+	fdt_size = fdt_totalsize(addr);
+	if (fdt_size <= 0 || fdt_size > file_size) {
+		printf("Invalid syscfg size: 0x%x\n", fdt_size);
+		return -E2BIG;
+	}
+
+	memmove((void *)CONFIG_MOS_SYSCFG_ADDR, addr, fdt_size);
+#endif
+
+	return 0;
+}
+
 static void *mos_syscfg(void)
 {
 	void *cfg_fdt = (void *)CONFIG_MOS_SYSCFG_ADDR;
 
+	if (!fdt_check_header(cfg_fdt))
+		return cfg_fdt;
+
+	mos_spl_syscfg_load(cfg_fdt);
 	if (fdt_check_header(cfg_fdt)) {
 		printf("## mos: no available syscfg\n");
 		return NULL;
