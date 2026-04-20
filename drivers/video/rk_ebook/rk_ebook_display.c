@@ -964,6 +964,7 @@ static int rockchip_ebook_display_ofdata_to_platdata(struct udevice *dev)
 	plat->height_mm = dev_read_u32_default(dev, "panel,height-mm", 0);
 	plat->sdce_width = dev_read_u32_default(dev, "panel,sdce_width", 0);
 	plat->sdoe_mode = dev_read_u32_default(dev, "panel,sdoe_mode", 0);
+	plat->lel_keep_clk = dev_read_u32_default(dev, "panel,lel-keep-clk", 1);
 
 	disp_mem = of_parse_phandle(ofnode_to_np(dev_ofnode(dev)),
 				    "memory-region", 0);

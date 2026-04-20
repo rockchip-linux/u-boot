@@ -379,7 +379,7 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 {
 	int ret;
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
-	u32 width, height, vir_width, vir_height;
+	u32 width, height, vir_width, vir_height, val;
 
 	if (panel->rearrange) {
 		width = panel->width * 2;
@@ -397,9 +397,9 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 	tcon_write(tcon, EBC_DSP_HTIMING0,
 		   DSP_HTOTAL(panel->lsl + panel->lbl + panel->ldl +
 			      panel->lel) | DSP_HS_END(panel->lsl));
+	val = panel->lsl + panel->lbl + panel->ldl + (panel->lel_keep_clk ? panel->lel : 0);
 	tcon_write(tcon, EBC_DSP_HTIMING1,
-		   DSP_HACT_END(panel->lsl + panel->lbl + panel->ldl) |
-		   DSP_HACT_ST(panel->lsl + panel->lbl - 1));
+		   DSP_HACT_END(val) | DSP_HACT_ST(panel->lsl + panel->lbl - 1));
 	tcon_write(tcon, EBC_DSP_VTIMING0,
 		   DSP_VTOTAL(panel->fsl + panel->fbl + panel->fdl +
 			      panel->fel) | DSP_VS_END(panel->fsl));
@@ -629,9 +629,9 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 	tcon_write(tcon, RK3576_EBC_DSP_HTIMING0,
 		   RK3576_DSP_HTOTAL(panel->lsl + panel->lbl + panel->ldl + panel->lel) |
 		   RK3576_DSP_HS_END(panel->lsl));
+	val = panel->lsl + panel->lbl + panel->ldl + (panel->lel_keep_clk ? panel->lel : 0);
 	tcon_write(tcon, RK3576_EBC_DSP_HTIMING1,
-		   RK3576_DSP_HACT_END(panel->lsl + panel->lbl + panel->ldl) |
-		   RK3576_DSP_HACT_ST(panel->lsl + panel->lbl - 1));
+		   RK3576_DSP_HACT_END(val) | RK3576_DSP_HACT_ST(panel->lsl + panel->lbl - 1));
 	tcon_write(tcon, RK3576_EBC_DSP_VTIMING0,
 		   RK3576_DSP_VTOTAL(panel->fsl + panel->fbl + panel->fdl + panel->fel) |
 		   RK3576_DSP_VS_END(panel->fsl));
@@ -1005,4 +1005,3 @@ UCLASS_DRIVER(ebc_tcon) = {
 	.id	= UCLASS_EBC,
 	.name	= "ebc_tcon",
 };
-
