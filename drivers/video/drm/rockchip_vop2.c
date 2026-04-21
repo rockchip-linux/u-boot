@@ -2933,6 +2933,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	struct bp_acm_data acm_data = {};
 	struct bp_csc_info csc_info = {};
 	struct bp_bcsh_info *bcsh;
+	struct bp_bcsh_info default_bcsh = {50, 50, 50, 50};
 	struct post_csc_coef csc_coef = {};
 	struct post_csc_convert_mode convert_mode = {};
 	struct post_csc_convert_mode r2y_convert_mode = {};
@@ -2953,18 +2954,18 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 		return;
 
 	ret = rockchip_baseparameter_csc_info_get((uintptr_t)conn_state, &csc_info);
-	if (ret)
-		return;
+	if (ret || !csc_info.csc_enable) {
+		pr_info("get csc info from bcsh\n");
 
-	printf("post csc enable\n");
+		bcsh = rockchip_baseparameter_bcsh_info_get((uintptr_t)conn_state);
+		if (!bcsh)
+			bcsh = &default_bcsh;
+		vop3_get_csc_info_from_bcsh(bcsh, &csc_info);
+	}
 
 	if (conn_state->overscan.left_margin != 100 || conn_state->overscan.right_margin != 100 ||
 	    conn_state->overscan.top_margin != 100 || conn_state->overscan.bottom_margin != 100)
 		post_scl_enabled = true;
-
-	bcsh = rockchip_baseparameter_bcsh_info_get((uintptr_t)conn_state);
-	if (!csc_info.csc_enable && bcsh)
-		vop3_get_csc_info_from_bcsh(bcsh, &csc_info);
 
 	if (vop2->version != VOP_VERSION_RK3528 && vop2->version != VOP_VERSION_RK3576)
 		r2y_csc_supported = true;
