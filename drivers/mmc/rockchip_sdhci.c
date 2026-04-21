@@ -736,7 +736,7 @@ static const struct sdhci_data rk3588_data = {
 	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
 	.hs400_txclk_tapnum = 0x9,
 	.hs400_cmd_tapnum = 0x8,
-	.hs400_strbin_tapnum = 0x3,
+	.hs400_strbin_tapnum = 0x4,
 	.ddr50_strbin_delay_num = 16,
 };
 
