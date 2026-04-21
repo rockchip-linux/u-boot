@@ -633,7 +633,7 @@ static const struct sdhci_data rk3588_data = {
 	.hs200_tx_tap = 16,
 	.hs400_tx_tap = 9,
 	.hs400_cmd_tap = 8,
-	.hs400_strbin_tap = 3,
+	.hs400_strbin_tap = 4,
 	.ddr50_strbin_delay_num = 16,
 };
 
