@@ -2787,7 +2787,7 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	 * The platform support BCSH:
 	 *   overlay-> CSC_R2Y -> BCSH -> CSC_Y2R -> post sclae
 	 */
-	if (cstate->feature & VOP_FEATURE_POST_ACM) {
+	if ((cstate->feature & VOP_FEATURE_POST_ACM) && !cstate->mcu_timing.mcu_pix_total) {
 		if (vop2->version <= VOP_VERSION_RK3576) {
 			vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 					POST_DSP_OUT_R2Y_SHIFT, cstate->yuv_overlay, false);
@@ -4005,7 +4005,7 @@ static void rockchip_vop2_acm_init(struct vop2 *vop2, struct display_state *stat
 	 * When enable ACM[bypass = 0] will lead to timing error,
 	 * so enable ACM by default.
 	 */
-	if (!(vp_data->feature & VOP_FEATURE_POST_ACM))
+	if (!(vp_data->feature & VOP_FEATURE_POST_ACM) || cstate->mcu_timing.mcu_pix_total)
 		return;
 
 	ret = ofnode_read_resource_byname(cstate->node, "acm_regs", &acm_regs);
@@ -6286,7 +6286,7 @@ static int rockchip_vop2_init(struct display_state *state)
 		}
 	}
 
-	if (cstate->feature & VOP_FEATURE_POST_ACM)
+	if ((cstate->feature & VOP_FEATURE_POST_ACM) && !cstate->mcu_timing.mcu_pix_total)
 		vop3_post_acm_config(state, vop2);
 	if (cstate->feature & VOP_FEATURE_POST_CSC)
 		vop3_post_csc_config(state, vop2);
