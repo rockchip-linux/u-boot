@@ -615,6 +615,14 @@ char *env_exist(const char *varname, const char *varvalue)
 
 	oldvalue = env_get(varname);
 	if (oldvalue) {
+		/* Match complete one ? */
+		if (!strcmp(oldvalue, varvalue)) {
+			debug("%s: '%s' is already exist in '%s'(complete)\n",
+			      __func__, varvalue, varname);
+			ptr = oldvalue;
+			goto out;
+		}
+
 		/* Match middle one ? */
 		snprintf(buf, len, " %s ", varvalue);
 		p = strstr(oldvalue, buf);
