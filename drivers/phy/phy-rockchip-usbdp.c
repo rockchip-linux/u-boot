@@ -438,8 +438,6 @@ static int udphy_reset_init(struct rockchip_udphy *udphy, struct udevice *dev)
 			dev_err(dev, "failed to get %s reset\n", name);
 			goto err;
 		}
-
-		reset_assert(&udphy->rsts[idx]);
 	}
 
 	return 0;
@@ -1274,6 +1272,27 @@ disable_u3:
 }
 #endif
 
+static int udphy_get_initial_status(struct rockchip_udphy *udphy)
+{
+	const struct rockchip_udphy_cfg *cfg = udphy->cfgs;
+	u32 value;
+	int idx;
+
+	for(idx = 0; idx < cfg->num_rsts; idx++)
+		reset_deassert(&udphy->rsts[idx]);
+
+        regmap_read(udphy->pma_regmap, CMN_LANE_MUX_AND_EN_OFFSET, &value);
+        if (FIELD_GET(CMN_DP_LANE_MUX_ALL, value) && FIELD_GET(CMN_DP_LANE_EN_ALL, value)) {
+                udphy->status = UDPHY_MODE_DP;
+		return 0;
+	}
+
+	for(idx = 0; idx < cfg->num_rsts; idx++)
+		reset_assert(&udphy->rsts[idx]);
+
+	return 0;
+}
+
 static int rockchip_udphy_probe(struct udevice *dev)
 {
 	struct rockchip_udphy *udphy = dev_get_priv(dev);
@@ -1312,6 +1331,8 @@ static int rockchip_udphy_probe(struct udevice *dev)
 		dev_err(dev, "failed to enable clk: %d\n", ret);
 		return ret;
 	}
+
+	udphy_get_initial_status(udphy);
 
 	return 0;
 }
