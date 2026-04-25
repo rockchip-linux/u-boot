@@ -477,7 +477,7 @@ struct global_data {
 	unsigned long ram_top_ext_size;
 
 	const void *ufdt_blob;          /* Our U-Boot device tree, NULL if none */
-	const void *fdt_blob_kern;      /* Kernel dtb at the tail of u-boot.bin */
+	const void *fdt_blob_kern;      /* Embedded kernel dtb/resource source */
 
 	ulong sys_start_tick;           /* For report system start-up time */
 	int console_evt;                /* Console event, maybe some hotkey  */
