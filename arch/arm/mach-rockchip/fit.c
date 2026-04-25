@@ -259,10 +259,13 @@ static int fit_image_fixup_alloc(const void *fit, const char *prop_name,
 
 int fit_image_pre_process(const void *fit)
 {
+	ulong fdt_addr_r;
 	int ret;
 
+	fdt_addr_r = env_get_ulong("fdt_addr_r", 16, 0);
+
 	/* free for fit_image_fixup_alloc(FIT_FDT_PROP) to re-alloc */
-	if ((gd->flags & GD_FLG_KDTB_READY) && !gd->fdt_blob_kern)
+	if ((gd->flags & GD_FLG_KDTB_READY) && gd->fdt_blob == (void *)fdt_addr_r)
 		sysmem_free((phys_addr_t)gd->fdt_blob);
 
 	ret = fit_image_fixup_alloc(fit, FIT_FDT_PROP,

@@ -1092,10 +1092,12 @@ int bootm_board_start(void)
 
 int bootm_image_populate_dtb(void *img)
 {
-	if ((gd->flags & GD_FLG_KDTB_READY) && !gd->fdt_blob_kern)
+	ulong fdt_addr_r = env_get_ulong("fdt_addr_r", 16, 0);
+
+	if ((gd->flags & GD_FLG_KDTB_READY) && gd->fdt_blob == (void *)fdt_addr_r)
 		sysmem_free((phys_addr_t)gd->fdt_blob);
 	else
-		gd->fdt_blob = (void *)env_get_ulong("fdt_addr_r", 16, 0);
+		gd->fdt_blob = (void *)fdt_addr_r;
 
 	return rockchip_ram_read_dtb_file(img, (void *)gd->fdt_blob);
 }

@@ -92,7 +92,7 @@ typedef struct global_data {
 	struct device_node *of_root_f;  /* U-Boot of-root instance */
 #endif
 	const void *ufdt_blob;		/* Our U-Boot device tree, NULL if none */
-	const void *fdt_blob_kern;	/* Kernel dtb at the tail of u-boot.bin */
+	const void *fdt_blob_kern;	/* Embedded kernel dtb/resource source */
 	struct jt_funcs *jt;		/* jump table */
 	char env_buf[32];		/* buffer for env_get() before reloc. */
 #ifdef CONFIG_TRACE

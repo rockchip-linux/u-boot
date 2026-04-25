@@ -19,6 +19,19 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_USING_KERNEL_DTB
+static __maybe_unused bool fdtdec_is_valid_kdtb_source(const void *blob)
+{
+	if (!blob)
+		return false;
+
+	if (!fdt_check_header(blob))
+		return true;
+
+	return !memcmp(blob, "RSCE", 4);
+}
+#endif
+
 /*
  * Here are the type we know about. One day we might allow drivers to
  * register. For now we just put them here. The COMPAT macro allows us to
@@ -1299,6 +1312,8 @@ int fdtdec_setup(void)
 #    ifdef CONFIG_USING_KERNEL_DTB
 	gd->fdt_blob_kern = (ulong *)ALIGN((ulong)gd->fdt_blob +
 				fdt_totalsize(gd->fdt_blob), 8);
+	if (!fdtdec_is_valid_kdtb_source(gd->fdt_blob_kern))
+		gd->fdt_blob_kern = NULL;
 #    endif
 #  endif
 # elif defined(CONFIG_OF_BOARD)

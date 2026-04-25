@@ -697,8 +697,12 @@ static int setup_reloc(void)
 	printf("Relocation fdt: %08lx - %08lx",  (ulong)gd->new_fdt,
 	       (ulong)gd->new_fdt + fdt_totalsize(gd->fdt_blob));
 	if (gd->fdt_blob_kern) {
-		printf(", kfdt: %08lx - %08lx", (ulong)gd->fdt_blob_kern,
-		  (ulong)gd->fdt_blob_kern + fdt_totalsize(gd->fdt_blob_kern));
+		if (!fdt_check_header(gd->fdt_blob_kern))
+			printf(", kfdt: %08lx - %08lx", (ulong)gd->fdt_blob_kern,
+			       (ulong)gd->fdt_blob_kern +
+			       fdt_totalsize(gd->fdt_blob_kern));
+		else
+			printf(", kfdt: %08lx", (ulong)gd->fdt_blob_kern);
 	}
 	puts("\n");
 #endif
