@@ -83,12 +83,10 @@
 #define SDRAM_MAX_SIZE			0xc0000000ULL	/* max 3G */
 #define CONFIG_SYS_NONCACHED_MEMORY	(1 << 20)	/* 1M */
 
-#ifdef CONFIG_SPL_KERNEL_BOOT
 /* spl thunderboot */
 #define SPL_RESV_MEM_SIZE		(2 << 20)	/* 2M */
 #define KERNEL_ADDR1_R			0x00200000
 #define KERNEL_ADDR1_AARCH32_R		0x00208000
-#endif
 
 /* env used only in U-Boot */
 #ifndef CONFIG_SPL_BUILD

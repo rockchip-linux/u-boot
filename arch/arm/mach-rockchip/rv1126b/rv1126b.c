@@ -561,6 +561,7 @@ int rk_board_fit_image_post_process(void *fit, int node, ulong *load_addr,
 
 	return 0;
 }
+#endif
 
 void board_bidram_fixup(void)
 {
@@ -617,7 +618,10 @@ void board_bidram_fixup(void)
 		gd->bd->bi_dram[num].size  = 0x01800000;
 		num++;
 
-		/* Remap FSPI_PMU_XIP to DDR. */
+		/*
+		 * Remap FSPI_PMU_XIP to DDR.
+		 * Because FSPI_PMU_XIP is not used now, there is no need to make a judgment here.
+		 */
 #ifdef CONFIG_SPL_BUILD
 		writel(0x20002000, SGRF_PMU_BASE + SGRF_PMU_SOC_CON1);
 #elif CONFIG_ROCKCHIP_SMCCC
@@ -632,7 +636,10 @@ void board_bidram_fixup(void)
 		gd->bd->bi_dram[num].size  = 0x02000000;
 		num++;
 
-		/* Remap FSPI_XIP to DDR. */
+		/*
+		 * Remap FSPI_XIP to DDR.
+		 * Because FSPI_XIP is not used now, there is no need to make a judgment here.
+		 */
 #ifdef CONFIG_SPL_BUILD
 		writel(0x10001000, SGRF_PMU_BASE + SGRF_PMU_SOC_CON1);
 #elif CONFIG_ROCKCHIP_SMCCC
@@ -757,7 +764,6 @@ bool rk_board_req_mem_layout1(void)
 	else
 		return false;
 }
-#endif
 #endif
 #endif
 
