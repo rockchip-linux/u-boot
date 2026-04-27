@@ -546,6 +546,12 @@ static int ebook_display(struct udevice *dev, void *pre_img_buf,
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
 	struct rk_ebc_tcon_ops *ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
+	struct epd_lut_info lut_info = {
+		.pic = WF_4BIT,
+		.wf_fix = 0,
+		.normal_repair = 0,
+		.swap_2bit = 0
+	};
 
 	if (ebc_pwr_dev)
 		pwr_ops = ebc_pwr_get_ops(ebc_pwr_dev);
@@ -562,11 +568,11 @@ static int ebook_display(struct udevice *dev, void *pre_img_buf,
 
 	if(!plat->lut_data.wf_table[0])
 		plat->lut_data.wf_table[0] = kzalloc(MAXFRAME * 32 * 32, GFP_KERNEL);
-	epd_lut_get(&plat->lut_data, lut_type, temperature, WF_4BIT, 0, 0);
+	epd_lut_get(&plat->lut_data, lut_type, temperature, lut_info);
 	kfree(plat->lut_data.wf_table[0]);
 	plat->lut_data.wf_table[0] = NULL;
 
-	frame_num = plat->lut_data.frame_num & 0xff;
+	frame_num = plat->lut_data.display_frame_num;
 	printf("lut_type=%d, frame num=%d, temp=%d\n", lut_type,
 	       frame_num, temperature);
 
