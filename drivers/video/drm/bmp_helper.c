@@ -77,6 +77,8 @@ static void decode_rle8_bitmap(void *psrc, void *pdst, uint16_t *cmap,
 				} else {
 					y++;
 				}
+				if (y < 0 || y >= height)
+					decode = 0;
 				break;
 			case BMP_RLE8_EOBMP:
 				/* end of bitmap */
@@ -95,12 +97,14 @@ static void decode_rle8_bitmap(void *psrc, void *pdst, uint16_t *cmap,
 					dst += bmap[2] * 2;
 				}
 				bmap += 4;
+				if (x >= width || y < 0 || y >= height)
+					decode = 0;
 				break;
 			default:
 				/* unencoded run */
 				runlen = bmap[1];
 				bmap += 2;
-				if (y >= height || x >= width) {
+				if (y < 0 || y >= height || x >= width) {
 					decode = 0;
 					break;
 				}
@@ -117,7 +121,7 @@ static void decode_rle8_bitmap(void *psrc, void *pdst, uint16_t *cmap,
 			}
 		} else {
 			/* encoded run */
-			if (y < height) {
+			if (y >= 0 && y < height) {
 				runlen = bmap[0];
 				if (x < width) {
 					/* aggregate the same code */
