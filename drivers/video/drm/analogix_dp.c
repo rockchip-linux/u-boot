@@ -35,6 +35,7 @@
  * @lcdsel_big: reg value of selecting vop big for eDP
  * @lcdsel_lit: reg value of selecting vop little for eDP
  * @chip_type: specific chip type
+ * @max_dclk_khz: the maximum supported dclk rate
  * @ssc: check if SSC is supported by source
  * @max_link_rate: max supported link rate
  * @max_lane_count: max supported lane count
@@ -47,6 +48,7 @@ struct rockchip_dp_chip_data {
 	u32	lcdsel_big;
 	u32	lcdsel_lit;
 	u32	chip_type;
+	u32	max_dclk_khz;
 	bool    ssc;
 
 	u32 max_link_rate;
@@ -1160,13 +1162,22 @@ static int analogix_dp_connector_mode_valid(struct rockchip_connector *conn,
 {
 	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	const struct rockchip_dp_chip_data *pdata =
+		(const struct rockchip_dp_chip_data *)dev_get_driver_data(conn->dev);
 	struct videomode vm;
 
-	drm_display_mode_to_videomode(&conn_state->mode, &vm);
+	drm_display_mode_to_videomode(mode, &vm);
 
 	if (!vm.hfront_porch || !vm.hback_porch || !vm.vfront_porch || !vm.vback_porch) {
 		dev_err(dp->dev, "front porch or back porch can not be 0\n");
 		return MODE_BAD;
+	}
+
+	if (mode->clock > pdata->max_dclk_khz) {
+		dev_err(dp->dev, "clock[%dkHz] exceeds limit[%dkHz]\n",
+			mode->clock, pdata->max_dclk_khz);
+		return MODE_CLOCK_HIGH;
 	}
 
 	return MODE_OK;
@@ -1472,6 +1483,7 @@ static const struct rockchip_dp_chip_data rk3288_edp_platform_data = {
 
 	.max_link_rate = DP_LINK_BW_2_7,
 	.max_lane_count = 4,
+	.max_dclk_khz = 350000,
 };
 
 static const struct rockchip_dp_chip_data rk3368_edp_platform_data = {
@@ -1479,6 +1491,7 @@ static const struct rockchip_dp_chip_data rk3368_edp_platform_data = {
 
 	.max_link_rate = DP_LINK_BW_2_7,
 	.max_lane_count = 4,
+	.max_dclk_khz = 350000,
 };
 
 static const struct rockchip_dp_chip_data rk3399_edp_platform_data = {
@@ -1490,6 +1503,7 @@ static const struct rockchip_dp_chip_data rk3399_edp_platform_data = {
 
 	.max_link_rate = DP_LINK_BW_5_4,
 	.max_lane_count = 4,
+	.max_dclk_khz = 350000,
 };
 
 static const struct rockchip_dp_chip_data rk3568_edp_platform_data = {
@@ -1498,6 +1512,7 @@ static const struct rockchip_dp_chip_data rk3568_edp_platform_data = {
 
 	.max_link_rate = DP_LINK_BW_2_7,
 	.max_lane_count = 4,
+	.max_dclk_khz = 350000,
 };
 
 static const struct rockchip_dp_chip_data rk3576_edp_platform_data = {
@@ -1509,6 +1524,7 @@ static const struct rockchip_dp_chip_data rk3576_edp_platform_data = {
 	.format_yuv = true,
 	.support_dp_mode = true,
 	.max_bpc = 10,
+	.max_dclk_khz = 600000,
 };
 
 static const struct rockchip_dp_chip_data rk3588_edp_platform_data = {
@@ -1520,6 +1536,7 @@ static const struct rockchip_dp_chip_data rk3588_edp_platform_data = {
 	.format_yuv = true,
 	.support_dp_mode = true,
 	.max_bpc = 10,
+	.max_dclk_khz = 600000,
 };
 
 static const struct udevice_id analogix_dp_ids[] = {
