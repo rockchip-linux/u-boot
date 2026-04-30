@@ -11,9 +11,81 @@
 #include <asm/arch/clock.h>
 #include <rksfc.h>
 #include <asm/arch/vendor.h>
+#include <asm/gpio.h>
 
 #include "rkflash_blk.h"
 #include "rkflash_api.h"
+
+#define SFC_CS_GPIO_MAX	4
+
+struct rksfc_info {
+	void *reg_base;
+#if defined(CONFIG_DM_GPIO) && (defined(CONFIG_SPL_GPIO_SUPPORT) || !defined(CONFIG_SPL_BUILD))
+	struct gpio_desc cs_gpiods[SFC_CS_GPIO_MAX];
+#endif
+	int num_cs_gpios;
+	struct clk clk;
+	struct clk ahb_clk;
+	unsigned long clk_rate;
+	bool sclk_x2_bypass;
+};
+
+static struct rksfc_info g_sfc_info;
+
+static int rksfc_clk_set_rate(struct rksfc_info *sfc, unsigned long speed)
+{
+	if (sfc_get_version() < SFC_VER_8 || sfc->sclk_x2_bypass)
+		return clk_set_rate(&sfc->clk, speed);
+	else
+		return clk_set_rate(&sfc->clk, speed * 2);
+}
+
+static unsigned long rksfc_clk_get_rate(struct rksfc_info *sfc)
+{
+	if (sfc_get_version() < SFC_VER_8 || sfc->sclk_x2_bypass)
+		return clk_get_rate(&sfc->clk);
+	else
+		return clk_get_rate(&sfc->clk) / 2;
+}
+
+void rksfc_set_cs_gpio(u8 cs, bool enable)
+{
+#if defined(CONFIG_DM_GPIO) && (defined(CONFIG_SPL_GPIO_SUPPORT) || !defined(CONFIG_SPL_BUILD))
+	if (cs < SFC_CS_GPIO_MAX)
+		if (dm_gpio_is_valid(&g_sfc_info.cs_gpiods[cs]))
+			dm_gpio_set_value(&g_sfc_info.cs_gpiods[cs], enable);
+#endif
+}
+
+static int rksfc_get_gpio_descs(struct udevice *dev)
+{
+#if defined(CONFIG_DM_GPIO) && (defined(CONFIG_SPL_GPIO_SUPPORT) || !defined(CONFIG_SPL_BUILD))
+	int ret;
+	int i;
+
+	ret = gpio_request_list_by_name(dev, "sfc-cs-gpios", g_sfc_info.cs_gpiods,
+					ARRAY_SIZE(g_sfc_info.cs_gpiods), 0);
+	if (ret < 0) {
+		pr_err("Can't get %s gpios! Error: %d\n", dev->name, ret);
+		return ret;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(g_sfc_info.cs_gpiods); i++) {
+		if (!dm_gpio_is_valid(&g_sfc_info.cs_gpiods[i]))
+			continue;
+
+		ret = dm_gpio_set_dir_flags(&g_sfc_info.cs_gpiods[i],
+					    GPIOD_IS_OUT | GPIOD_ACTIVE_LOW);
+		if (ret) {
+			dev_err(dev, "Setting cs %d error, ret=%d\n", i, ret);
+			return ret;
+		}
+		dm_gpio_set_value(&g_sfc_info.cs_gpiods[i], 0);
+	}
+#endif
+
+	return 0;
+}
 
 static struct flash_operation sfc_nor_op = {
 #ifdef	CONFIG_RKSFC_NOR
@@ -107,7 +179,36 @@ static int rockchip_rksfc_probe(struct udevice *udev)
 
 	debug("%s %d %p ndev = %p\n", __func__, __LINE__, udev, priv);
 
+	ret = clk_get_by_index(udev, 0, &g_sfc_info.clk);
+	if (ret) {
+		printf("%s get clk error\n", __func__);
+		return ret;
+	}
+
+	ret = clk_get_by_index(udev, 1, &g_sfc_info.ahb_clk);
+	if (ret) {
+		printf("%s get ahb_clk error\n", __func__);
+		return ret;
+	}
+
+	g_sfc_info.sclk_x2_bypass = dev_read_bool(udev, "rockchip,sclk-x2-bypass");
+
+	g_sfc_info.clk_rate = dev_read_u32_default(udev, "spi-max-frequency", 0);
+
+	ret = rksfc_get_gpio_descs(udev);
+	if (ret)
+		return ret;
+
 	sfc_init(priv->ioaddr);
+
+	if (!g_sfc_info.clk_rate)
+		g_sfc_info.clk_rate = rksfc_clk_get_rate(&g_sfc_info);
+	else if (g_sfc_info.clk_rate > RKSFC_CLK_MAX_RATE)
+		g_sfc_info.clk_rate = RKSFC_DLL_THRESHOLD_RATE;
+	rksfc_clk_set_rate(&g_sfc_info, g_sfc_info.clk_rate);
+	g_sfc_info.clk_rate = rksfc_clk_get_rate(&g_sfc_info);
+	printf("%s clk rate = %ld\n", __func__, g_sfc_info.clk_rate);
+
 	for (i = 0; i < 2; i++) {
 		if (spi_flash_op[i]->id <= 0) {
 			debug("%s no optional spi flash for type %x\n",

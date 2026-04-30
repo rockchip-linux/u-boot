@@ -87,6 +87,8 @@ int sfc_request(struct rk_sfc_op *op, u32 addr, void *data, u32 size)
 	u32 *p_data = (u32 *)data;
 	u32 temp = 0;
 
+	rksfc_set_cs_gpio(op->sfcmd.b.cs, true);
+
 	reg = readl(g_sfc_reg + SFC_FSR);
 
 	if (!(reg & SFC_TXEMPTY) || !(reg & SFC_RXEMPTY) ||
@@ -275,5 +277,6 @@ exit_wait:
 	}
 
 	sfc_delay(1); /* CS# High Time (read/write) >100ns */
+	rksfc_set_cs_gpio(op->sfcmd.b.cs, false);
 	return ret;
 }
