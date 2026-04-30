@@ -12,4 +12,5 @@ int rockchip_cpuid_from_efuse(const u32 cpuid_offset,
 int rockchip_setup_macaddr(void);
 int rockchip_setup_serial_number(void);
 void rockchip_capsule_update_board_setup(void);
+void gpt_capsule_update_setup(void);
 void board_run_recovery_wipe_data(void);

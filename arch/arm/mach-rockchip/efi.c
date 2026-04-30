@@ -5,11 +5,15 @@
  */
 #include <common.h>
 #include <blk.h>
+#include <dm/uclass.h>
+#include <efi_loader.h>
 #include <image.h>
 #include <hang.h>
 #include <malloc.h>
+#include <mmc.h>
 #include <part.h>
 #include <sysmem.h>
+#include <u-boot/uuid.h>
 #include <asm/cache.h>
 
 __weak void rockchip_capsule_update_board_setup(void) {}
@@ -17,6 +21,19 @@ __weak void rockchip_capsule_update_board_setup(void) {}
 #if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT) && IS_ENABLED(CONFIG_EFI_PARTITION)
 
 #define DFU_ALT_BUF_LEN			SZ_1K
+
+static struct efi_fw_image rockchip_fw_images[] = {
+	{
+		.fw_name = u"ROCKCHIP-FIT",
+		.image_index = 1,
+	},
+};
+
+struct efi_capsule_update_info update_info = {
+	.dfu_string = NULL,
+	.num_images = ARRAY_SIZE(rockchip_fw_images),
+	.images = rockchip_fw_images,
+};
 
 static struct efi_fw_image *fw_images;
 
@@ -83,7 +100,7 @@ static int get_mmc_desc(struct blk_desc **desc)
 	return 0;
 }
 
-static void gpt_capsule_update_setup(void)
+void gpt_capsule_update_setup(void)
 {
 	int p, i, ret;
 	struct disk_partition info;
@@ -114,4 +131,3 @@ static void gpt_capsule_update_setup(void)
 	}
 }
 #endif /* CONFIG_EFI_HAVE_CAPSULE_SUPPORT && CONFIG_EFI_PARTITION */
-
