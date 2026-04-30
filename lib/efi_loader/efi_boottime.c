@@ -2238,7 +2238,7 @@ static efi_status_t EFIAPI efi_exit_boot_services(efi_handle_t image_handle,
 			udc_disconnect();
 		if (IS_ENABLED(CONFIG_DM_ETH))
 			eth_halt();
-		board_quiesce_devices();
+		board_quiesce_devices(NULL);
 		dm_remove_devices_active();
 	}
 
