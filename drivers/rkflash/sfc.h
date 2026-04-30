@@ -15,6 +15,9 @@
 #define RKSFC_CLK_MAX_RATE		(150 * 1000 * 1000)
 #define RKSFC_DLL_THRESHOLD_RATE	(50 * 1000 * 1000)
 
+#define SFC_DLL_TRANING_STEP		4
+#define SFC_DLL_TRANING_VALID_WINDOW	8
+
 #define SFC_EN_INT		(0)         /* enable interrupt */
 #define SFC_EN_DMA		(1)         /* enable dma */
 #define SFC_FIFO_DEPTH		(0x10)      /* 16 words */
@@ -222,6 +225,7 @@ void sfc_clean_irq(void);
 u32 sfc_get_max_iosize(void);
 void sfc_set_delay_lines(u16 cells);
 void sfc_disable_delay_lines(void);
+u16 sfc_get_max_dll_cells(void);
 int rksfc_get_reg_addr(unsigned long *p_sfc_addr);
 void rksfc_set_cs_gpio(u8 cs, bool enable);
 #endif

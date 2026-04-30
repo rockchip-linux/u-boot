@@ -61,6 +61,14 @@ void sfc_disable_delay_lines(void)
 	writel(0, g_sfc_reg + SFC_DLL_CTRL0);
 }
 
+u16 sfc_get_max_dll_cells(void)
+{
+	if (sfc_get_version() >= SFC_VER_5)
+		return SCLK_SMP_SEL_MAX_V5;
+	else
+		return SCLK_SMP_SEL_MAX_V4;
+}
+
 int sfc_init(void __iomem *reg_addr)
 {
 	g_sfc_reg = reg_addr;
