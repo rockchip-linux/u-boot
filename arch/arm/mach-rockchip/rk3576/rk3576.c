@@ -25,6 +25,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SYS_GRF_SOC_CON12	0x0030
 
 #define GPIO0_IOC_BASE		0x26040000
+#define GPIO0A_IOMUX_SEL_H	0x0004
 #define GPIO0B_PULL_L		0x0024
 #define GPIO0B_IE_L		0x002C
 #define TOP_IOC_BASE		0x26044000
@@ -210,6 +211,7 @@ void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
 		} else if (devnum == 1) {
 			writel(0xffff1111, TOP_IOC_BASE + GPIO2A_IOMUX_SEL_L);
 			writel(0x00ff0011, TOP_IOC_BASE + GPIO2A_IOMUX_SEL_H);
+			writel(0xf0001000, GPIO0_IOC_BASE + GPIO0A_IOMUX_SEL_H);
 			/* Pull up */
 			writel(0x0FFF0FFF, VCCIO_IOC_BASE + VCCIO_IOC_GPIO2A_PUL);
 		}
