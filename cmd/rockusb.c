@@ -50,6 +50,7 @@ static int rkusb_write_sector(struct ums *ums_dev,
 	if (block_dev->if_type == IF_TYPE_MTD) {
 		mtd_blk = dev_get_uclass_platdata(block_dev->bdev);
 		mtd_blk->op_flag |= BLK_MTD_CONT_WRITE;
+		mtd_blk->op_flag |= BLK_MTD_LOADER_MODE;
 	}
 
 	ret = blk_dwrite(block_dev, blkstart, blkcnt, buf);
@@ -64,6 +65,7 @@ static int rkusb_write_sector(struct ums *ums_dev,
 #endif
 	if (block_dev->if_type == IF_TYPE_MTD) {
 		mtd_blk->op_flag &= ~(BLK_MTD_CONT_WRITE);
+		mtd_blk->op_flag &= ~(BLK_MTD_LOADER_MODE);
 	}
 	return ret;
 }

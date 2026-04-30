@@ -587,6 +587,9 @@ ulong mtd_dwrite(struct udevice *udev, lbaint_t start,
 	if (blkcnt == 0)
 		return 0;
 
+	if (desc->op_flag & BLK_MTD_LOADER_MODE)
+		usbplug_mode_en = true;
+
 	if (desc->op_flag & BLK_MTD_CONT_WRITE &&
 	    (start == 1 || ((desc->lba - start) <= 33))) {
 		printf("Write in GPT area, lba=%ld cnt=%ld\n", start, blkcnt);
