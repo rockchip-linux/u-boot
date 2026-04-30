@@ -10,6 +10,7 @@
 #include <blk.h>
 #include <dm.h>
 #include <dm/device-internal.h>
+#include <dm/read.h>
 #include <dm/tag.h>
 #include <event.h>
 #include <efi_driver.h>
@@ -301,6 +302,7 @@ static efi_status_t EFIAPI efi_disk_flush_blocks(struct efi_block_io *this)
 }
 
 static const struct efi_block_io block_io_disk_template = {
+	.revision = EFI_BLOCK_IO_PROTOCOL_REVISION3,
 	.reset = &efi_disk_reset,
 	.read_blocks = &efi_disk_read_blocks,
 	.write_blocks = &efi_disk_write_blocks,
@@ -369,6 +371,59 @@ static int efi_fs_exists(struct blk_desc *desc, int part)
 	fs_close();
 
 	return 1;
+}
+
+static bool efi_disk_is_duplicate_kern_dtb_blk(struct udevice *dev)
+{
+	struct udevice *iter, *parent, *iter_parent;
+	struct uclass *uc;
+	struct blk_desc *desc, *iter_desc;
+	fdt_addr_t parent_addr, iter_parent_addr;
+
+	if (!(dev_get_flags(dev) & DM_FLAG_KNRL_DTB))
+		return false;
+
+	parent = dev_get_parent(dev);
+	if (!parent)
+		return false;
+
+	desc = dev_get_uclass_plat(dev);
+	if (!desc)
+		return false;
+
+	parent_addr = dev_read_addr(parent);
+	if (parent_addr == FDT_ADDR_T_NONE)
+		return false;
+
+	if (uclass_get(UCLASS_BLK, &uc))
+		return false;
+
+	uclass_foreach_dev(iter, uc) {
+		if (iter == dev || (dev_get_flags(iter) & DM_FLAG_KNRL_DTB))
+			continue;
+
+		iter_parent = dev_get_parent(iter);
+		if (!iter_parent ||
+		    device_get_uclass_id(iter_parent) != device_get_uclass_id(parent))
+			continue;
+
+		iter_parent_addr = dev_read_addr(iter_parent);
+		if (iter_parent_addr == FDT_ADDR_T_NONE ||
+		    iter_parent_addr != parent_addr)
+			continue;
+
+		iter_desc = dev_get_uclass_plat(iter);
+		if (!iter_desc)
+			continue;
+
+		if (iter_desc->uclass_id == desc->uclass_id &&
+		    iter_desc->hwpart == desc->hwpart &&
+		    iter_desc->blksz == desc->blksz &&
+		    iter_desc->lba == desc->lba)
+			return true;
+	}
+
+	return false;
 }
 
 static void efi_disk_free_diskobj(struct efi_disk_obj *diskobj)
@@ -643,6 +698,44 @@ static int efi_disk_create_part(struct udevice *dev, efi_handle_t agent_handle)
 	return 0;
 }
 
+static int efi_disk_register_blk_dev(struct udevice *dev,
+				     efi_handle_t agent_handle)
+{
+	struct blk_desc *desc;
+	struct udevice *child;
+	void *handle;
+	int ret;
+
+	/* We won't support partitions in a partition */
+	if (device_get_uclass_id(dev) != UCLASS_BLK)
+		return 0;
+
+	desc = dev_get_uclass_plat(dev);
+	if (efi_disk_is_duplicate_kern_dtb_blk(dev)) {
+		log_debug("Skip duplicate kernel dtb block device %s (%s %d hwpart %d)\n",
+			  dev->name, blk_get_uclass_name(desc->uclass_id),
+			  desc->devnum, desc->hwpart);
+		return 0;
+	}
+
+	if (desc->uclass_id != UCLASS_EFI_LOADER &&
+	    dev_tag_get_ptr(dev, DM_TAG_EFI, &handle)) {
+		ret = efi_disk_create_raw(dev, agent_handle);
+		if (ret)
+			return ret;
+	}
+
+	device_foreach_child(child, dev) {
+		if (!dev_tag_get_ptr(child, DM_TAG_EFI, &handle))
+			continue;
+		ret = efi_disk_create_part(child, agent_handle);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 /**
  * efi_disk_probe() - create efi_disk objects for a block device
  *
@@ -659,36 +752,14 @@ static int efi_disk_create_part(struct udevice *dev, efi_handle_t agent_handle)
 int efi_disk_probe(void *ctx, struct event *event)
 {
 	struct udevice *dev;
-	enum uclass_id id;
-	struct blk_desc *desc;
-	struct udevice *child;
 	struct efi_driver_binding_extended_protocol *db_prot = ctx;
 	efi_handle_t agent_handle = db_prot->bp.driver_binding_handle;
 	int ret;
 
 	dev = event->data.dm.dev;
-	id = device_get_uclass_id(dev);
-
-	/* We won't support partitions in a partition */
-	if (id != UCLASS_BLK)
-		return 0;
-
-	/*
-	 * Avoid creating duplicated objects now that efi_driver
-	 * has already created an efi_disk at this moment.
-	 */
-	desc = dev_get_uclass_plat(dev);
-	if (desc->uclass_id != UCLASS_EFI_LOADER) {
-		ret = efi_disk_create_raw(dev, agent_handle);
-		if (ret)
-			return -1;
-	}
-
-	device_foreach_child(child, dev) {
-		ret = efi_disk_create_part(child, agent_handle);
-		if (ret)
-			return -1;
-	}
+	ret = efi_disk_register_blk_dev(dev, agent_handle);
+	if (ret)
+		return -1;
 
 	/* only do the boot option management when UEFI sub-system is initialized */
 	if (IS_ENABLED(CONFIG_CMD_BOOTEFI_BOOTMGR) && efi_obj_list_initialized == EFI_SUCCESS) {
@@ -835,8 +906,12 @@ efi_status_t efi_disk_get_device_name(const efi_handle_t handle, char *buf, int 
 efi_status_t efi_disks_register(void)
 {
 	struct udevice *dev;
+	int ret;
 
 	uclass_foreach_dev_probe(UCLASS_BLK, dev) {
+		ret = efi_disk_register_blk_dev(dev, NULL);
+		if (ret)
+			return EFI_DEVICE_ERROR;
 	}
 
 	return EFI_SUCCESS;
