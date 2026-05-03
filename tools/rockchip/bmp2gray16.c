@@ -106,7 +106,7 @@ struct input_img_info {
 struct input_img_info in_img_info[16];
 uint32_t screen_w;
 uint32_t screen_h;
-static const char version[4] = "1.00";
+static const char version[] = "1.00";
 static const char *PROG;
 
 static const char *fix_path(const char *path)
