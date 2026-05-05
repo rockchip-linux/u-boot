@@ -977,7 +977,7 @@ binary_size_check: u-boot-nodtb.bin FORCE
 
 u-boot-nodtb.bin: u-boot FORCE
 	$(call if_changed,objcopy)
-	$(call DO_STATIC_RELA,$<,$@,$(CONFIG_SYS_TEXT_BASE))
+	$(Q)$(call DO_STATIC_RELA,$<,$@,$(CONFIG_SYS_TEXT_BASE))
 	$(BOARD_SIZE_CHECK)
 
 u-boot.ldr:	u-boot
