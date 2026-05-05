@@ -9,6 +9,17 @@
 
 #include "rkspi.h"
 
+/*
+ * Entry point required by the standalone Makefile (-e rkspi).
+ * Must appear before all other functions so -fno-toplevel-reorder
+ * places it first in the binary.
+ */
+int rkspi(int argc, char * const argv[])
+{
+	app_startup(argv);
+	return 0;
+}
+
 /* Change to 1 to output registers at the start of each transaction */
 #define DEBUG_RK_SPI	0
 

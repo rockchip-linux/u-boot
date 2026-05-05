@@ -7,6 +7,8 @@
 #ifndef _DRIVER_SPI_H_
 #define _DRIVER_SPI_H_
 
+#include <linux/types.h>
+
 struct rockchip_spi {
 	u32 ctrlr0;
 	u32 ctrlr1;
