@@ -10,8 +10,104 @@
 #include <linux/usb/phy-rockchip-usbdp.h>
 #include <asm/io.h>
 #include <rockusb.h>
+#ifdef CONFIG_DISPLAY_CPUINFO
+#include <clk.h>
+#include <dm.h>
+#include <dt-bindings/clock/rk3588-cru.h>
+#include <asm/arch-rockchip/param.h>
+#ifdef CONFIG_ROCKCHIP_PRELOADER_ATAGS
+#include <asm/arch-rockchip/rk_atags.h>
+#endif
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#ifdef CONFIG_DISPLAY_CPUINFO
+int print_cpuinfo(void)
+{
+	struct udevice *dev;
+	struct clk clk;
+	ulong cpul_hz = 0, cpub01_hz = 0, cpub23_hz = 0;
+	ulong gpu_hz = 0, npu_hz = 0, ddr_hz = 0;
+	u64 ddr_size = 0;
+	int i;
+
+	/* query all frequencies via SCMI clock driver */
+	if (!uclass_get_device_by_driver(UCLASS_CLK,
+					 DM_GET_DRIVER(scmi_clock), &dev)) {
+		clk.dev = dev;
+
+		clk.id = SCMI_CLK_CPUL;
+		cpul_hz = clk_get_rate(&clk);
+
+		clk.id = SCMI_CLK_CPUB01;
+		cpub01_hz = clk_get_rate(&clk);
+
+		clk.id = SCMI_CLK_CPUB23;
+		cpub23_hz = clk_get_rate(&clk);
+
+		clk.id = SCMI_CLK_GPU;
+		gpu_hz = clk_get_rate(&clk);
+
+		clk.id = SCMI_CLK_NPU;
+		npu_hz = clk_get_rate(&clk);
+
+		clk.id = SCMI_CLK_DDR;
+		ddr_hz = clk_get_rate(&clk);
+	}
+
+	/*
+	 * Read raw DDR bank sizes from ATAGs to get the true physical capacity
+	 * (avoids the SDRAM_MAX_SIZE cap in param_parse_ddr_mem which only
+	 * returns 3840 MiB for a 8 GiB board).
+	 */
+#ifdef CONFIG_ROCKCHIP_PRELOADER_ATAGS
+	{
+		struct tag *t = atags_get_tag(ATAG_DDR_MEM);
+
+		if (t && t->u.ddr_mem.count) {
+			u32 dc = t->u.ddr_mem.count;
+
+			for (i = 0; i < (int)dc; i++)
+				ddr_size += t->u.ddr_mem.bank[i + dc];
+		}
+	}
+#endif
+
+	printf("CPU:   Rockchip RK3588  (4x Cortex-A76 + 4x Cortex-A55)\n");
+	if (cpul_hz)
+		printf("       Cortex-A55 (Little):  %lu MHz\n",
+		       cpul_hz / 1000000);
+	if (cpub01_hz)
+		printf("       Cortex-A76 (Big 0-1): %lu MHz\n",
+		       cpub01_hz / 1000000);
+	if (cpub23_hz)
+		printf("       Cortex-A76 (Big 2-3): %lu MHz\n",
+		       cpub23_hz / 1000000);
+
+	printf("GPU:   ARM Mali-G610 MC4");
+	if (gpu_hz)
+		printf("  @ %lu MHz", gpu_hz / 1000000);
+	printf("\n");
+
+	printf("NPU:   6 TOPS  (3-core, int4/int8/int16/FP16/BF16/TF32)");
+	if (npu_hz)
+		printf("  @ %lu MHz", npu_hz / 1000000);
+	printf("\n");
+
+	if (ddr_size && !(ddr_size & ((1ULL << 30) - 1)))
+		printf("DDR:   %llu GiB", ddr_size >> 30);
+	else if (ddr_size)
+		printf("DDR:   %llu MiB", ddr_size >> 20);
+	else
+		printf("DDR:   unknown");
+	if (ddr_hz)
+		printf("  @ %lu MHz", ddr_hz / 1000000);
+	printf("\n");
+
+	return 0;
+}
+#endif
 
 #ifdef CONFIG_USB_DWC3
 #define CRU_BASE		0xfd7c0000
