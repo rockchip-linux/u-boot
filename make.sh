@@ -825,5 +825,5 @@ clean_files
 make PYTHON=python2 ${ARG_SPL_FWVER} ${ARG_FWVER} CROSS_COMPILE=${TOOLCHAIN} all --jobs=${JOB}
 pack_images
 finish
-echo ${TOOLCHAIN}
+echo "Toolchain: ${TOOLCHAIN}gcc ($(${TOOLCHAIN}gcc --version | head -1))"
 date
