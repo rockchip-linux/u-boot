@@ -163,6 +163,26 @@ static void dwmci_prepare_data(struct dwmci_host *host,
 	dwmci_writel(host, DWMCI_BYTCNT, data->blocksize * data->blocks);
 }
 
+#ifdef CONFIG_SPL_BUILD
+static unsigned int dwmci_get_drto(struct dwmci_host *host,
+                                   const unsigned int size)
+{
+    unsigned int drto_clks, drto_div, drto_ms;
+
+    drto_clks = dwmci_readl(host, DWMCI_TMOUT) >> 8;
+    drto_div = (dwmci_readl(host, DWMCI_CLKDIV) & 0xff) * 2;
+    if (drto_div == 0)
+        drto_div = 1;
+
+    drto_ms = DIV_ROUND_UP_ULL((u64)MSEC_PER_SEC * drto_clks * drto_div,
+                               host->mmc->clock);
+
+	/* add a bit spare time */
+    drto_ms += 10;
+
+    return drto_ms;
+}
+#else
 static unsigned int dwmci_get_drto(struct dwmci_host *host,
 				   const unsigned int size)
 {
@@ -176,6 +196,7 @@ static unsigned int dwmci_get_drto(struct dwmci_host *host,
 
 	return timeout;
 }
+#endif /* CONFIG_SPL_BUILD */
 
 static unsigned int dwmci_get_cto(struct dwmci_host *host)
 {
