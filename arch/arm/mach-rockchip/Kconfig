@@ -631,6 +631,7 @@ endif
 config ROCKCHIP_RV1106
 	bool "Support Rockchip RV1106"
 	select CPU_V7
+	select ARM_ZERO_CNTVOFF
 	select DEBUG_UART_BOARD_INIT
 	select ARM_ERRATA_814220
 	imply ARM_SMCCC
