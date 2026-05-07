@@ -348,7 +348,7 @@ static int rk860x_regulator_ofdata_to_platdata(struct udevice *dev)
 	ret = gpio_request_by_name(dev, "vsel-gpios", 0,
 				   &priv->vsel_gpio, GPIOD_IS_OUT);
 	if (ret)
-		dev_err(dev, "vsel-gpios- not found!\n");
+		dev_dbg(dev, "vsel-gpios not found, using I2C register control\n");
 
 	if (dm_gpio_is_valid(&priv->vsel_gpio))
 		dm_gpio_set_value(&priv->vsel_gpio, !priv->sleep_vsel_id);
@@ -356,7 +356,7 @@ static int rk860x_regulator_ofdata_to_platdata(struct udevice *dev)
 	ret = gpio_request_by_name(dev, "en-gpios", 0,
 				   &priv->en_gpio, GPIOD_IS_OUT);
 	if (ret)
-		dev_err(dev, "en-gpios- not found!\n");
+		dev_dbg(dev, "en-gpios not found, using I2C register control\n");
 
 	if (dm_gpio_is_valid(&priv->en_gpio))
 		dm_gpio_set_value(&priv->en_gpio, 1);

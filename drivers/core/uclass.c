@@ -657,13 +657,13 @@ int uclass_resolve_seq(struct udevice *dev)
 	struct udevice *dup;
 	int seq;
 	int ret;
+	int conflict_seq = -1;
 
 	assert(dev->seq == -1);
 	ret = uclass_find_device_by_seq(dev->uclass->uc_drv->id, dev->req_seq,
 					false, &dup);
 	if (!ret) {
-		dm_warn("Device '%s': seq %d is in use by '%s'\n",
-			dev->name, dev->req_seq, dup->name);
+		conflict_seq = dev->req_seq;
 	} else if (ret == -ENODEV) {
 		/* Our requested sequence number is available */
 		if (dev->req_seq != -1)
@@ -680,6 +680,9 @@ int uclass_resolve_seq(struct udevice *dev)
 		if (ret)
 			return ret;
 	}
+	if (conflict_seq != -1)
+		dm_warn("Device '%s': seq %d is in use, auto-assigned new seq %d\n",
+			dev->name, conflict_seq, seq);
 	return seq;
 }
 

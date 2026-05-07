@@ -313,8 +313,9 @@ static int dwc3_glue_bind_common(struct udevice *parent, ofnode node)
 	debug("%s: subnode name: %s\n", __func__, name);
 
 	/* if the parent node doesn't have a mode check the leaf */
-	dr_mode = usb_get_dr_mode(dev_ofnode(parent));
-	if (!dr_mode)
+	if (ofnode_read_string(dev_ofnode(parent), "dr_mode"))
+		dr_mode = usb_get_dr_mode(dev_ofnode(parent));
+	else
 		dr_mode = usb_get_dr_mode(node);
 
 	switch (dr_mode) {
