@@ -325,7 +325,7 @@ function gen_loadable_node()
 			description = \"${LOAD}\";
 			type = \"standalone\";
 			arch = \"${ARCH}\";
-			load = <"${LOAD_ADDR}">;"
+			load = ${FIT_ADDR_PREFIX}<"${LOAD_ADDR}">;"
 
 		# When allow to be compressed?
 		# DRAM base < load addr < Periph register base
