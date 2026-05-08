@@ -37,6 +37,11 @@
 #define OTP_SECURE_BOOT_ENABLE_VALUE	0xff
 #endif
 
+/* Default otp size for disable maskrom upgrade */
+#ifndef OTP_DISABLE_UPGRADE_SIZE
+#define OTP_DISABLE_UPGRADE_SIZE	1
+#endif
+
 /**
  * rsa_verify_padding() - Verify RSA message padding is valid
  *
@@ -808,7 +813,8 @@ int rsa_burn_disable_upgrade(void)
 
 	for (i = 0; i < sizeof(upgrade)/sizeof(upgrade[0]); i++) {
 		otp_write = upgrade[i].value;
-		if (misc_otp_write_verify(dev, upgrade[i].addr, &otp_write, 1)) {
+		if (misc_otp_write_verify(dev, upgrade[i].addr, &otp_write,
+					  OTP_DISABLE_UPGRADE_SIZE)) {
 			printf("Write OTP to disable %s upgrade failed.\n", upgrade[i].name);
 			goto fail;
 		}
