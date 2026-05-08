@@ -100,7 +100,7 @@ int misc_otp_write_verify(struct udevice *dev, int offset, const uint8_t *write_
 	for (i = 0; i < size; i++) {
 		/* Already 1 value in otp can't be written to 0. */
 		if (read_buf[i] & ~write_buf[i]) {
-			printf("OTP: The zone is partly written.\n");
+			printf("OTP: The zone is partly written and value is different.\n");
 			ret = -EACCES;
 			goto out;
 		}
@@ -110,9 +110,9 @@ int misc_otp_write_verify(struct udevice *dev, int offset, const uint8_t *write_
 			break;
 	}
 
+	/* No need to return error code, because expected value has already been written. */
 	if (size == written_size) {
-		printf("OTP: The secure region has been written.\n");
-		ret = -EIO;
+		printf("OTP: The secure region has already written by the same value.\n");
 		goto out;
 	}
 
