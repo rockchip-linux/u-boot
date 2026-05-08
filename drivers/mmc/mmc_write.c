@@ -80,6 +80,7 @@ ulong mmc_berase(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt)
 	struct mmc *mmc = find_mmc_device(dev_num);
 	lbaint_t blk = 0, blk_r = 0;
 	int timeout_ms = 1000;
+	int mode = 0;
 
 	if (!mmc)
 		return -1;
@@ -89,53 +90,68 @@ ulong mmc_berase(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt)
 	if (err < 0)
 		return -1;
 
-	/*
-	 * We want to see if the requested start or total block count are
-	 * unaligned.  We discard the whole numbers and only care about the
-	 * remainder.
-	 */
-	err = div_u64_rem(start, mmc->erase_grp_size, &start_rem);
-	err = div_u64_rem(blkcnt, mmc->erase_grp_size, &blkcnt_rem);
-	if (start_rem || blkcnt_rem) {
-		if (mmc->can_trim) {
-			/* Trim function applies the erase operation to write
-			 * blocks instead of erase groups.
-			 */
-			erase_args = MMC_TRIM_ARG;
-		} else {
-			/* The card ignores all LSB's below the erase group
-			 * size, rounding down the addess to a erase group
-			 * boundary.
-			 */
-			printf("\n\nCaution! Your devices Erase group is 0x%x\n"
-			       "The erase range would be change to "
-			       "0x" LBAF "~0x" LBAF "\n\n",
-			       mmc->erase_grp_size, start & ~(mmc->erase_grp_size - 1),
-			       ((start + blkcnt + mmc->erase_grp_size - 1)
-			       & ~(mmc->erase_grp_size - 1)) - 1);
-		}
+	if (!IS_SD(mmc)) {
+		if (mmc->can_trim)
+			mode = 1;
 	}
 
-	while (blk < blkcnt) {
-		if (IS_SD(mmc) && mmc->ssr.au) {
-			blk_r = ((blkcnt - blk) > mmc->ssr.au) ?
-				mmc->ssr.au : (blkcnt - blk);
-		} else {
-			blk_r = ((blkcnt - blk) > mmc->erase_grp_size) ?
-				mmc->erase_grp_size : (blkcnt - blk);
-		}
-		err = mmc_erase_t(mmc, start + blk, blk_r, erase_args);
+	if (mode) {
+		err = mmc_erase_t(mmc, start, blkcnt, MMC_TRIM_ARG);
 		if (err)
-			break;
-
-		blk += blk_r;
-
-		/* Waiting for the ready status */
+			return err;
 		if (mmc_poll_for_busy(mmc, timeout_ms))
 			return 0;
-	}
 
-	return blk;
+		return blkcnt;
+	} else {
+		/*
+		 * We want to see if the requested start or total block count are
+		 * unaligned.  We discard the whole numbers and only care about the
+		 * remainder.
+		 */
+		err = div_u64_rem(start, mmc->erase_grp_size, &start_rem);
+		err = div_u64_rem(blkcnt, mmc->erase_grp_size, &blkcnt_rem);
+		if (start_rem || blkcnt_rem) {
+			if (mmc->can_trim) {
+				/* Trim function applies the erase operation to write
+				 * blocks instead of erase groups.
+				 */
+				erase_args = MMC_TRIM_ARG;
+			} else {
+				/* The card ignores all LSB's below the erase group
+				 * size, rounding down the addess to a erase group
+				 * boundary.
+				 */
+				printf("\n\nCaution! Your devices Erase group is 0x%x\n"
+				       "The erase range would be change to "
+				       "0x" LBAF "~0x" LBAF "\n\n",
+				       mmc->erase_grp_size, start & ~(mmc->erase_grp_size - 1),
+				       ((start + blkcnt + mmc->erase_grp_size - 1)
+				       & ~(mmc->erase_grp_size - 1)) - 1);
+			}
+		}
+
+		while (blk < blkcnt) {
+			if (IS_SD(mmc) && mmc->ssr.au) {
+				blk_r = ((blkcnt - blk) > mmc->ssr.au) ?
+					mmc->ssr.au : (blkcnt - blk);
+			} else {
+				blk_r = ((blkcnt - blk) > mmc->erase_grp_size) ?
+					mmc->erase_grp_size : (blkcnt - blk);
+			}
+			err = mmc_erase_t(mmc, start + blk, blk_r, erase_args);
+			if (err)
+				break;
+
+			blk += blk_r;
+
+			/* Waiting for the ready status */
+			if (mmc_poll_for_busy(mmc, timeout_ms))
+				return 0;
+		}
+
+		return blk;
+	}
 }
 
 static ulong mmc_write_blocks(struct mmc *mmc, lbaint_t start,
