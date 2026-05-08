@@ -1321,6 +1321,8 @@ static int rockchip_udphy_probe(struct udevice *dev)
 	ret = udphy_parse_dt(udphy, dev);
 	if (ret)
 		return ret;
+
+#if defined(CONFIG_MOS_SUPPORT)
 	ret = clk_get_bulk(dev, &udphy->clks);
 	if (ret) {
 		dev_err(dev, "failed to get clk: %d\n", ret);
@@ -1331,6 +1333,7 @@ static int rockchip_udphy_probe(struct udevice *dev)
 		dev_err(dev, "failed to enable clk: %d\n", ret);
 		return ret;
 	}
+#endif
 
 	udphy_get_initial_status(udphy);
 
