@@ -563,6 +563,7 @@ int rk_board_fit_image_post_process(void *fit, int node, ulong *load_addr,
 }
 #endif
 
+#if defined(CONFIG_SPL_KERNEL_BOOT) || !defined(CONFIG_SPL_BUILD)
 void board_bidram_fixup(void)
 {
 	struct memblock *mem;
@@ -764,6 +765,7 @@ bool rk_board_req_mem_layout1(void)
 	else
 		return false;
 }
+#endif
 #endif
 #endif
 
