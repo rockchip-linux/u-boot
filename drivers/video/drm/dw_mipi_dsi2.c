@@ -15,6 +15,7 @@
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <dm/device.h>
+#include <dm/devres.h>
 #include <dm/read.h>
 #include <dm/of_access.h>
 #include <regmap.h>
@@ -727,7 +728,6 @@ static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
 	struct udevice *dev = dsi2->device->dev;
 	struct rockchip_cmd_header *header;
 	struct drm_dsc_picture_parameter_set *pps = NULL;
-	u8 *dsc_packed_pps;
 	const void *data;
 	int len;
 
@@ -763,12 +763,12 @@ static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
 			return -EINVAL;
 
 		if (header->data_type == MIPI_DSI_PICTURE_PARAMETER_SET) {
-			dsc_packed_pps = calloc(1, header->payload_length);
-			if (!dsc_packed_pps)
+			pps = devm_kzalloc(dev, sizeof(struct drm_dsc_picture_parameter_set),
+					   GFP_KERNEL);
+			if (!pps)
 				return -ENOMEM;
 
-			memcpy(dsc_packed_pps, data, header->payload_length);
-			pps = (struct drm_dsc_picture_parameter_set *)dsc_packed_pps;
+			memcpy(pps, data, header->payload_length);
 			break;
 		}
 
