@@ -35,6 +35,7 @@
  * @lcdsel_big: reg value of selecting vop big for eDP
  * @lcdsel_lit: reg value of selecting vop little for eDP
  * @chip_type: specific chip type
+ * @reg: register base address
  * @max_dclk_khz: the maximum supported dclk rate
  * @ssc: check if SSC is supported by source
  * @max_link_rate: max supported link rate
@@ -48,6 +49,7 @@ struct rockchip_dp_chip_data {
 	u32	lcdsel_big;
 	u32	lcdsel_lit;
 	u32	chip_type;
+	u32	reg;
 	u32	max_dclk_khz;
 	bool    ssc;
 
@@ -1398,16 +1400,30 @@ static int analogix_dp_ddc_init(struct analogix_dp_device *dp)
 static int analogix_dp_probe(struct udevice *dev)
 {
 	struct analogix_dp_device *dp = dev_get_priv(dev);
-	const struct rockchip_dp_chip_data *pdata =
-		(const struct rockchip_dp_chip_data *)dev_get_driver_data(dev);
+	const struct rockchip_dp_chip_data *dp_data;
+	const struct rockchip_dp_chip_data *pdata = NULL;
 	struct udevice *syscon;
+	int i;
 	int ret;
 
 	dp->reg_base = dev_read_addr_ptr(dev);
+	dp_data = (const struct rockchip_dp_chip_data *)dev_get_driver_data(dev);
 
-	dp->id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "edp");
-	if (dp->id < 0)
-		dp->id = 0;
+	i = 0;
+	while (dp_data[i].reg) {
+		if (dp_data[i].reg == (uintptr_t)dp->reg_base) {
+			pdata = &dp_data[i];
+			break;
+		}
+
+		i++;
+	}
+
+	if (!pdata) {
+		dev_err(dev, "no chip-data for %s\n", dev->name);
+		return -EINVAL;
+	}
+	dp->id = i;
 
 	ret = uclass_get_device_by_phandle(UCLASS_SYSCON, dev, "rockchip,grf",
 					   &syscon);
@@ -1480,68 +1496,120 @@ static int analogix_dp_probe(struct udevice *dev)
 	return 0;
 }
 
-static const struct rockchip_dp_chip_data rk3288_edp_platform_data = {
-	.lcdsel_grf_reg = 0x025c,
-	.lcdsel_big = 0 | BIT(21),
-	.lcdsel_lit = BIT(5) | BIT(21),
-	.chip_type = RK3288_DP,
+static const struct rockchip_dp_chip_data rk3288_edp_platform_data[] = {
+	{
+		.lcdsel_grf_reg = 0x025c,
+		.lcdsel_big = 0 | BIT(21),
+		.lcdsel_lit = BIT(5) | BIT(21),
+		.chip_type = RK3288_DP,
+		.reg = 0xff970000,
 
-	.max_link_rate = DP_LINK_BW_2_7,
-	.max_lane_count = 4,
-	.max_dclk_khz = 350000,
+		.max_link_rate = DP_LINK_BW_2_7,
+		.max_lane_count = 4,
+		.max_dclk_khz = 350000,
+	},
+	{ /* sentinel */ }
 };
 
-static const struct rockchip_dp_chip_data rk3368_edp_platform_data = {
-	.chip_type = RK3368_EDP,
+static const struct rockchip_dp_chip_data rk3368_edp_platform_data[] = {
+	{
+		.chip_type = RK3368_EDP,
+		.reg = 0xff970000,
 
-	.max_link_rate = DP_LINK_BW_2_7,
-	.max_lane_count = 4,
-	.max_dclk_khz = 350000,
+		.max_link_rate = DP_LINK_BW_2_7,
+		.max_lane_count = 4,
+		.max_dclk_khz = 350000,
+	},
+	{ /* sentinel */ }
 };
 
-static const struct rockchip_dp_chip_data rk3399_edp_platform_data = {
-	.lcdsel_grf_reg = 0x6250,
-	.lcdsel_big = 0 | BIT(21),
-	.lcdsel_lit = BIT(5) | BIT(21),
-	.chip_type = RK3399_EDP,
-	.ssc = true,
+static const struct rockchip_dp_chip_data rk3399_edp_platform_data[] = {
+	{
+		.lcdsel_grf_reg = 0x6250,
+		.lcdsel_big = 0 | BIT(21),
+		.lcdsel_lit = BIT(5) | BIT(21),
+		.chip_type = RK3399_EDP,
+		.reg = 0xff970000,
+		.ssc = true,
 
-	.max_link_rate = DP_LINK_BW_5_4,
-	.max_lane_count = 4,
-	.max_dclk_khz = 350000,
+		.max_link_rate = DP_LINK_BW_5_4,
+		.max_lane_count = 4,
+		.max_dclk_khz = 350000,
+	},
+	{ /* sentinel */ }
 };
 
-static const struct rockchip_dp_chip_data rk3568_edp_platform_data = {
-	.chip_type = RK3568_EDP,
-	.ssc = true,
+static const struct rockchip_dp_chip_data rk3568_edp_platform_data[] = {
+	{
+		.chip_type = RK3568_EDP,
+		.reg = 0xfe0c0000,
+		.ssc = true,
 
-	.max_link_rate = DP_LINK_BW_2_7,
-	.max_lane_count = 4,
-	.max_dclk_khz = 350000,
+		.max_link_rate = DP_LINK_BW_2_7,
+		.max_lane_count = 4,
+		.max_dclk_khz = 350000,
+	},
+	{ /* sentinel */ }
 };
 
-static const struct rockchip_dp_chip_data rk3576_edp_platform_data = {
-	.chip_type = RK3576_EDP,
-	.ssc = true,
+static const struct rockchip_dp_chip_data rk3572_edp_platform_data[] = {
+	{
+		.chip_type = RK3576_EDP,
+		.reg = 0x276b0000,
+		.ssc = true,
 
-	.max_link_rate = DP_LINK_BW_5_4,
-	.max_lane_count = 4,
-	.format_yuv = true,
-	.support_dp_mode = true,
-	.max_bpc = 10,
-	.max_dclk_khz = 600000,
+		.max_link_rate = DP_LINK_BW_5_4,
+		.max_lane_count = 4,
+		.format_yuv = true,
+		.support_dp_mode = true,
+		.max_bpc = 10,
+		.max_dclk_khz = 600000,
+	},
+	{ /* sentinel */ }
 };
 
-static const struct rockchip_dp_chip_data rk3588_edp_platform_data = {
-	.chip_type = RK3588_EDP,
-	.ssc = true,
+static const struct rockchip_dp_chip_data rk3576_edp_platform_data[] = {
+	{
+		.chip_type = RK3576_EDP,
+		.reg = 0x27dc0000,
+		.ssc = true,
 
-	.max_link_rate = DP_LINK_BW_5_4,
-	.max_lane_count = 4,
-	.format_yuv = true,
-	.support_dp_mode = true,
-	.max_bpc = 10,
-	.max_dclk_khz = 600000,
+		.max_link_rate = DP_LINK_BW_5_4,
+		.max_lane_count = 4,
+		.format_yuv = true,
+		.support_dp_mode = true,
+		.max_bpc = 10,
+		.max_dclk_khz = 600000,
+	},
+	{ /* sentinel */ }
+};
+
+static const struct rockchip_dp_chip_data rk3588_edp_platform_data[] = {
+	{
+		.chip_type = RK3588_EDP,
+		.reg = 0xfdec0000,
+		.ssc = true,
+
+		.max_link_rate = DP_LINK_BW_5_4,
+		.max_lane_count = 4,
+		.format_yuv = true,
+		.support_dp_mode = true,
+		.max_bpc = 10,
+		.max_dclk_khz = 600000,
+	},
+	{
+		.chip_type = RK3588_EDP,
+		.reg = 0xfded0000,
+		.ssc = true,
+
+		.max_link_rate = DP_LINK_BW_5_4,
+		.max_lane_count = 4,
+		.format_yuv = true,
+		.support_dp_mode = true,
+		.max_bpc = 10,
+		.max_dclk_khz = 600000,
+	},
+	{ /* sentinel */ }
 };
 
 static const struct udevice_id analogix_dp_ids[] = {
@@ -1559,7 +1627,7 @@ static const struct udevice_id analogix_dp_ids[] = {
 		.data = (ulong)&rk3568_edp_platform_data,
 	}, {
 		.compatible = "rockchip,rk3572-edp",
-		.data = (ulong)&rk3576_edp_platform_data,
+		.data = (ulong)&rk3572_edp_platform_data,
 	}, {
 		.compatible = "rockchip,rk3576-edp",
 		.data = (ulong)&rk3576_edp_platform_data,
