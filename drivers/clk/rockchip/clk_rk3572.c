@@ -1872,6 +1872,9 @@ static ulong rk3572_ref_clkout_set_clk(struct rk3572_clk_priv *priv,
 		case REF_CLK0_OUT_PLL_SEL_AUPLL:
 			p_rate = priv->aupll_hz;
 			break;
+		case REF_CLK0_OUT_PLL_SEL_BPLL:
+			p_rate = 0;
+			break;
 		case REF_CLK0_OUT_PLL_SEL_OSC:
 			p_rate = OSC_HZ;
 			break;
