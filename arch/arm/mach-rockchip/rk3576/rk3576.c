@@ -473,13 +473,16 @@ int rk_board_dm_fdt_fixup(const void *blob)
 
 	node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk-ahci");
 	if (node >= 0) {
-		/*
-		* Set SATA FBSCP and PORTS_IMPL for kernel drivers
-		*/
-		writel(SATA_FBS_ENABLE, SATA0_BASE_ADDR + SATA_PORT_CMD);
-		writel(1, SATA0_BASE_ADDR + SATA_PI);
-		writel(SATA_FBS_ENABLE, SATA1_BASE_ADDR + SATA_PORT_CMD);
-		writel(1, SATA1_BASE_ADDR + SATA_PI);
+		status = fdt_getprop(blob, node, "status", NULL);
+		if (status && strcmp(status, "disabled")) {
+			/*
+			* Set SATA FBSCP and PORTS_IMPL for kernel drivers
+			*/
+			writel(SATA_FBS_ENABLE, SATA0_BASE_ADDR + SATA_PORT_CMD);
+			writel(1, SATA0_BASE_ADDR + SATA_PI);
+			writel(SATA_FBS_ENABLE, SATA1_BASE_ADDR + SATA_PORT_CMD);
+			writel(1, SATA1_BASE_ADDR + SATA_PI);
+		}
 	}
 
 	return 0;
