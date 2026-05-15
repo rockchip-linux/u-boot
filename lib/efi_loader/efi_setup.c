@@ -5,8 +5,16 @@
  *  Copyright (c) 2016-2018 Alexander Graf et al.
  */
 
+#include <efi.h>
 #define LOG_CATEGORY LOGC_EFI
 
+#include <efi_driver.h>
+#include <efi_dt_fixup_cf.h>
+#include <gbl_efi_boot_control_protocol.h>
+#include <gbl_efi_avb_protocol.h>
+#include <gbl_efi_fastboot_protocol.h>
+#include <gbl_efi_fastboot_transport.h>
+#include <gbl_efi_os_configuration.h>
 #include <efi_loader.h>
 #include <efi_variable.h>
 #include <log.h>
@@ -43,13 +51,12 @@ static efi_status_t efi_init_platform_lang(void)
 	 * Variable PlatformLangCodes defines the language codes that the
 	 * machine can support.
 	 */
-	ret = efi_set_variable_int(u"PlatformLangCodes",
-				   &efi_global_variable_guid,
-				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				   EFI_VARIABLE_RUNTIME_ACCESS |
-				   EFI_VARIABLE_READ_ONLY,
-				   sizeof(CONFIG_EFI_PLATFORM_LANG_CODES),
-				   CONFIG_EFI_PLATFORM_LANG_CODES, false);
+	ret = efi_set_variable_int(
+		u"PlatformLangCodes", &efi_global_variable_guid,
+		EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS |
+			EFI_VARIABLE_READ_ONLY,
+		sizeof(CONFIG_EFI_PLATFORM_LANG_CODES),
+		CONFIG_EFI_PLATFORM_LANG_CODES, false);
 	if (ret != EFI_SUCCESS)
 		goto out;
 
@@ -57,8 +64,7 @@ static efi_status_t efi_init_platform_lang(void)
 	 * Variable PlatformLang defines the language that the machine has been
 	 * configured for.
 	 */
-	ret = efi_get_variable_int(u"PlatformLang",
-				   &efi_global_variable_guid,
+	ret = efi_get_variable_int(u"PlatformLang", &efi_global_variable_guid,
 				   NULL, &data_size, &pos, NULL);
 	if (ret == EFI_BUFFER_TOO_SMALL) {
 		/* The variable is already set. Do not change it. */
@@ -74,11 +80,10 @@ static efi_status_t efi_init_platform_lang(void)
 	if (pos)
 		*pos = 0;
 
-	ret = efi_set_variable_int(u"PlatformLang",
-				   &efi_global_variable_guid,
+	ret = efi_set_variable_int(u"PlatformLang", &efi_global_variable_guid,
 				   EFI_VARIABLE_NON_VOLATILE |
-				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				   EFI_VARIABLE_RUNTIME_ACCESS,
+					   EFI_VARIABLE_BOOTSERVICE_ACCESS |
+					   EFI_VARIABLE_RUNTIME_ACCESS,
 				   1 + strlen(lang), lang, false);
 out:
 	if (ret != EFI_SUCCESS)
@@ -99,13 +104,11 @@ static efi_status_t efi_init_secure_boot(void)
 	};
 	efi_status_t ret;
 
-	ret = efi_set_variable_int(u"SignatureSupport",
-				   &efi_global_variable_guid,
-				   EFI_VARIABLE_READ_ONLY |
-				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				   EFI_VARIABLE_RUNTIME_ACCESS,
-				   sizeof(signature_types),
-				   &signature_types, false);
+	ret = efi_set_variable_int(
+		u"SignatureSupport", &efi_global_variable_guid,
+		EFI_VARIABLE_READ_ONLY | EFI_VARIABLE_BOOTSERVICE_ACCESS |
+			EFI_VARIABLE_RUNTIME_ACCESS,
+		sizeof(signature_types), &signature_types, false);
 	if (ret != EFI_SUCCESS)
 		printf("EFI: cannot initialize SignatureSupport variable\n");
 
@@ -127,12 +130,12 @@ static efi_status_t efi_init_capsule(void)
 		efi_create_indexed_name(var_name16, sizeof(var_name16),
 					"Capsule", CONFIG_EFI_CAPSULE_MAX);
 
-		ret = efi_set_variable_int(u"CapsuleMax",
-					   &efi_guid_capsule_report,
-					   EFI_VARIABLE_READ_ONLY |
-					   EFI_VARIABLE_BOOTSERVICE_ACCESS |
-					   EFI_VARIABLE_RUNTIME_ACCESS,
-					   22, var_name16, false);
+		ret = efi_set_variable_int(
+			u"CapsuleMax", &efi_guid_capsule_report,
+			EFI_VARIABLE_READ_ONLY |
+				EFI_VARIABLE_BOOTSERVICE_ACCESS |
+				EFI_VARIABLE_RUNTIME_ACCESS,
+			22, var_name16, false);
 		if (ret != EFI_SUCCESS)
 			printf("EFI: cannot initialize CapsuleMax variable\n");
 	}
@@ -163,13 +166,40 @@ static efi_status_t efi_init_os_indications(void)
 		os_indications_supported |=
 			EFI_OS_INDICATIONS_FMP_CAPSULE_SUPPORTED;
 
-	return efi_set_variable_int(u"OsIndicationsSupported",
-				    &efi_global_variable_guid,
-				    EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				    EFI_VARIABLE_RUNTIME_ACCESS |
-				    EFI_VARIABLE_READ_ONLY,
-				    sizeof(os_indications_supported),
-				    &os_indications_supported, false);
+	return efi_set_variable_int(
+		u"OsIndicationsSupported", &efi_global_variable_guid,
+		EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS |
+			EFI_VARIABLE_READ_ONLY,
+		sizeof(os_indications_supported), &os_indications_supported,
+		false);
+}
+
+/**
+ * efi_init_gbl_vars() - initialize GBL-related UEFI variables
+ *
+ * Return:	status code
+ */
+static efi_status_t efi_init_gbl_vars(void)
+{
+	efi_status_t ret = EFI_SUCCESS;
+
+#if defined(CONFIG_GBL_EFI_FW_API_LEVEL)
+	const char *api_level = CONFIG_GBL_EFI_FW_API_LEVEL;
+	efi_uintn_t len = strlen(api_level);
+	if (len > 0) {
+		ret = efi_set_variable_int(
+			u"gbl_fw_api_level", &gbl_efi_vendor_guid,
+			EFI_VARIABLE_BOOTSERVICE_ACCESS |
+				EFI_VARIABLE_RUNTIME_ACCESS |
+				EFI_VARIABLE_READ_ONLY,
+			len, api_level, false);
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
+#endif
+
+out:
+	return ret;
 }
 
 /**
@@ -288,6 +318,13 @@ efi_status_t efi_init_obj_list(void)
 			goto out;
 	}
 
+	/* Install EFI_TIMESTAMP_PROTOCOL */
+	if (IS_ENABLED(CONFIG_EFI_TIMESTAMP_PROTOCOL)) {
+		ret = efi_timestamp_register();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
+
 	if (IS_ENABLED(CONFIG_EFI_RISCV_BOOT_PROTOCOL)) {
 		ret = efi_riscv_register();
 		if (ret != EFI_SUCCESS)
@@ -340,6 +377,58 @@ efi_status_t efi_init_obj_list(void)
 	if (ret != EFI_SUCCESS)
 		goto out;
 
+	if (IS_ENABLED(CONFIG_GBL_EFI_BOOT_CONTROL_PROTOCOL)) {
+		ret = gbl_efi_boot_control_register();
+		if (ret != EFI_SUCCESS) {
+			log_err("GBL_EFI_BOOT_CONTROL_PROTOCOL initialization error\n");
+			goto out;
+		}
+	}
+
+	if (IS_ENABLED(CONFIG_GBL_EFI_AVB_PROTOCOL)) {
+		ret = gbl_efi_avb_register();
+		if (ret != EFI_SUCCESS) {
+			log_err("GBL Android Verified Boot Protocol initialization error\n");
+			goto out;
+		}
+	}
+
+	if (IS_ENABLED(CONFIG_GBL_EFI_FASTBOOT_PROTOCOL)) {
+		ret = gbl_efi_fastboot_register();
+		if (ret != EFI_SUCCESS) {
+			log_err("GBL Fastboot Protocol initialization error\n");
+			goto out;
+		}
+	}
+
+	if (IS_ENABLED(CONFIG_GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL)) {
+		ret = gbl_efi_fastboot_transport_register();
+		if (ret != EFI_SUCCESS) {
+			log_err("GBL Fastboot Transport Protocol initialization error\n");
+			goto out;
+		}
+	}
+
+	if (IS_ENABLED(CONFIG_GBL_EFI_OS_CONFIGURATION_PROTOCOL)) {
+		ret = gbl_efi_os_config_register();
+		if (ret != EFI_SUCCESS) {
+			log_err("GBL_OS_CONFIGURATION initialization error\n");
+			goto out;
+		}
+	}
+
+	if (IS_ENABLED(CONFIG_EFI_DT_FIXUP_CF)) {
+		ret = efi_dt_fixup_cf_register();
+		if (ret != EFI_SUCCESS) {
+			log_err("EFI_DT_FIXUP_CF initialization error\n");
+			goto out;
+		}
+	}
+
+	ret = efi_init_gbl_vars();
+	if (ret != EFI_SUCCESS)
+		goto out;
+
 	/* Initialize EFI runtime services */
 	ret = efi_reset_system_init();
 	if (ret != EFI_SUCCESS)
@@ -349,6 +438,7 @@ efi_status_t efi_init_obj_list(void)
 	if (IS_ENABLED(CONFIG_EFI_CAPSULE_ON_DISK) &&
 	    !IS_ENABLED(CONFIG_EFI_CAPSULE_ON_DISK_EARLY))
 		ret = efi_launch_capsules();
+
 out:
 	efi_obj_list_initialized = ret;
 	return ret;

@@ -50,6 +50,9 @@ efi_selftest_variables.o \
 efi_selftest_variables_runtime.o \
 efi_selftest_watchdog.o
 
+obj-$(CONFIG_GBL_EFI_BOOT_CONTROL_PROTOCOL) += efi_selftest_gbl_boot_control_protocol.o
+obj-$(CONFIG_GBL_EFI_FASTBOOT_PROTOCOL) += efi_selftest_gbl_fastboot_protocol.o
+
 obj-$(CONFIG_EFI_ECPT) += efi_selftest_ecpt.o
 obj-$(CONFIG_NETDEVICES) += efi_selftest_snp.o
 obj-$(CONFIG_EFI_HTTP_PROTOCOL) += efi_selftest_http.o
@@ -64,6 +67,7 @@ obj-y += efi_selftest_unaligned.o
 endif
 obj-$(CONFIG_EFI_LOADER_HII) += efi_selftest_hii.o
 obj-$(CONFIG_EFI_RNG_PROTOCOL) += efi_selftest_rng.o
+obj-$(CONFIG_EFI_TIMESTAMP_PROTOCOL) += efi_selftest_timestamp.o
 obj-$(CONFIG_EFI_GET_TIME) += efi_selftest_rtc.o
 obj-$(CONFIG_EFI_TCG2_PROTOCOL) += efi_selftest_tcg2.o
 
@@ -76,6 +80,8 @@ obj-y += efi_selftest_block_device.o
 endif
 
 obj-$(CONFIG_EFI_ESRT) += efi_selftest_esrt.o
+
+obj-$(CONFIG_GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL) += efi_selftest_gbl_fastboot_transport_protocol.o
 
 targets += \
 efi_miniapp_file_image_exception.h \

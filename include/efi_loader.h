@@ -223,6 +223,35 @@ const char *__efi_nesting_dec(void);
 	} while(0)
 
 /*
+ * Enter the u-boot world from UEFI without logging the entry.
+ * This can be useful for functions called in hot loops
+ * that would otherwise swamp any useful logging information.
+ * Preserve the signature of EFI_ENTRY to make it easy to switch
+ * between EFI_ENTRY and EFI_ENTRY_NO_LOG.
+ * Call __efi_nesting_inc even though the entry is not logged to preserve
+ * matching increments and decrements to the indentation level.
+ */
+#define EFI_ENTRY_NO_LOG(format, ...) do {          \
+	assert(__efi_entry_check());                \
+        __efi_nesting_inc();                        \
+	} while(0)
+
+/*
+ * Exit the u-boot world back to UEFI without logging the exit.
+ * This can be useful for functions called in hot loops
+ * that would otherwise swamp any useful logging information.
+ * Preserve the signature of EFI_EXIT to make it easy to switch
+ * between EFI_EXIT and EFI_EXIT_NO_LOG.
+ * Call __efi_nesting_dec even though the entry is not logged to preserve
+ * matching increments and decrements to the indentation level.
+ */
+#define EFI_EXIT_NO_LOG(ret) ({       \
+	__efi_nesting_dec();          \
+	assert(__efi_exit_check());   \
+	ret;                          \
+	})
+
+/*
  * Exit the u-boot world back to UEFI:
  */
 #define EFI_EXIT(ret) ({ \
@@ -322,6 +351,8 @@ extern const efi_guid_t efi_guid_host_dev;
 /* GUID of the EFI_BLOCK_IO_PROTOCOL */
 extern const efi_guid_t efi_block_io_guid;
 extern const efi_guid_t efi_global_variable_guid;
+/* GUID of GBL Vendor UEFI variables */
+extern const efi_guid_t gbl_efi_vendor_guid;
 extern const efi_guid_t efi_guid_console_control;
 extern const efi_guid_t efi_guid_device_path;
 /* GUID of the EFI system partition */
@@ -630,6 +661,8 @@ efi_status_t efi_console_register(void);
 efi_status_t efi_disks_register(void);
 /* Called by efi_init_obj_list() to install EFI_RNG_PROTOCOL */
 efi_status_t efi_rng_register(void);
+/* Called by efi_init_obj_list() to install EFI_TIMESTAMP_PROTOCOL */
+efi_status_t efi_timestamp_register(void);
 /* Called by efi_init_obj_list() to install EFI_TCG2_PROTOCOL */
 efi_status_t efi_tcg2_register(void);
 /* Called by efi_init_obj_list() to install RISCV_EFI_BOOT_PROTOCOL */

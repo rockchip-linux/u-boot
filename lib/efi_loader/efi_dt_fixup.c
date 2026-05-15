@@ -55,7 +55,7 @@ static void efi_reserve_memory(u64 addr, u64 size, bool nomap)
  */
 void efi_try_purge_rng_seed(void *fdt)
 {
-	const char * const prop[] = {"kaslr-seed", "rng-seed"};
+	const char *const prop[] = { "kaslr-seed", "rng-seed" };
 	const efi_guid_t efi_guid_rng_protocol = EFI_RNG_PROTOCOL_GUID;
 	struct efi_handler *handler;
 	efi_status_t ret;
@@ -113,8 +113,8 @@ void efi_carve_out_dt_rsv(void *fdt)
 
 			/* check if this subnode has a reg property */
 			fdt_addr = fdtdec_get_addr_size_auto_parent(
-						fdt, nodeoffset, subnode,
-						"reg", 0, &fdt_size, false);
+				fdt, nodeoffset, subnode, "reg", 0, &fdt_size,
+				false);
 			/*
 			 * The /reserved-memory node may have children with
 			 * a size instead of a reg property.
@@ -144,19 +144,17 @@ void efi_carve_out_dt_rsv(void *fdt)
  * @flags:		bit field designating action to be performed
  * Return:		status code
  */
-static efi_status_t __maybe_unused EFIAPI
-efi_dt_fixup(struct efi_dt_fixup_protocol *this, void *dtb,
-	     efi_uintn_t *buffer_size, u32 flags)
+static efi_status_t __maybe_unused EFIAPI efi_dt_fixup(
+	struct efi_dt_fixup_protocol *this, void *dtb, efi_uintn_t *buffer_size)
 {
 	efi_status_t ret;
 	size_t required_size;
 	size_t total_size;
 	struct bootm_headers img = { 0 };
 
-	EFI_ENTRY("%p, %p, %p, %d", this, dtb, buffer_size, flags);
+	EFI_ENTRY("%p, %p, %p", this, dtb, buffer_size);
 
-	if (this != &efi_dt_fixup_prot || !dtb || !buffer_size ||
-	    !flags || (flags & ~EFI_DT_ALL)) {
+	if (this != &efi_dt_fixup_prot || !dtb || !buffer_size) {
 		ret = EFI_INVALID_PARAMETER;
 		goto out;
 	}
@@ -164,37 +162,26 @@ efi_dt_fixup(struct efi_dt_fixup_protocol *this, void *dtb,
 		ret = EFI_INVALID_PARAMETER;
 		goto out;
 	}
-	if (flags & EFI_DT_APPLY_FIXUPS) {
-		/* Check size */
-		required_size = fdt_off_dt_strings(dtb) +
-				fdt_size_dt_strings(dtb) +
-				0x3000;
-		total_size = fdt_totalsize(dtb);
-		if (required_size < total_size)
-			required_size = total_size;
-		if (required_size > *buffer_size) {
-			*buffer_size = required_size;
-			ret = EFI_BUFFER_TOO_SMALL;
-			goto out;
-		}
-
-		fdt_set_totalsize(dtb, *buffer_size);
-		if (image_setup_libfdt(&img, dtb, false)) {
-			log_err("failed to process device tree\n");
-			ret = EFI_INVALID_PARAMETER;
-			goto out;
-		}
+	/* Check size and apply fixups */
+	required_size =
+		fdt_off_dt_strings(dtb) + fdt_size_dt_strings(dtb) + 0x3000;
+	total_size = fdt_totalsize(dtb);
+	if (required_size < total_size)
+		required_size = total_size;
+	if (required_size > *buffer_size) {
+		*buffer_size = required_size;
+		ret = EFI_BUFFER_TOO_SMALL;
+		goto out;
 	}
-	if (flags & EFI_DT_RESERVE_MEMORY)
-		efi_carve_out_dt_rsv(dtb);
 
-	if (flags & EFI_DT_INSTALL_TABLE) {
-		ret = efi_install_configuration_table(&efi_guid_fdt, dtb);
-		if (ret != EFI_SUCCESS) {
-			log_err("failed to install device tree\n");
-			goto out;
-		}
+	fdt_set_totalsize(dtb, *buffer_size);
+	if (image_setup_libfdt(&img, dtb, false)) {
+		log_err("failed to process device tree\n");
+		ret = EFI_INVALID_PARAMETER;
+		goto out;
 	}
+
+	efi_carve_out_dt_rsv(dtb);
 
 	ret = EFI_SUCCESS;
 out:

@@ -538,8 +538,10 @@ efi_status_t efi_install_fdt(void *fdt)
 	/*
 	 * The EBBR spec requires that we have either an FDT or an ACPI table
 	 * but not both.
+	 *
+	 * Google Note: QEMU/GBL boot flow relies on both.
 	 */
-	if (CONFIG_IS_ENABLED(GENERATE_ACPI_TABLE) && fdt)
+	if (false && CONFIG_IS_ENABLED(GENERATE_ACPI_TABLE) && fdt)
 		log_warning("Can't have ACPI table and device tree - ignoring DT.\n");
 
 	if (fdt == EFI_FDT_USE_INTERNAL) {
@@ -573,7 +575,10 @@ efi_status_t efi_install_fdt(void *fdt)
 		return EFI_LOAD_ERROR;
 	}
 
-	if (CONFIG_IS_ENABLED(GENERATE_ACPI_TABLE)) {
+	/*
+	 * Google Note: QEMU/GBL boot flow relies on both.
+	 */
+	if (false && CONFIG_IS_ENABLED(GENERATE_ACPI_TABLE)) {
 		/* Create memory reservations as indicated by the device tree */
 		efi_carve_out_dt_rsv(fdt);
 		return EFI_SUCCESS;

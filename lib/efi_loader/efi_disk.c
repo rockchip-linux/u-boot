@@ -16,6 +16,7 @@
 #include <efi_driver.h>
 #include <efi_loader.h>
 #include <fs.h>
+#include <env.h>
 #include <log.h>
 #include <part.h>
 #include <malloc.h>
@@ -711,6 +712,23 @@ static int efi_disk_register_blk_dev(struct udevice *dev,
 		return 0;
 
 	desc = dev_get_uclass_plat(dev);
+
+	/* Check if this disk should be hidden from EFI applications */
+	const char *ignore_if = env_get("efi_block_io_ignore_interface");
+	const char *ignore_dev = env_get("efi_block_io_ignore_devnum");
+
+	if (ignore_if && ignore_dev) {
+		const char *if_typename = blk_get_uclass_name(desc->uclass_id);
+		int devnum = simple_strtoul(ignore_dev, NULL, 10);
+
+		if (!strcmp(if_typename, ignore_if) && desc->devnum == devnum) {
+			log_notice(
+				"Hiding disk %s %d from EFI (requested by env)\n",
+				if_typename, devnum);
+			return 0; // Skip creating EFI handles for this disk and its children
+		}
+	}
+
 	if (efi_disk_is_duplicate_kern_dtb_blk(dev)) {
 		log_debug("Skip duplicate kernel dtb block device %s (%s %d hwpart %d)\n",
 			  dev->name, blk_get_uclass_name(desc->uclass_id),

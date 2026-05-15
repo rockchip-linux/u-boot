@@ -1,6 +1,7 @@
 menu "Boot options"
 
 source "lib/efi_loader/Kconfig"
+source "lib/efi_driver/Kconfig"
 
 menu "Boot images"
 

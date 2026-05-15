@@ -888,6 +888,9 @@ efi_status_t efi_net_register(void)
 	efi_status_t r;
 	int i;
 
+	// Cuttlefish has multiple network devices. Call `eth_set_current()` to
+	// scan and select a working one.
+	eth_set_current();
 	if (!eth_get_dev()) {
 		/* No network device active, don't expose any */
 		return EFI_SUCCESS;

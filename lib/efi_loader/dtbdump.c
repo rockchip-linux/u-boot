@@ -407,9 +407,7 @@ static efi_status_t do_load(u16 *filename)
 		goto out;
 	}
 	/* Fixup file, expecting EFI_BUFFER_TOO_SMALL */
-	ret = dt_fixup_prot->fixup(dt_fixup_prot, dtb, &buffer_size,
-				   EFI_DT_APPLY_FIXUPS | EFI_DT_RESERVE_MEMORY |
-				   EFI_DT_INSTALL_TABLE);
+	ret = dt_fixup_prot->fixup(dt_fixup_prot, dtb, &buffer_size);
 	if (ret == EFI_BUFFER_TOO_SMALL) {
 		/* Read file into larger buffer */
 		ret = bs->free_pages(addr, pages);
@@ -435,11 +433,10 @@ static efi_status_t do_load(u16 *filename)
 			goto out;
 		}
 		buffer_size = pages << EFI_PAGE_SHIFT;
-		ret = dt_fixup_prot->fixup(
-				dt_fixup_prot, dtb, &buffer_size,
-				EFI_DT_APPLY_FIXUPS | EFI_DT_RESERVE_MEMORY |
-				EFI_DT_INSTALL_TABLE);
+		ret = dt_fixup_prot->fixup(dt_fixup_prot, dtb, &buffer_size);
 	}
+	if (ret == EFI_SUCCESS)
+		ret = bs->install_configuration_table(&fdt_guid, dtb);
 	if (ret == EFI_SUCCESS)
 		print(u"device-tree installed\r\n");
 	else
