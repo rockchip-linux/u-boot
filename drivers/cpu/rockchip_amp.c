@@ -173,7 +173,7 @@ static void setup_sync_bits_for_linux(void)
 }
 
 static int smc_cpu_on(u32 cpu, u32 pe_state, u32 entry,
-		      boot_args_t *args, bool is_linux)
+		      boot_args_t *args, bool is_linux, bool pass_fdt)
 {
 	int ret;
 
@@ -190,8 +190,8 @@ static int smc_cpu_on(u32 cpu, u32 pe_state, u32 entry,
 		return ret;
 	}
 
-	/* only linux needs boot args */
-	if (!is_linux)
+	/* only linux or rtt-ofw(open firmware) enabled needs boot args */
+	if (!is_linux && !pass_fdt)
 		goto finish;
 
 	ret = sip_smc_amp_cfg(AMP_BOOT_ARG01, cpu, args->arg0, args->arg1);
@@ -267,7 +267,7 @@ static int brought_up_amp(void *fit, int noffset,
 	standalone_args_t sa_args;
 	u32 cpu, aarch64, hyp;
 	u32 load, load_c, thumb, us;
-	u32 pe_state, entry;
+	u32 pe_state, entry, pass_fdt;
 	u32 sram_start, exsram_start, experi_start;
 	u32 uc_start, uc_end;
 	int boot_on;
@@ -287,6 +287,7 @@ static int brought_up_amp(void *fit, int noffset,
 	uc_start = fit_get_u32_default(fit, noffset, "uc_start", 0);
 	uc_end = fit_get_u32_default(fit, noffset, "uc_end", 0);
 	load_c = fit_get_u32_default(fit, noffset, "load_c", -ENODATA);
+	pass_fdt = fit_get_u32_default(fit, noffset, "pass-fdt", 0);
 	us = fit_get_u32_default(fit, noffset, "udelay", 0);
 	boot_on = fit_get_u32_default(fit, noffset, "boot-on", 1);
 	fit_image_get_arch(fit, noffset, &arch);
@@ -376,13 +377,15 @@ static int brought_up_amp(void *fit, int noffset,
 		if (!sysmem_alloc_base_by_name(desc,
 				(phys_addr_t)load, data_size))
 			return -ENXIO;
+		if (pass_fdt)
+			args.arg0 = (ulong)gd->fdt_blob;
 	}
 
 	if (!boot_on)
 		return 0;
 
 	/* boot now */
-	ret = smc_cpu_on(cpu, pe_state, entry, &args, is_linux);
+	ret = smc_cpu_on(cpu, pe_state, entry, &args, is_linux, pass_fdt);
 	if (ret)
 		return ret;
 exit:

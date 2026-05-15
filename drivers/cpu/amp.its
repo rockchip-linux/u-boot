@@ -20,6 +20,7 @@
 			cpu          = <0x100>;		// mpidr
 			thumb        = <0>;		// 0: arm or thumb2; 1: thumb
 			hyp          = <0>;		// 0: el1/svc; 1: el2/hyp
+			pass-fdt     = <0>;             // 0: don't pass fdt addr; 1: pass
 			load         = <0x01800000>;
 			udelay       = <1000000>;
 			hash {
@@ -36,6 +37,7 @@
 			cpu          = <0x200>;
 			thumb        = <0>;
 			hyp          = <0>;
+			pass-fdt     = <0>;
 			load         = <0x03800000>;
 			udelay       = <1000000>;
 			hash {
@@ -52,6 +54,7 @@
 			cpu          = <0x300>;
 			thumb        = <0>;
 			hyp          = <0>;
+			pass-fdt     = <0>;
 			load         = <0x05800000>;
 			udelay       = <1000000>;
 			hash {
