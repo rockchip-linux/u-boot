@@ -939,13 +939,13 @@ static void dhcp_packet_process_options(struct bootp_hdr *bp)
 	}
 }
 
-static int dhcp_message_type(unsigned char *popt)
+static int dhcp_message_type(unsigned char *popt, unsigned char *end)
 {
 	if (net_read_u32((u32 *)popt) != htonl(BOOTP_VENDOR_MAGIC))
 		return -1;
 
 	popt += 4;
-	while (*popt != 0xff) {
+	while (popt < end && *popt != 0xff) {
 		if (*popt == 53)	/* DHCP Message Type */
 			return *(popt + 2);
 		if (*popt == 0)	{
@@ -1077,7 +1077,7 @@ static void dhcp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 	case REQUESTING:
 		debug("DHCP State: REQUESTING\n");
 
-		if (dhcp_message_type((u8 *)bp->bp_vend) == DHCP_ACK) {
+		if (dhcp_message_type((u8 *)bp->bp_vend, (u8 *)pkt + len) == DHCP_ACK) {
 			dhcp_packet_process_options(bp);
 			/* Store net params from reply */
 			store_net_params(bp);
