@@ -9035,13 +9035,15 @@ static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 pl
 	struct rockchip_crtc *crtc = (struct rockchip_crtc *)dev_get_driver_data(dev);
 	const struct vop2_data *vop2_data = crtc->data;
 	u32 enabled_vp_mask = 0;
-	int i = 0;
+	int i = 0, j;
 
 	for (i = 0; i < vop2_data->nr_vps; i++) {
+		if (crtc->vps[i].fbd_mode == ROCKCHIP_DRM_FBD_FROM_RTOS)
+			continue;
+
 		if (BIT(i) & vp_mask) {
-			if (!vop2_vp_in_standby(regs,i)) {
+			if (!vop2_vp_in_standby(regs, i))
 				enabled_vp_mask |= BIT(i);
-			}
 		}
 	}
 
@@ -9049,6 +9051,16 @@ static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 pl
 		return 0;
 
 	for (i = 0; i < vop2_data->win_size; i++) {
+		for (j = 0; j < vop2_data->nr_vps; j++) {
+			if (crtc->vps[j].fbd_mode != ROCKCHIP_DRM_FBD_FROM_RTOS)
+				continue;
+
+			if (BIT(vop2_data->win_data[i].phys_id) & crtc->vps[j].plane_mask)
+				break;
+		}
+		if (j != vop2_data->nr_vps)
+			continue;
+
 		if (BIT(vop2_data->win_data[i].phys_id) & plane_mask) {
 			if (vop2_cluster_window(&vop2_data->win_data[i]))
 				vop2_cluster_disable(regs, vop2_data->win_data[i].reg_offset);
@@ -9058,7 +9070,7 @@ static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 pl
 	}
 
 	for (i = 0; i < vop2_data->nr_vps; i++) {
-		if (BIT(i) & vp_mask)
+		if (BIT(i) & enabled_vp_mask)
 			vop2_vp_cfg_done(regs, i);
 	}
 	mdelay(50);
@@ -9066,7 +9078,7 @@ static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 pl
 	vop2_axi_irqs_disable(regs, axi);
 
 	for (i = 0; i < vop2_data->nr_vps; i++) {
-		if (BIT(i) & vp_mask) {
+		if (BIT(i) & enabled_vp_mask) {
 			vop2_vp_irqs_disable(regs, i);
 			vop2_vp_standby(regs, i);
 		}
