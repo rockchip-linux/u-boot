@@ -1824,6 +1824,11 @@ static bool is_yuv_output(u32 bus_format)
 	}
 }
 
+static inline bool vop2_multi_area_window(struct vop2_win_data *win)
+{
+	return (win->feature & WIN_FEATURE_MULTI_AREA);
+}
+
 static inline bool vop2_cluster_window(struct vop2_win_data *win)
 {
 	return  (win->feature & WIN_FEATURE_CLUSTER_MAIN);
@@ -2793,16 +2798,43 @@ static bool vop3_ignore_plane(struct vop2 *vop2, struct vop2_win_data *win)
 		return false;
 }
 
-static void vop3_init_esmart_scale_engine(struct vop2 *vop2)
+static void vop3_init_esmart_scale_engine(struct vop2 *vop2, struct display_state *state)
 {
+	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2_win_data *win_data;
-	int i;
+	int i, j;
 	u8 scale_engine_num = 0;
 
-	/* store plane mask for vop2_fixup_dts */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (!cstate->crtc->vps[i].enable)
+			continue;
+
+		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
+			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
+			if (win_data && vop2_multi_area_window(win_data) &&
+			    !vop3_ignore_plane(vop2, win_data))
+				win_data->scale_engine_num = scale_engine_num++;
+		}
+
+		if (vop2->vp_plane_mask[i].cursor_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
+			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].cursor_plane_id);
+			if (win_data && vop2_multi_area_window(win_data) &&
+			    !vop3_ignore_plane(vop2, win_data))
+				win_data->scale_engine_num = scale_engine_num++;
+		}
+	}
+
 	for (i = 0; i < vop2->data->win_size; i++) {
 		win_data = &vop2->data->win_data[i];
-		if (vop2_cluster_window(win_data) || vop3_ignore_plane(vop2, win_data))
+		if (!vop2_multi_area_window(win_data) || vop3_ignore_plane(vop2, win_data))
+			continue;
+
+		for (j = 0; j < vop2->data->nr_vps; j++) {
+			if (win_data->phys_id == vop2->vp_plane_mask[j].primary_plane_id ||
+			    win_data->phys_id == vop2->vp_plane_mask[j].cursor_plane_id)
+				break;
+		}
+		if (j != vop2->data->nr_vps)
 			continue;
 
 		win_data->scale_engine_num = scale_engine_num++;
@@ -3291,7 +3323,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 					ESMART_LB_MODE_SEL_SHIFT,
 					vop3_get_esmart_lb_mode(vop2), false);
 
-		vop3_init_esmart_scale_engine(vop2);
+		vop3_init_esmart_scale_engine(vop2, state);
 
 		if (vop2->version == VOP_VERSION_RK3576)
 			vop2_mask_write(vop2, RK3576_SYS_PORT_CTRL, EN_MASK,
