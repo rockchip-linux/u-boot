@@ -16,5 +16,7 @@ int mos_spl_late_init(void);
 int mos_spl_cfg_init(void);
 void mos_system_reset(void);
 ulong mos_safety_atags_addr(void);
-
+#ifdef CONFIG_MOS_ONE_IMAGE
+const char *mos_vendor_dtb_name(void);
+#endif
 #endif

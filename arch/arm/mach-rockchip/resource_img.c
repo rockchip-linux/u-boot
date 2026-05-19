@@ -14,6 +14,7 @@
 #include <asm/arch/rk_hwid.h>
 #include <asm/arch/uimage.h>
 #include <asm/arch/fit.h>
+#include <asm/arch/mos.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -505,6 +506,15 @@ int rockchip_read_resource_dtb(void *fdt_addr, char **hash, int *hash_size)
 		return -ENOENT;
 
 	f = resource_read_hwid_dtb();
+#endif
+#ifdef CONFIG_MOS_ONE_IMAGE
+	const char *name;
+
+	if (!f) {
+		name = mos_vendor_dtb_name();
+		if (name)
+			f = resource_get_file(name);
+	}
 #endif
 	/* If no dtb match hardware id(GPIO/ADC), use the default */
 	if (!f)

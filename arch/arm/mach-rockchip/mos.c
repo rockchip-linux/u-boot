@@ -642,7 +642,7 @@ int mos_spl_cfg_init(void)
 
 	vendor_addr = fdtdec_get_addr_size_fixed(cfg_fdt, noffset,
 				"vendor_storage_memory", 0, 2, 2, &sizep, false);
-	if (vendor_addr == FDT_ADDR_T_NONE)
+	if (vendor_addr == FDT_ADDR_T_NONE || !sizep)
 		return 0;
 
 	vendor_storage_fixup((void *)vendor_addr);
@@ -911,6 +911,63 @@ int mos_secondary_late_boot(void)
 #endif
 	return ret;
 }
+
+#ifdef CONFIG_MOS_ONE_IMAGE
+static int mos_vendor_buffer(ulong *vendor_addr, u32 *vendor_size)
+{
+	void *cfg_fdt;
+	int domains, noffset;
+	fdt_size_t sizep;
+	fdt_addr_t addr;
+
+	cfg_fdt = mos_syscfg();
+	if (!cfg_fdt)
+		return -EINVAL;
+
+	domains = fdt_path_offset(cfg_fdt, "/domains");
+	if (domains < 0)
+		return domains;
+
+	noffset = fdt_node_offset_by_compatible(cfg_fdt, domains, FDT_COMPAT_SAFETY);
+	if (noffset < 0)
+		return noffset;
+
+	addr = fdtdec_get_addr_size_fixed(cfg_fdt, noffset,
+					  "vendor_storage_memory",
+					  0, 2, 2, &sizep, false);
+	if (addr == FDT_ADDR_T_NONE || !sizep)
+		return -EINVAL;
+
+	*vendor_addr = addr;
+	*vendor_size = sizep;
+
+	return 0;
+}
+
+#define OS_DTB_SIZE	64
+const char *mos_vendor_dtb_name(void)
+{
+	u16 os_id = IS_ENABLED(CONFIG_MOS_SECONDARY) ? OS1_DTB_ID : OS0_DTB_ID;
+	static char os_data[OS_DTB_SIZE]; /* static ! */
+	ulong vendor_addr;
+	u32 vendor_size;
+	int size;
+	int ret;
+
+	ret = mos_vendor_buffer(&vendor_addr, &vendor_size);
+	if (ret)
+		return NULL;
+
+	size = vendor_storage_buffer_read(os_id, os_data, OS_DTB_SIZE - 1,
+					  (void *)vendor_addr, vendor_size);
+	if (size <= 0)
+		return NULL;
+
+	os_data[size] = '\0';
+
+	return os_data;
+}
+#endif
 
 void mos_system_reset(void)
 {
