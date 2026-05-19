@@ -12,6 +12,7 @@
 #include <part.h>
 #include <fdt_support.h>
 #include <usbplug.h>
+#include <asm/arch/mos.h>
 
 /* tag for vendor check */
 #define VENDOR_TAG		0x524B5644
@@ -694,6 +695,80 @@ int vendor_storage_read(u16 id, void *pbuf, u16 size)
 				size = (item + i)->size;
 			offset = (item + i)->offset;
 			memcpy(pbuf, (vendor_info.data + offset), size);
+			return size;
+		}
+	}
+	debug("[Vendor ERROR]:No matching item, id=%d\n", id);
+
+	return -EINVAL;
+}
+
+static int vendor_storage_parse_buffer(void *vendor_addr, u32 vendor_size,
+				       struct vendor_info *info)
+{
+	u8 *buffer = vendor_addr;
+	u32 data_offset;
+	u32 total_size;
+	u32 *version2;
+
+	if (!buffer || !info)
+		return -EINVAL;
+
+	info->hdr = (struct vendor_hdr *)buffer;
+	info->item = (struct vendor_item *)(buffer + sizeof(struct vendor_hdr));
+
+	data_offset = EMMC_VENDOR_DATA_OFFSET;
+	total_size = data_offset + info->hdr->free_offset + info->hdr->free_size + 8;
+	if (total_size == EMMC_VENDOR_INFO_SIZE ||
+	    total_size == NAND_VENDOR_INFO_SIZE) {
+		info->data = buffer + data_offset;
+		version2 = (u32 *)(buffer + total_size - 4);
+	} else {
+		data_offset = FLASH_VENDOR_DATA_OFFSET;
+		total_size = data_offset + info->hdr->free_offset +
+			     info->hdr->free_size + 8;
+		if (total_size != FLASH_VENDOR_INFO_SIZE)
+			return -EINVAL;
+
+		info->data = buffer + data_offset;
+		version2 = (u32 *)(buffer + total_size - 4);
+	}
+
+	if (vendor_size < total_size)
+		return -EINVAL;
+
+	info->version2 = version2;
+
+	if (info->hdr->tag != VENDOR_TAG ||
+	    info->hdr->version != *info->version2)
+		return -EINVAL;
+
+	return 0;
+}
+
+/* read vendor storage from a given vendor storage buffer */
+int vendor_storage_buffer_read(u16 id, void *pbuf, u16 size,
+			       void *vendor_addr, u32 vendor_size)
+{
+	u32 i;
+	u16 offset;
+	struct vendor_item *item;
+	struct vendor_info vendor_buf;
+	int ret;
+
+	ret = vendor_storage_parse_buffer(vendor_addr, vendor_size, &vendor_buf);
+	if (ret)
+		return ret;
+
+	item = vendor_buf.item;
+	for (i = 0; i < vendor_buf.hdr->item_num; i++) {
+		if ((item + i)->id == id) {
+			debug("[Vendor INFO]:Find the matching item, id=%d\n", id);
+			/* Correct the size value */
+			if (size > (item + i)->size)
+				size = (item + i)->size;
+			offset = (item + i)->offset;
+			memcpy(pbuf, vendor_buf.data + offset, size);
 			return size;
 		}
 	}
