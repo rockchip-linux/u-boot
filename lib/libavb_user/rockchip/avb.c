@@ -463,7 +463,7 @@ int avb_read_permanent_attributes_all(u16 id, void *pbuf, u16 size)
 						    (AvbAtxPermanentAttributes *)pbuf);
 		break;
 	case AT_PERM_ATTR_CER_FUSE:
-		size = 256;
+		size = RK_AVB_PERM_ATTR_CER_SIZE;
 		ret = avb_get_permanent_attributes_cer((uint8_t *)pbuf, size);
 		break;
 	case AT_LOCK_VBOOT:
@@ -596,7 +596,7 @@ int avb_write_permanent_attributes_all(u16 id, void *pbuf, u16 size)
 
 		break;
 	case AT_PERM_ATTR_CER_FUSE:
-		if (size != 256) {
+		if (size != RK_AVB_PERM_ATTR_CER_SIZE) {
 			debug("%s Permanent attribute rsahash size is not equal!\n",
 			      __func__);
 			ret = -EINVAL;

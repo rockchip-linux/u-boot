@@ -870,7 +870,7 @@ void fastboot_oem_board(char *cmd_parameter, void *data, u32 size, char *respons
 		uint8_t digest[SHA256_SUM_LEN];
 		u32 image_size = env_get_hex("filesize", 0);
 
-		if (image_size != VBOOT_KEY_HASH_SIZE) {
+		if (image_size != VBOOT_KEY_SIZE) {
 			fastboot_fail("Invalid vboot key length", response);
 			printf("The vboot key size error!\n");
 			return;

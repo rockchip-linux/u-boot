@@ -26,12 +26,22 @@ extern "C" {
 #define UNLOCK_DISABLE_MASK		(1 << 1)
 #define AVB_STATE_SIZE		1000
 #define PERM_ATTR_SUCCESS_FLAG		1
-/* soc-v use the rsa2048 */
+/* bootloader vboot key length */
+#ifndef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
 #define VBOOT_KEY_SIZE			256
+#else
+#define VBOOT_KEY_SIZE			512
+#endif
 #define RPMB_BASE_ADDR			(64*1024/256)
 #define UBOOT_RB_INDEX_OFFSET		24
 #define TRUST_RB_INDEX_OFFSET		28
+#ifndef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
 #define ROCHCHIP_RSA_PARAMETER_SIZE	64
+#else
+#define ROCHCHIP_RSA_PARAMETER_SIZE	128
+#endif
+#define RK_AVB_RSA_NUM_BYTES		(ROCHCHIP_RSA_PARAMETER_SIZE * sizeof(u_int32_t))
+#define RK_AVB_PERM_ATTR_CER_SIZE	RK_AVB_RSA_NUM_BYTES
 /* write/read permanent attributes all use. */
 #define AT_PERM_ATTR_FUSE		1
 #define AT_PERM_ATTR_CER_FUSE		2
