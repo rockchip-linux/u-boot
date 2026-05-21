@@ -6,11 +6,18 @@
 #
 set -e
 
-# [Keys]
+# [Keys-RSA-2048]
 #	mkdir -p keys
 #	openssl genpkey -algorithm RSA -out keys/dev.key -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:65537
 #	openssl req -batch -new -x509 -key keys/dev.key -out keys/dev.crt
 #	openssl rsa -in keys/dev.key -pubout -out keys/dev.pubkey
+#
+# [Keys-RSA-4096]
+#	mkdir -p keys
+#	openssl genpkey -algorithm RSA -out keys/dev.key -pkeyopt rsa_keygen_bits:4096 -pkeyopt rsa_keygen_pubexp:65537
+#	openssl req -batch -new -x509 -key keys/dev.key -out keys/dev.crt
+#	openssl rsa -in keys/dev.key -pubout -out keys/dev.pubkey
+#
 # [Sign]
 #	openssl dgst -sha256 -sign keys/dev.key -sigopt rsa_padding_mode:pss -out sha256-rsa2048.sign fit/boot.data2sign
 
