@@ -775,7 +775,7 @@ int rk_avb_write_perm_attr(u16 id, void *pbuf, u16 size)
 
 		break;
 	case AT_PERM_ATTR_CER_FUSE:
-		if (size != 256) {
+		if (size != RK_AVB_PERM_ATTR_CER_SIZE) {
 			debug("%s Permanent attribute rsahash size is not equal!\n",
 			      __func__);
 			return -EINVAL;
@@ -809,8 +809,8 @@ int rk_avb_read_perm_attr(u16 id, void *pbuf, u16 size)
 		ret = rk_avb_read_permanent_attributes((uint8_t *)pbuf, PERM_ATTR_TOTAL_SIZE);
 		break;
 	case AT_PERM_ATTR_CER_FUSE:
-		size = PERM_ATTR_TOTAL_SIZE;
-		ret = rk_avb_get_perm_attr_cer((uint8_t *)pbuf, 256);
+		size = RK_AVB_PERM_ATTR_CER_SIZE;
+		ret = rk_avb_get_perm_attr_cer((uint8_t *)pbuf, RK_AVB_PERM_ATTR_CER_SIZE);
 		break;
 	case AT_LOCK_VBOOT:
 		break;

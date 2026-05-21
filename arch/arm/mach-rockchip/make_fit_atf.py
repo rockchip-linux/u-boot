@@ -23,6 +23,13 @@ ELF_SEG_P_OFFSET='p_offset'
 ELF_SEG_P_FILESZ='p_filesz'
 ELF_SEG_P_MEMSZ='p_memsz'
 
+
+def get_fit_signature_algo():
+    if os.system("grep -q '^CONFIG_FIT_ENABLE_RSA4096_SUPPORT=y' .config") == 0:
+        return "sha256,rsa4096"
+
+    return "sha256,rsa2048"
+
 DT_HEADER="""/*
  * Copyright (C) 2017 Fuzhou Rockchip Electronics Co., Ltd
  *
@@ -101,6 +108,7 @@ def append_fdt_node(file, dtbs):
         cnt = cnt + 1
 
 def append_conf_section(file, cnt, dtname, atf_cnt):
+    algo_name = get_fit_signature_algo()
     print('\t\tconfig {', file=file)
     print('\t\t\tdescription = "Rockchip armv8 with ATF";', file=file)
     print('\t\t\trollback-index = <0x0>;', file=file)
@@ -114,7 +122,7 @@ def append_conf_section(file, cnt, dtname, atf_cnt):
             print(';', file=file)
     print('\t\t\tfdt = "fdt";', file=file)
     print('\t\t\tsignature {', file=file)
-    print('\t\t\t\talgo = "sha256,rsa2048";', file=file)
+    print('\t\t\t\talgo = "%s";' % algo_name, file=file)
     print('\t\t\t\tpadding = "pss";', file=file)
     print('\t\t\t\tkey-name-hint = "dev";', file=file)
     print('\t\t\t\tsign-images = "fdt", "firmware", "loadables";', file=file)

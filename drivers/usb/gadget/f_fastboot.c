@@ -2008,7 +2008,7 @@ static void cb_oem_perm_attr(void)
 static void cb_oem_perm_attr_rsa_cer(void)
 {
 #ifdef CONFIG_RK_AVB_LIBAVB_USER
-	if (download_bytes != 256) {
+	if (download_bytes != RK_AVB_PERM_ATTR_CER_SIZE) {
 		printf("Permanent attribute rsahash size is not equal!\n");
 		fastboot_tx_write_str("FAILperm attribute rsahash size error");
 		return;
@@ -2271,7 +2271,7 @@ static void cb_oem(struct usb_ep *ep, struct usb_request *req)
 		sha256_context ctx;
 		uint8_t digest[SHA256_SUM_LEN];
 
-		if (download_bytes != VBOOT_KEY_HASH_SIZE) {
+		if (download_bytes != VBOOT_KEY_SIZE) {
 			fastboot_tx_write_str("FAILinvalid vboot key length");
 			printf("The vboot key size error!\n");
 			return;

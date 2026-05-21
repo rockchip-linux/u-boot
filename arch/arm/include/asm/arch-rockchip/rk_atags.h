@@ -168,7 +168,11 @@ struct tag_atf_mem {
 struct tag_pub_key {
 	u32 version;
 	u32 len;
-	u8  data[768];	/* u32 rsa_n[64], rsa_e[64], rsa_c[64] */
+#ifdef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
+	u8  data[1536]; /* u32 rsa_n[128], rsa_e[128], rsa_c[128] */
+#else
+	u8  data[768];  /* u32 rsa_n[64], rsa_e[64], rsa_c[64] */
+#endif
 	u32 flag;
 	u32 reserved[5];
 	u32 hash;
