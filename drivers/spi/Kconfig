@@ -252,6 +252,12 @@ config SOFT_SPI
 	 Enable Soft SPI driver. This driver is to use GPIO simulate
 	 the SPI protocol.
 
+config SPL_SOFT_SPI
+	bool "Soft SPI driver in SPL stage"
+	help
+	 Enable Soft SPI driver in SPL stage. This driver is to use
+	 GPIO simulate the SPI protocol.
+
 config CF_SPI
 	bool "ColdFire SPI driver"
 	help

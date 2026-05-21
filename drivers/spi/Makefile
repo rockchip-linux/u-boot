@@ -9,7 +9,7 @@
 ifdef CONFIG_DM_SPI
 obj-y += spi-uclass.o
 obj-$(CONFIG_SANDBOX) += spi-emul-uclass.o
-obj-$(CONFIG_SOFT_SPI) += soft_spi.o
+obj-$(CONFIG_$(SPL_TPL_)SOFT_SPI) += soft_spi.o
 obj-$(CONFIG_SPI_MEM) += spi-mem.o
 else
 obj-y += spi.o
