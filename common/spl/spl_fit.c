@@ -1146,7 +1146,7 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 		if (ret)
 			return ret;
 
-		ret = fit_get_desc(fit, node, &desc);
+		ret = fit_get_desc(ctx.fit, node, &desc);
 		if (ret)
 			return ret;
 
@@ -1224,7 +1224,7 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 		if (node < 0)
 			break;
 
-		if (!spl_fit_image_get_os(fit, node, &os_type))
+		if (!spl_fit_image_get_os(ctx.fit, node, &os_type))
 			debug("Loadable is %s\n", genimg_get_os_name(os_type));
 
 		/* skip U-Boot ? */
@@ -1256,7 +1256,7 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 
 		if (os_takes_devicetree(os_type)) {
 #if CONFIG_IS_ENABLED(ATF)
-			fit_image_get_arch(fit, node, &ih_arch);
+			fit_image_get_arch(ctx.fit, node, &ih_arch);
 			debug("Image ARCH is %s\n", genimg_get_arch_name(ih_arch));
 			if (ih_arch == IH_ARCH_ARM)
 				spl_image->flags |= SPL_ATF_AARCH32_BL33;
