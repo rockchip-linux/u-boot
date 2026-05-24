@@ -78,10 +78,10 @@ static bool verify_permanent_attributes(
 #else
       CRYPTO_RSA2048;
 #endif
-  uint8_t rsa_hash[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
-  uint8_t rsa_hash_revert[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
-  unsigned int rsaResult_temp[ROCHCHIP_RSA_PARAMETER_SIZE];
-  unsigned char rsaResult[32] = {0};
+  uint8_t rsa_sig[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
+  uint8_t rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
+  unsigned int rsa_result_temp[ROCHCHIP_RSA_PARAMETER_SIZE];
+  unsigned char rsa_result[32] = {0};
   struct rk_pub_key pub_key;
   struct udevice *dev;
   rsa_key rsa_key;
@@ -94,14 +94,14 @@ static bool verify_permanent_attributes(
   if (ret)
     return false;
 
-  ret = avb_get_permanent_attributes_cer(rsa_hash, RK_AVB_PERM_ATTR_CER_SIZE);
+  ret = avb_get_permanent_attributes_cer(rsa_sig, RK_AVB_PERM_ATTR_CER_SIZE);
   if (ret) {
     avb_error("get_permanent_attributes_cer error\n");
     return false;
   }
 
   for (i = 0; i < RK_AVB_PERM_ATTR_CER_SIZE; i++)
-    rsa_hash_revert[RK_AVB_PERM_ATTR_CER_SIZE - 1 - i] = rsa_hash[i];
+    rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE - 1 - i] = rsa_sig[i];
 
   dev = crypto_get_device(cap);
   if (!dev) {
@@ -120,18 +120,18 @@ static bool verify_permanent_attributes(
 #ifdef CONFIG_ROCKCHIP_CRYPTO_V1
   rsa_key.c = (u32 *)&pub_key.rsa_c;
 #endif
-  ret = crypto_rsa_verify(dev, &rsa_key, (u8 *)rsa_hash_revert, (u8 *)rsaResult_temp);
+  ret = crypto_rsa_verify(dev, &rsa_key, (u8 *)rsa_sig_revert, (u8 *)rsa_result_temp);
   if (ret) {
     avb_error("Hardware verify error!\n");
     return false;
   }
 
-  temp = (char *)rsaResult_temp;
+  temp = (char *)rsa_result_temp;
   for (i = 0; i < 32; i++)
-    rsaResult[31-i] = temp[i];
+    rsa_result[31-i] = temp[i];
 
   sha256((const uint8_t*)attributes, sizeof(AvbAtxPermanentAttributes), hash);
-  if (memcmp((void*)rsaResult, (void*)hash, 32) == 0)
+  if (memcmp((void*)rsa_result, (void*)hash, 32) == 0)
     return true;
 
   return false;
