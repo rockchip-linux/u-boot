@@ -84,14 +84,14 @@ static bool verify_permanent_attributes(
 #else
       CRYPTO_RSA2048;
 #endif
-  uint8_t rsa_hash[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
-  uint8_t rsa_hash_revert[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
-  unsigned int rsaResult_temp[ROCHCHIP_RSA_PARAMETER_SIZE];
-  unsigned char rsaResult[32] = {0};
+  uint8_t rsa_hash[32] = {0};
+  uint8_t rsa_sig[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
+  uint8_t rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
+  u32 rsa_result_words[ROCHCHIP_RSA_PARAMETER_SIZE];
+  uint8_t *rsa_result_bytes = (uint8_t *)rsa_result_words;
   struct rk_pub_key pub_key;
   struct udevice *dev;
   rsa_key rsa_key;
-  char *temp;
   int ret = 0;
   int i;
 
@@ -100,14 +100,15 @@ static bool verify_permanent_attributes(
   if (ret)
     return false;
 
-  ret = rk_avb_get_perm_attr_cer(rsa_hash, RK_AVB_PERM_ATTR_CER_SIZE);
+  /* note: actually this is a perm_attr rsa signature but not a certificate */
+  ret = rk_avb_get_perm_attr_cer(rsa_sig, RK_AVB_PERM_ATTR_CER_SIZE);
   if (ret) {
     avb_error("get_perm_attr_cer error\n");
     return false;
   }
 
   for (i = 0; i < RK_AVB_PERM_ATTR_CER_SIZE; i++)
-    rsa_hash_revert[RK_AVB_PERM_ATTR_CER_SIZE - 1 - i] = rsa_hash[i];
+    rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE - 1 - i] = rsa_sig[i];
 
   dev = crypto_get_device(cap);
   if (!dev) {
@@ -126,18 +127,19 @@ static bool verify_permanent_attributes(
 #ifdef CONFIG_ROCKCHIP_CRYPTO_V1
   rsa_key.c = (u32 *)&pub_key.rsa_c;
 #endif
-  ret = crypto_rsa_verify(dev, &rsa_key, (u8 *)rsa_hash_revert, (u8 *)rsaResult_temp);
+  ret = crypto_rsa_verify(dev, &rsa_key,
+                          (u8 *)rsa_sig_revert,
+                          (u8 *)rsa_result_words);
   if (ret) {
     avb_error("Hardware verify error!\n");
     return false;
   }
 
-  temp = (char *)rsaResult_temp;
   for (i = 0; i < 32; i++)
-    rsaResult[31-i] = temp[i];
+    rsa_hash[31-i] = rsa_result_bytes[i];
 
   sha256((const uint8_t*)attributes, sizeof(AvbAtxPermanentAttributes), hash);
-  if (memcmp((void*)rsaResult, (void*)hash, 32) == 0)
+  if (memcmp((void*)rsa_hash, (void*)hash, 32) == 0)
     return true;
 
   return false;
