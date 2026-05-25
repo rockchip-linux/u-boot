@@ -3965,6 +3965,58 @@ class Avb(object):
     output.write(RSAPublicKey(root_authority_key_path).encode())
     output.write(product_id)
 
+  def info_cert_permanent_attributes(self, input_file, output):
+    """Dumps avb_cert permanent attributes in human-readable form.
+
+    Arguments:
+      input_file: File object containing permanent attributes.
+      output: Output stream for human-readable information.
+
+    Raises:
+      AvbError: If the input data is malformed.
+    """
+    data = input_file.read()
+    if len(data) < 4 + 8 + 16:
+      raise AvbError('Input is too small to be cert permanent attributes.')
+
+    format_version = struct.unpack_from('<I', data, 0)[0]
+    num_bits, n0inv = struct.unpack_from('!II', data, 4)
+    if num_bits == 0 or (num_bits % 8) != 0:
+      raise AvbError('Invalid RSA key size in permanent attributes.')
+
+    key_num_bytes = num_bits // 8
+    expected_size = 4 + 8 + key_num_bytes + key_num_bytes + 16
+    if len(data) != expected_size:
+      raise AvbError(
+          'Invalid permanent attributes size {} (expected {}).'.format(
+              len(data), expected_size))
+
+    modulus_offset = 12
+    rr_offset = modulus_offset + key_num_bytes
+    product_id_offset = rr_offset + key_num_bytes
+    modulus = data[modulus_offset:rr_offset]
+    rrmodn = data[rr_offset:product_id_offset]
+    product_id = data[product_id_offset:product_id_offset + 16]
+
+    output.write('Minimum libavb version:   1.0\n')
+    output.write('Header Block:             4 bytes\n')
+    output.write('Public key Block:         {} bytes\n'.format(8 + 2 * key_num_bytes))
+    output.write('Product ID Block:         16 bytes\n')
+    output.write('Attributes Block:         {} bytes\n'.format(len(data)))
+    output.write('\n')
+    output.write('Permanent Attributes:\n')
+    output.write('  Format Version:         {}\n'.format(format_version))
+    output.write('  RSA Key Num Bits:       {}\n'.format(num_bits))
+    output.write('  RSA n0inv:              0x{:08x}\n'.format(n0inv))
+    output.write('  RSA Modulus:            {}\n'.format(modulus.hex()))
+    output.write('  RSA RRModN:             {}\n'.format(rrmodn.hex()))
+    output.write('  Product ID (hex):       {}\n'.format(product_id.hex()))
+    try:
+      product_id_ascii = product_id.decode('ascii')
+      output.write('  Product ID (ascii):     {}\n'.format(product_id_ascii))
+    except UnicodeDecodeError:
+      output.write('  Product ID (ascii):     <non-ascii>\n')
+
   def make_cert_metadata(self, output, intermediate_key_certificate,
                          product_key_certificate):
     """Implements the 'make_cert_metadata' command.
@@ -4774,6 +4826,20 @@ class AvbTool(object):
     sub_parser.set_defaults(func=self.make_cert_permanent_attributes)
 
     sub_parser = subparsers.add_parser(
+        'info_cert_permanent_attributes',
+        aliases=['info_atx_permanent_attributes'],
+        help='Show avb_cert extension permanent attributes.')
+    sub_parser.add_argument('--input',
+                            help='Path to permanent attributes file',
+                            type=argparse.FileType('rb'),
+                            required=True)
+    sub_parser.add_argument('--output',
+                            help='Write human-readable information to file',
+                            type=argparse.FileType('w'),
+                            default=sys.stdout)
+    sub_parser.set_defaults(func=self.info_cert_permanent_attributes)
+
+    sub_parser = subparsers.add_parser(
         'make_cert_metadata',
         aliases=['make_atx_metadata'],
         help='Create avb_cert extension metadata.')
@@ -5021,13 +5087,17 @@ Please use '--hash_algorithm sha256'.
   def make_cert_permanent_attributes(self, args):
     """Implements the 'make_cert_permanent_attributes' sub-command."""
     self.avb.make_cert_permanent_attributes(args.output,
-                                           args.root_authority_key.name,
-                                           args.product_id.read())
+                                            args.root_authority_key.name,
+                                            args.product_id.read())
+
+  def info_cert_permanent_attributes(self, args):
+    """Implements the 'info_cert_permanent_attributes' sub-command."""
+    self.avb.info_cert_permanent_attributes(args.input, args.output)
 
   def make_cert_metadata(self, args):
     """Implements the 'make_cert_metadata' sub-command."""
     self.avb.make_cert_metadata(args.output,
-                               args.intermediate_key_certificate.read(),
+                                args.intermediate_key_certificate.read(),
                                args.product_key_certificate.read())
 
   def make_cert_unlock_credential(self, args):
