@@ -2468,6 +2468,7 @@ class Avb(object):
     if key_blob:
       hexdig = hashlib.sha1(key_blob).hexdigest()
       o.write('Public key (sha1):        {}\n'.format(hexdig))
+      o.write('Public key:               {}\n'.format(key_blob.hex()))
       if output_pubkey is not None:
         output_pubkey.write(key_blob)
 
