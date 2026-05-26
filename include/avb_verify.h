@@ -48,6 +48,7 @@ struct AvbOpsData {
 	struct preloaded_partition boot;
 	struct preloaded_partition vendor_boot;
 	struct preloaded_partition init_boot;
+	struct preloaded_partition dtbo;
 	struct preloaded_partition resource;
 };
 

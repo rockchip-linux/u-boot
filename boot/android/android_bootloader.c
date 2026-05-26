@@ -503,6 +503,7 @@ static int avb_image_distribute_prepare(AvbSlotVerifyData *slot_data,
 					AvbOps *ops, char *slot_suffix)
 {
 	struct AvbOpsData *data = (struct AvbOpsData *)(ops->user_data);
+	size_t dtbo_size;
 	size_t vendor_boot_size;
 	size_t init_boot_size;
 	size_t resource_size;
@@ -517,15 +518,18 @@ static int avb_image_distribute_prepare(AvbSlotVerifyData *slot_data,
 				ANDROID_PARTITION_VENDOR_BOOT, slot_suffix);
 	resource_size = get_partition_size(ops,
 				ANDROID_PARTITION_RESOURCE, slot_suffix);
+	dtbo_size = get_partition_size(ops,
+				ANDROID_PARTITION_DTBO, slot_suffix);
 	image_buf = sysmem_alloc(MEM_AVB_ANDROID,
 				 boot_size + init_boot_size +
-				 vendor_boot_size + resource_size);
+				 vendor_boot_size + resource_size +
+				 dtbo_size);
 	if (!image_buf) {
 		printf("avb: sysmem alloc failed\n");
 		return -ENOMEM;
 	}
 
-	/* layout: | boot/recovery | vendor_boot | init_boot | resource | */
+	/* layout: | boot/recovery | vendor_boot | init_boot | resource | dtbo | */
 	data->slot_suffix = slot_suffix;
 	data->boot.addr = image_buf;
 	data->boot.size = 0;
@@ -535,6 +539,8 @@ static int avb_image_distribute_prepare(AvbSlotVerifyData *slot_data,
 	data->init_boot.size = 0;
 	data->resource.addr = data->init_boot.addr + init_boot_size;
 	data->resource.size = 0;
+	data->dtbo.addr = data->resource.addr + resource_size;
+	data->dtbo.size = 0;
 
 	return 0;
 }
@@ -603,23 +609,21 @@ static int avb_image_distribute_finish(AvbSlotVerifyData *slot_data,
 	return 0;
 }
 
-int android_image_verify_resource(const char *boot_part, ulong *resc_buf)
+static int android_image_verify_partitions(const char *const *requested_partitions,
+					   const char *part_name,
+					   bool prepare_distribute,
+					   AvbOps **ops_ret,
+					   struct AvbOpsData **data_ret,
+					   AvbSlotVerifyData **slot_data_ret,
+					   char *slot_suffix,
+					   uint8_t *unlocked)
 {
-	const char *requested_partitions[] = {
-		NULL,
-		NULL,
-	};
-	struct AvbOpsData *data;
-	uint8_t unlocked = true;
 	AvbOps *ops;
 	AvbSlotVerifyFlags flags;
-	AvbSlotVerifyData *slot_data = {NULL};
+	AvbSlotVerifyData *slot_data = NULL;
 	AvbSlotVerifyResult verify_result;
-	char slot_suffix[3] = {0};
-	char *part_name;
-	void *image_buf = NULL;
 	int retry_no_vbmeta_partition = 1;
-	int i, ret;
+	int ret;
 
 	ops = avb_ops_user_new();
 	if (ops == NULL) {
@@ -627,38 +631,39 @@ int android_image_verify_resource(const char *boot_part, ulong *resc_buf)
 		return -AVB_SLOT_VERIFY_RESULT_ERROR_OOM;
 	}
 
-	if (ops->read_is_device_unlocked(ops, (bool *)&unlocked) != AVB_IO_RESULT_OK)
+	*slot_data_ret = NULL;
+
+	if (ops->read_is_device_unlocked(ops, (bool *)unlocked) != AVB_IO_RESULT_OK)
 		printf("Error determining whether device is unlocked.\n");
 
-	printf("Device is: %s\n", (unlocked & LOCK_MASK)? "UNLOCKED" : "LOCKED");
+	printf("Device is: %s\n", (*unlocked & LOCK_MASK) ? "UNLOCKED" : "LOCKED");
 
-	if (unlocked & LOCK_MASK) {
-		*resc_buf = 0;
+	if (*unlocked & LOCK_MASK) {
+		*ops_ret = ops;
 		return 0;
 	}
 
-	flags = AVB_SLOT_VERIFY_FLAGS_NONE;
-	if (strcmp(boot_part, ANDROID_PARTITION_RECOVERY) == 0)
-		flags |= AVB_SLOT_VERIFY_FLAGS_NO_VBMETA_PARTITION;
 
 #ifdef CONFIG_ANDROID_AB
-	part_name = strdup(boot_part);
-	*(part_name + strlen(boot_part) - 2) = '\0';
-	requested_partitions[0] = part_name;
-
 	ret = ab_get_current_slot(slot_suffix);
 	if (ret) {
 		printf("Failed to get slot suffix, ret=%d\n", ret);
-		return ret;
+		goto out;
 	}
-#else
-	requested_partitions[0] = boot_part;
 #endif
-	data = (struct AvbOpsData *)(ops->user_data);
-	ret = avb_image_distribute_prepare(slot_data, ops, slot_suffix);
-	if (ret) {
-		printf("avb image distribute prepare failed %d\n", ret);
-		return ret;
+	flags = AVB_SLOT_VERIFY_FLAGS_NONE;
+	if (part_name && strcmp(part_name, ANDROID_PARTITION_RECOVERY) == 0)
+		flags |= AVB_SLOT_VERIFY_FLAGS_NO_VBMETA_PARTITION;
+	*data_ret = (struct AvbOpsData *)(ops->user_data);
+	if (prepare_distribute) {
+		ret = avb_image_distribute_prepare(slot_data, ops, slot_suffix);
+		if (ret) {
+			printf("avb image distribute prepare failed %d\n", ret);
+			goto out;
+		}
+	} else {
+		(*data_ret)->slot_suffix = slot_suffix;
+		(*data_ret)->dtbo = preload_user_data.dtbo;
 	}
 
 retry_verify:
@@ -671,7 +676,8 @@ retry_verify:
 			&slot_data);
 	if (verify_result != AVB_SLOT_VERIFY_RESULT_OK &&
 	    verify_result != AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED) {
-		if (retry_no_vbmeta_partition && strcmp(boot_part, ANDROID_PARTITION_RECOVERY) == 0) {
+		if (retry_no_vbmeta_partition &&
+		    part_name && strcmp(part_name, ANDROID_PARTITION_RECOVERY) == 0) {
 			printf("Verify recovery with vbmeta.\n");
 			flags &= ~AVB_SLOT_VERIFY_FLAGS_NO_VBMETA_PARTITION;
 			retry_no_vbmeta_partition = 0;
@@ -680,8 +686,63 @@ retry_verify:
 	}
 
 	if (verify_result != AVB_SLOT_VERIFY_RESULT_OK || !slot_data) {
-		sysmem_free((ulong)data->boot.addr);
-		return verify_result;
+		ret = verify_result;
+		goto out;
+	}
+
+	*ops_ret = ops;
+	*slot_data_ret = slot_data;
+	return 0;
+
+out:
+	if (slot_data)
+		avb_slot_verify_data_free(slot_data);
+	if (ops) {
+		if (*data_ret && prepare_distribute && (*data_ret)->boot.addr)
+			sysmem_free((ulong)(*data_ret)->boot.addr);
+		avb_ops_user_free(ops);
+	}
+
+	return ret;
+}
+
+int android_image_verify_resource(const char *boot_part, ulong *resc_buf)
+{
+	const char *requested_partitions[] = {
+		NULL,
+		NULL,
+	};
+	struct AvbOpsData *data = NULL;
+	uint8_t unlocked = true;
+	AvbOps *ops = NULL;
+	AvbSlotVerifyData *slot_data = NULL;
+	AvbSlotVerifyResult ret;
+	char slot_suffix[3] = {0};
+	char *requested_part = NULL;
+	char *part_name;
+	void *image_buf = NULL;
+	int i;
+
+#ifdef CONFIG_ANDROID_AB
+	requested_part = strdup(boot_part);
+	*(requested_part + strlen(boot_part) - 2) = '\0';
+	requested_partitions[0] = requested_part;
+#else
+	requested_partitions[0] = boot_part;
+#endif
+
+	ret = android_image_verify_partitions(requested_partitions, boot_part,
+					      true,
+					      &ops, &data, &slot_data,
+					      slot_suffix, &unlocked);
+	if (ret)
+		goto out;
+
+	if (unlocked & LOCK_MASK) {
+		*resc_buf = 0;
+		avb_ops_user_free(ops);
+		ret = 0;
+		goto out;
 	}
 
 	for (i = 0; i < slot_data->num_loaded_partitions; i++) {
@@ -711,8 +772,70 @@ retry_verify:
 		*resc_buf = (ulong)image_buf;
 	}
 
-	return 0;
+	avb_slot_verify_data_free(slot_data);
+	avb_ops_user_free(ops);
+	ret = 0;
+out:
+	if (requested_part)
+		free(requested_part);
+
+	return ret;
 }
+
+#if defined(CONFIG_AVB_VERIFY) && defined(CONFIG_OF_LIBFDT_OVERLAY)
+static int android_image_verify_dtbo(ulong *dtbo_buf)
+{
+	const char *requested_partitions[] = {
+		ANDROID_PARTITION_DTBO,
+		NULL,
+	};
+	uint8_t unlocked = true;
+	struct AvbOpsData *data = NULL;
+	AvbOps *ops = NULL;
+	AvbSlotVerifyData *slot_data = NULL;
+	char slot_suffix[3] = {0};
+	void *image_buf = NULL;
+	int i, ret = 0;
+
+	ret = android_image_verify_partitions(requested_partitions, NULL,
+					      !preload_user_data.dtbo.addr,
+					      &ops, &data, &slot_data,
+					      slot_suffix, &unlocked);
+	if (ret)
+		return ret;
+
+	if (unlocked & LOCK_MASK) {
+		*dtbo_buf = 0;
+		avb_ops_user_free(ops);
+		return 0;
+	}
+
+	for (i = 0; i < slot_data->num_loaded_partitions; i++) {
+		if (!strncmp(ANDROID_PARTITION_DTBO,
+			     slot_data->loaded_partitions[i].partition_name, 4)) {
+			image_buf = slot_data->loaded_partitions[i].data;
+			break;
+		}
+	}
+	if (!image_buf) {
+		ret = AVB_SLOT_VERIFY_RESULT_ERROR_IO;
+		goto free_out;
+	}
+
+	preload_user_data.dtbo = data->dtbo;
+	data->dtbo.addr = NULL;
+	data->dtbo.size = 0;
+	*dtbo_buf = (ulong)image_buf;
+
+free_out:
+	if (slot_data)
+		avb_slot_verify_data_free(slot_data);
+	if (ops)
+		avb_ops_user_free(ops);
+
+	return ret;
+}
+#endif
 
 /*
  *		AVB Policy.
@@ -826,6 +949,11 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 	preload_user_data.boot.addr = (void *)mpb_post(1);
 	preload_user_data.boot.size = (size_t)mpb_post(2);
 #endif
+
+	/*
+	 * Handle the case: "avb lock + (vbus = 0) + recovery key pressed".
+	 * Check whether required boot_partname is same as preload boot_partition.
+	 */
 	if (preload_user_data.boot_partition && strcmp(preload_user_data.boot_partition, boot_partname))
 		preload_user_data.boot.addr = NULL;
 
@@ -837,6 +965,7 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 		data->boot = preload_user_data.boot;
 		data->vendor_boot = preload_user_data.vendor_boot;
 		data->init_boot = preload_user_data.init_boot;
+		data->dtbo = preload_user_data.dtbo;
 		data->resource = preload_user_data.resource;
 	} else {
 		ret = avb_image_distribute_prepare(slot_data, ops, slot_suffix);
@@ -985,6 +1114,56 @@ __weak int board_select_fdt_index(ulong dt_table_hdr)
 	return 0;
 }
 
+static int android_get_dtbo_from_mem(void *buf, const char *part_dtbo,
+				     bool is_full_load,
+				     ulong *fdt_dtbo, int *index)
+{
+	ulong e_addr;
+	u32 e_size;
+	int e_idx;
+	int ret;
+
+	if (!android_dt_check_header((ulong)buf)) {
+		printf("DTBO: invalid dt table header: 0x%x\n",
+		       ((struct dt_table_header *)buf)->magic);
+		return -EINVAL;
+	}
+
+	e_idx = board_select_fdt_index((ulong)buf);
+	if (e_idx < 0) {
+		printf("%s: failed to select board fdt index\n", __func__);
+		return -EINVAL;
+	}
+
+	ret = android_dt_get_fdt_by_index((ulong)buf, e_idx, &e_addr, &e_size);
+	if (!ret) {
+		printf("%s: failed to get fdt, index=%d\n", __func__, e_idx);
+		return -EINVAL;
+	}
+
+	if (fdt_dtbo) {
+		if (is_full_load) {
+			/* Avoid to change the full loaded data */
+			void *dtbo_buf = memalign(ARCH_DMA_MINALIGN, e_size);
+
+			if (!dtbo_buf)
+				return -ENOMEM;
+
+			memcpy(dtbo_buf, (void *)e_addr, e_size);
+			*fdt_dtbo = (ulong)dtbo_buf;
+		} else {
+			*fdt_dtbo = e_addr;
+		}
+	}
+	if (index)
+		*index = e_idx;
+
+	debug("ANDROID: Loading dt entry to 0x%lx size 0x%x idx %d from \"%s\" image in memory\n",
+	      e_addr, e_size, e_idx, part_dtbo);
+
+	return 0;
+}
+
 static int android_get_dtbo(ulong *fdt_dtbo,
 			    const struct andr_img_hdr *hdr,
 			    int *index, const char *part_dtbo)
@@ -995,9 +1174,27 @@ static int android_get_dtbo(ulong *fdt_dtbo,
 	u32 blk_offset, blk_cnt;
 	void *buf;
 	ulong e_addr;
-	u32 e_size;
-	int e_idx;
 	int ret;
+
+	if (!strcmp(part_dtbo, PART_RECOVERY) &&
+	    preload_user_data.boot.addr &&
+	    preload_user_data.boot_partition &&
+	    !strcmp(preload_user_data.boot_partition, ANDROID_PARTITION_RECOVERY)) {
+		buf = preload_user_data.boot.addr + hdr->recovery_dtbo_offset;
+		return android_get_dtbo_from_mem(buf, part_dtbo, true, fdt_dtbo, index);
+	} else if (!strcmp(part_dtbo, PART_DTBO)) {
+#ifdef CONFIG_AVB_VERIFY
+		ret = android_image_verify_dtbo(&e_addr);
+		if (ret) {
+			printf("DTBO: '%s', avb verify fail: %d\n", part_dtbo, ret);
+			return ret;
+		}
+#endif
+		if (preload_user_data.dtbo.size) {
+			buf = preload_user_data.dtbo.addr;
+			return android_get_dtbo_from_mem(buf, part_dtbo, true, fdt_dtbo, index);
+		}
+	}
 
 	/* Get partition info */
 	dev_desc = plat_bootdev();
@@ -1048,30 +1245,8 @@ static int android_get_dtbo(ulong *fdt_dtbo,
 	if (ret != blk_cnt)
 		goto out2;
 
-	e_idx = board_select_fdt_index((ulong)buf);
-	if (e_idx < 0) {
-		printf("%s: failed to select board fdt index\n", __func__);
-		ret = -EINVAL;
-		goto out2;
-	}
-
-	ret = android_dt_get_fdt_by_index((ulong)buf, e_idx, &e_addr, &e_size);
-	if (!ret) {
-		printf("%s: failed to get fdt, index=%d\n", __func__, e_idx);
-		ret = -EINVAL;
-		goto out2;
-	}
-
-	if (fdt_dtbo)
-		*fdt_dtbo = e_addr;
-	if (index)
-		*index = e_idx;
-
 	free(dt_hdr);
-	debug("ANDROID: Loading dt entry to 0x%lx size 0x%x idx %d from \"%s\" part\n",
-	      e_addr, e_size, e_idx, part_dtbo);
-
-	return 0;
+	return android_get_dtbo_from_mem(buf, part_dtbo, false, fdt_dtbo, index);
 
 out2:
 	free(buf);
