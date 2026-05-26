@@ -14,6 +14,7 @@
 #define ANDROID_PARTITION_BOOT "boot"
 #define ANDROID_PARTITION_VENDOR_BOOT "vendor_boot"
 #define ANDROID_PARTITION_INIT_BOOT "init_boot"
+#define ANDROID_PARTITION_DTBO "dtbo"
 #define ANDROID_PARTITION_MISC "misc"
 #define ANDROID_PARTITION_OEM  "oem"
 #define ANDROID_PARTITION_RESOURCE  "resource"

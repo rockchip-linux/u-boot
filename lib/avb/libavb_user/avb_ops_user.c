@@ -478,6 +478,8 @@ static AvbIOResult get_preloaded_partition(AvbOps* ops,
 			preload_info = &data->vendor_boot;
 		else if (!strncmp(partition, ANDROID_PARTITION_INIT_BOOT, 9))
 			preload_info = &data->init_boot;
+		else if (!strncmp(partition, ANDROID_PARTITION_DTBO, 4))
+			preload_info = &data->dtbo;
 		else if (!strncmp(partition, ANDROID_PARTITION_RESOURCE, 8))
 			preload_info = &data->resource;
 
