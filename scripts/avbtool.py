@@ -62,6 +62,15 @@ AVB_INVOCATION_LOGFILE = os.environ.get('AVB_INVOCATION_LOGFILE')
 CERT_USAGE_SIGNING = 'com.google.android.things.vboot'
 CERT_USAGE_INTERMEDIATE_AUTHORITY = 'com.google.android.things.vboot.ca'
 CERT_USAGE_UNLOCK = 'com.google.android.things.vboot.unlock'
+CERT_USAGE_HASHES = {
+    hashlib.sha256(CERT_USAGE_SIGNING.encode('ascii')).digest():
+        CERT_USAGE_SIGNING,
+    hashlib.sha256(
+        CERT_USAGE_INTERMEDIATE_AUTHORITY.encode('ascii')).digest():
+            CERT_USAGE_INTERMEDIATE_AUTHORITY,
+    hashlib.sha256(CERT_USAGE_UNLOCK.encode('ascii')).digest():
+        CERT_USAGE_UNLOCK,
+}
 
 
 class AvbError(Exception):
@@ -4018,6 +4027,76 @@ class Avb(object):
     except UnicodeDecodeError:
       output.write('  Product ID (ascii):     <non-ascii>\n')
 
+  def info_certificate(self, input_file, output):
+    """Dumps avb_cert certificate in human-readable form.
+
+    Arguments:
+      input_file: File object containing certificate data.
+      output: Output stream for human-readable information.
+
+    Raises:
+      AvbError: If the input data is malformed.
+    """
+    data = input_file.read()
+    digest_num_bytes = hashlib.sha256().digest_size
+    key_block_num_bytes = ALGORITHMS['SHA256_RSA4096'].public_key_num_bytes
+    signature_num_bytes = ALGORITHMS['SHA512_RSA4096'].signature_num_bytes
+    signed_data_num_bytes = 4 + key_block_num_bytes + digest_num_bytes * 2 + 8
+    expected_size = signed_data_num_bytes + signature_num_bytes
+    if len(data) != expected_size:
+      raise AvbError('Invalid certificate size {} (expected {}).'.format(
+          len(data), expected_size))
+
+    format_version = struct.unpack_from('<I', data, 0)[0]
+    num_bits, n0inv = struct.unpack_from('!II', data, 4)
+    if num_bits == 0 or (num_bits % 8) != 0:
+      raise AvbError('Invalid RSA key size in certificate.')
+
+    key_num_bytes = num_bits // 8
+    if 8 + 2 * key_num_bytes != key_block_num_bytes:
+      raise AvbError('Invalid RSA key block size in certificate.')
+
+    modulus_offset = 12
+    rr_offset = modulus_offset + key_num_bytes
+    subject_offset = 4 + key_block_num_bytes
+    usage_offset = subject_offset + digest_num_bytes
+    key_version_offset = usage_offset + digest_num_bytes
+    signature_offset = signed_data_num_bytes
+
+    modulus = data[modulus_offset:rr_offset]
+    rrmodn = data[rr_offset:subject_offset]
+    subject = data[subject_offset:usage_offset]
+    usage = data[usage_offset:key_version_offset]
+    key_version = struct.unpack_from('<Q', data, key_version_offset)[0]
+    signature = data[signature_offset:]
+
+    output.write('Minimum libavb version:   1.0\n')
+    output.write('Header Block:             4 bytes\n')
+    output.write('Public key Block:         {} bytes\n'.format(
+        key_block_num_bytes))
+    output.write('Subject Block:            {} bytes\n'.format(
+        digest_num_bytes))
+    output.write('Usage Block:              {} bytes\n'.format(
+        digest_num_bytes))
+    output.write('Key Version Block:        8 bytes\n')
+    output.write('Signature Block:          {} bytes\n'.format(
+        signature_num_bytes))
+    output.write('Certificate Block:        {} bytes\n'.format(len(data)))
+    output.write('\n')
+    output.write('Certificate:\n')
+    output.write('  Format Version:         {}\n'.format(format_version))
+    output.write('  RSA Key Num Bits:       {}\n'.format(num_bits))
+    output.write('  RSA n0inv:              0x{:08x}\n'.format(n0inv))
+    output.write('  RSA Modulus:            {}\n'.format(modulus.hex()))
+    output.write('  RSA RRModN:             {}\n'.format(rrmodn.hex()))
+    output.write('  Subject (SHA256):       {}\n'.format(subject.hex()))
+    output.write('  Usage (SHA256):         {}\n'.format(usage.hex()))
+    usage_name = CERT_USAGE_HASHES.get(usage)
+    output.write('  Usage (known):          {}\n'.format(
+        usage_name if usage_name else '<unknown>'))
+    output.write('  Key Version:            {}\n'.format(key_version))
+    output.write('  Signature:              {}\n'.format(signature.hex()))
+
   def make_cert_metadata(self, output, intermediate_key_certificate,
                          product_key_certificate):
     """Implements the 'make_cert_metadata' command.
@@ -4841,6 +4920,20 @@ class AvbTool(object):
     sub_parser.set_defaults(func=self.info_cert_permanent_attributes)
 
     sub_parser = subparsers.add_parser(
+        'info_certificate',
+        aliases=['info_atx_certificate'],
+        help='Show avb_cert extension certificate.')
+    sub_parser.add_argument('--input',
+                            help='Path to certificate file',
+                            type=argparse.FileType('rb'),
+                            required=True)
+    sub_parser.add_argument('--output',
+                            help='Write human-readable information to file',
+                            type=argparse.FileType('w'),
+                            default=sys.stdout)
+    sub_parser.set_defaults(func=self.info_certificate)
+
+    sub_parser = subparsers.add_parser(
         'make_cert_metadata',
         aliases=['make_atx_metadata'],
         help='Create avb_cert extension metadata.')
@@ -5094,6 +5187,10 @@ Please use '--hash_algorithm sha256'.
   def info_cert_permanent_attributes(self, args):
     """Implements the 'info_cert_permanent_attributes' sub-command."""
     self.avb.info_cert_permanent_attributes(args.input, args.output)
+
+  def info_certificate(self, args):
+    """Implements the 'info_certificate' sub-command."""
+    self.avb.info_certificate(args.input, args.output)
 
   def make_cert_metadata(self, args):
     """Implements the 'make_cert_metadata' sub-command."""
