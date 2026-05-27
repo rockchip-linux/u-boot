@@ -17,6 +17,19 @@
 		u-boot,spl-boot-order = &sdmmc, &sdhci, &spi_nand, &spi_nor;
 	};
 
+	keylad: keylad@fe380000 {
+		compatible = "rockchip,keylad";
+		reg = <0x0 0xfe380000 0x0 0x2000>;
+		status = "disabled";
+	};
+
+	crypto_s: crypto@fe390000 {
+		compatible = "rockchip,rk3588-crypto";
+		reg = <0x0 0xfe390000 0x0 0x4000>;
+		secure;
+		status = "disabled";
+	};
+
 	secure-otp@fe3a0000 {
 		u-boot,dm-spl;
 		compatible = "rockchip,rk3588-secure-otp";
@@ -83,6 +96,16 @@
 };
 
 &crypto {
+	u-boot,dm-spl;
+	status = "okay";
+};
+
+&crypto_s {
+	u-boot,dm-spl;
+	status = "okay";
+};
+
+&keylad {
 	u-boot,dm-spl;
 	status = "okay";
 };
