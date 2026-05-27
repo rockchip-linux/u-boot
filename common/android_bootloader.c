@@ -88,6 +88,7 @@ static enum android_boot_mode android_bootloader_load_and_clear_mode(
 	 */
 	bootloader_str = (char *)CONFIG_FASTBOOT_BUF_ADDR;
 	if (!strcmp("reboot-bootloader", bootloader_str)) {
+		printf("misc: reboot-bootloader\n");
 		bootloader_str[0] = '\0';
 		return ANDROID_BOOT_MODE_BOOTLOADER;
 	}
@@ -101,6 +102,7 @@ static enum android_boot_mode android_bootloader_load_and_clear_mode(
 	}
 
 	if (!strcmp("bootonce-bootloader", bcb.command)) {
+		printf("misc: bootonce-bootloader\n");
 		/* Erase the message in the BCB since this value should be used
 		 * only once.
 		 */
