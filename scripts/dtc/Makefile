@@ -23,6 +23,9 @@ HOSTCFLAGS_util.o := $(HOSTCFLAGS_DTC)
 
 HOSTCFLAGS_dtc-lexer.lex.o := $(HOSTCFLAGS_DTC)
 HOSTCFLAGS_dtc-parser.tab.o := $(HOSTCFLAGS_DTC)
+ifdef CONFIG_TOOLS_STATIC_DTC
+HOSTLDFLAGS_dtc := -static
+endif
 
 # dependencies on generated files need to be listed explicitly
 $(obj)/dtc-lexer.lex.o: $(obj)/dtc-parser.tab.h

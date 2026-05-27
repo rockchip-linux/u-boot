@@ -155,6 +155,12 @@ config TOOLS_DEBUG
 	  it is possible to set breakpoints on particular lines, single-step
 	  debug through the source code, etc.
 
+config TOOLS_STATIC_DTC
+	bool "Build scripts/dtc/dtc statically"
+	default n
+	help
+	  Enable this to link the host-side dtc tool statically.
+
 endif # EXPERT
 
 config PHYS_64BIT
