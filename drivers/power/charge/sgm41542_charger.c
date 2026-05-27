@@ -42,6 +42,7 @@ static int dbg_enable;
 #define SGM4154x_CHRG_CTRL_d			0x0d
 #define SGM4154x_INPUT_DET			0x0e
 #define SGM4154x_CHRG_CTRL_f			0x0f
+#define SGM41512_CHRG_CTRL_10			0x10
 
 /* charge status flags */
 #define SGM4154x_CHRG_EN			BIT(4)
@@ -179,6 +180,10 @@ static int dbg_enable;
 #define SGM41513_IINDPM_I_MAX_uA	3200000
 #define SGM41543_ICHRG_I_MAX_uA		3500000	/* Assumed value, need to verify with datasheet */
 #define SGM41543_IINDPM_I_MAX_uA	3400000	/* Assumed value, need to verify with datasheet */
+
+/* DPDM automatic detection */
+#define SGM41512_BC12_AUTO_MASK		BIT(5)
+#define SGM41512_BC12_AUTO_DISABLE	BIT(5)
 
 /* Chip IDs */
 enum sgm415xx_vendor_id {
@@ -716,6 +721,13 @@ static int sgm41542_probe(struct udevice *dev)
 		return ret;
 	}
 
+	/* Disable DP/DM Automatic detection */
+	if (charger->device_id == SGM41512SX_CHIP_VENDOR_ID ||
+	    charger->device_id == SGM41512S_CHIP_VENDOR_ID)
+		sgm41542_update_bits(charger,
+				     SGM41512_CHRG_CTRL_10,
+				     SGM41512_BC12_AUTO_MASK,
+				     SGM41512_BC12_AUTO_DISABLE);
 	/* Set charging parameters */
 	ret = sgm4154x_set_ichrg_curr(charger, charger->ichg);
 	if (ret) {
