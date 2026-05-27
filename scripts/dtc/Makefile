@@ -14,6 +14,9 @@ HOST_EXTRACFLAGS := -I$(src)/libfdt
 # Generated files need one more search path to include headers in source tree
 HOSTCFLAGS_dtc-lexer.lex.o := -I$(src)
 HOSTCFLAGS_dtc-parser.tab.o := -I$(src)
+ifdef CONFIG_TOOLS_STATIC_DTC
+HOSTLDFLAGS_dtc := -static
+endif
 
 # dependencies on generated files need to be listed explicitly
 $(obj)/dtc-lexer.lex.o: $(obj)/dtc-parser.tab.h
