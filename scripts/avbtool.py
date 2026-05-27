@@ -28,6 +28,7 @@ import argparse
 import binascii
 import bisect
 import hashlib
+import io
 import json
 import math
 import os
@@ -4097,6 +4098,104 @@ class Avb(object):
     output.write('  Key Version:            {}\n'.format(key_version))
     output.write('  Signature:              {}\n'.format(signature.hex()))
 
+  def info_cert_metadata(self, input_file, output):
+    """Dumps avb_cert metadata in human-readable form.
+
+    Arguments:
+      input_file: File object containing metadata data.
+      output: Output stream for human-readable information.
+
+    Raises:
+      AvbError: If the input data is malformed.
+    """
+    data = input_file.read()
+    certificate_num_bytes = (
+        4 +
+        ALGORITHMS['SHA256_RSA4096'].public_key_num_bytes +
+        hashlib.sha256().digest_size * 2 +
+        8 +
+        ALGORITHMS['SHA512_RSA4096'].signature_num_bytes)
+    expected_size = 4 + certificate_num_bytes * 2
+    if len(data) != expected_size:
+      raise AvbError('Invalid cert metadata size {} (expected {}).'.format(
+          len(data), expected_size))
+
+    format_version = struct.unpack_from('<I', data, 0)[0]
+    pik_offset = 4
+    psk_offset = pik_offset + certificate_num_bytes
+
+    output.write('Minimum libavb version:   1.0\n')
+    output.write('Header Block:             4 bytes\n')
+    output.write('PIK Certificate Block:    {} bytes\n'.format(
+        certificate_num_bytes))
+    output.write('PSK Certificate Block:    {} bytes\n'.format(
+        certificate_num_bytes))
+    output.write('Metadata Block:           {} bytes\n'.format(len(data)))
+    output.write('\n')
+    output.write('Public Key Metadata:\n')
+    output.write('  Format Version:         {}\n'.format(format_version))
+    output.write('\n')
+    output.write('Product Intermediate Key Certificate:\n')
+    self.info_certificate(io.BytesIO(
+        data[pik_offset:pik_offset + certificate_num_bytes]), output)
+    output.write('\n')
+    output.write('Product Signing Key Certificate:\n')
+    self.info_certificate(io.BytesIO(
+        data[psk_offset:psk_offset + certificate_num_bytes]), output)
+
+  def info_cert_unlock_credential(self, input_file, output):
+    """Dumps avb_cert unlock credential in human-readable form.
+
+    Arguments:
+      input_file: File object containing unlock credential data.
+      output: Output stream for human-readable information.
+
+    Raises:
+      AvbError: If the input data is malformed.
+    """
+    data = input_file.read()
+    certificate_num_bytes = (
+        4 +
+        ALGORITHMS['SHA256_RSA4096'].public_key_num_bytes +
+        hashlib.sha256().digest_size * 2 +
+        8 +
+        ALGORITHMS['SHA512_RSA4096'].signature_num_bytes)
+    signature_num_bytes = ALGORITHMS['SHA512_RSA4096'].signature_num_bytes
+    expected_size = 4 + certificate_num_bytes * 2 + signature_num_bytes
+    if len(data) != expected_size:
+      raise AvbError(
+          'Invalid unlock credential size {} (expected {}).'.format(
+              len(data), expected_size))
+
+    format_version = struct.unpack_from('<I', data, 0)[0]
+    pik_offset = 4
+    puk_offset = pik_offset + certificate_num_bytes
+    challenge_signature_offset = puk_offset + certificate_num_bytes
+    challenge_signature = data[challenge_signature_offset:]
+
+    output.write('Minimum libavb version:   1.0\n')
+    output.write('Header Block:             4 bytes\n')
+    output.write('PIK Certificate Block:    {} bytes\n'.format(
+        certificate_num_bytes))
+    output.write('PUK Certificate Block:    {} bytes\n'.format(
+        certificate_num_bytes))
+    output.write('Challenge Sig Block:      {} bytes\n'.format(
+        signature_num_bytes))
+    output.write('Unlock Credential Block:  {} bytes\n'.format(len(data)))
+    output.write('\n')
+    output.write('Unlock Credential:\n')
+    output.write('  Format Version:         {}\n'.format(format_version))
+    output.write('  Challenge Signature:    {}\n'.format(
+        challenge_signature.hex()))
+    output.write('\n')
+    output.write('Product Intermediate Key Certificate:\n')
+    self.info_certificate(io.BytesIO(
+        data[pik_offset:pik_offset + certificate_num_bytes]), output)
+    output.write('\n')
+    output.write('Product Unlock Key Certificate:\n')
+    self.info_certificate(io.BytesIO(
+        data[puk_offset:puk_offset + certificate_num_bytes]), output)
+
   def make_cert_metadata(self, output, intermediate_key_certificate,
                          product_key_certificate):
     """Implements the 'make_cert_metadata' command.
@@ -4934,6 +5033,20 @@ class AvbTool(object):
     sub_parser.set_defaults(func=self.info_certificate)
 
     sub_parser = subparsers.add_parser(
+        'info_cert_metadata',
+        aliases=['info_atx_metadata'],
+        help='Show avb_cert extension metadata.')
+    sub_parser.add_argument('--input',
+                            help='Path to metadata file',
+                            type=argparse.FileType('rb'),
+                            required=True)
+    sub_parser.add_argument('--output',
+                            help='Write human-readable information to file',
+                            type=argparse.FileType('w'),
+                            default=sys.stdout)
+    sub_parser.set_defaults(func=self.info_cert_metadata)
+
+    sub_parser = subparsers.add_parser(
         'make_cert_metadata',
         aliases=['make_atx_metadata'],
         help='Create avb_cert extension metadata.')
@@ -4988,6 +5101,20 @@ class AvbTool(object):
                             default=None,
                             required=False)
     sub_parser.set_defaults(func=self.make_cert_unlock_credential)
+
+    sub_parser = subparsers.add_parser(
+        'info_cert_unlock_credential',
+        aliases=['info_atx_unlock_credential'],
+        help='Show avb_cert extension unlock credential.')
+    sub_parser.add_argument('--input',
+                            help='Path to unlock credential file',
+                            type=argparse.FileType('rb'),
+                            required=True)
+    sub_parser.add_argument('--output',
+                            help='Write human-readable information to file',
+                            type=argparse.FileType('w'),
+                            default=sys.stdout)
+    sub_parser.set_defaults(func=self.info_cert_unlock_credential)
 
     args = parser.parse_args(argv[1:])
     try:
@@ -5192,6 +5319,10 @@ Please use '--hash_algorithm sha256'.
     """Implements the 'info_certificate' sub-command."""
     self.avb.info_certificate(args.input, args.output)
 
+  def info_cert_metadata(self, args):
+    """Implements the 'info_cert_metadata' sub-command."""
+    self.avb.info_cert_metadata(args.input, args.output)
+
   def make_cert_metadata(self, args):
     """Implements the 'make_cert_metadata' sub-command."""
     self.avb.make_cert_metadata(args.output,
@@ -5208,6 +5339,10 @@ Please use '--hash_algorithm sha256'.
         args.unlock_key,
         args.signing_helper,
         args.signing_helper_with_files)
+
+  def info_cert_unlock_credential(self, args):
+    """Implements the 'info_cert_unlock_credential' sub-command."""
+    self.avb.info_cert_unlock_credential(args.input, args.output)
 
 
 if __name__ == '__main__':
