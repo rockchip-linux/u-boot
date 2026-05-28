@@ -353,6 +353,7 @@ config SPL_FIT_SIGNATURE
 	depends on SPL_DM
 	select SPL_FIT
 	select SPL_RSA
+	select SPL_HASH_SUPPORT if SPL_ARMV8_CRYPTO
 
 config SPL_FIT_ROLLBACK_PROTECT
 	bool "Enable SPL rollback-index protection for FIT image"
