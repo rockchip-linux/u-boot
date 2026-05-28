@@ -893,6 +893,30 @@ static int rk3588_combphy_cfg(struct rockchip_combphy_priv *priv)
 		writel(val, priv->mmio + (0xd << 2));
 	}
 
+	if (dev_read_bool(priv->dev, "rockchip,ext-refclk")) {
+		param_write(priv->phy_grf, &cfg->pipe_clk_ext, true);
+		if (priv->mode == PHY_TYPE_PCIE) {
+			val = 0x10;
+			writel(val, priv->mmio + (0x20 << 2));
+
+			val = 0x0c;
+			writel(val, priv->mmio + (0x1b << 2));
+
+			/*
+			 * Set up su_trim: T3_P1 650mv
+			 * CKRCV termination resister adjust 11: Hi-Z
+			 */
+			val = 0x90;
+			writel(val, priv->mmio + (0xa << 2));
+			val = 0x43;
+			writel(val, priv->mmio + (0xb << 2));
+			val = 0xb8;
+			writel(val, priv->mmio + (0xc << 2));
+			val = 0x56;
+			writel(val, priv->mmio + (0xd << 2));
+		}
+	}
+
 	return 0;
 }
 
