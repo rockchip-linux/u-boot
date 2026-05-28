@@ -443,17 +443,12 @@ AvbIOResult avb_read_permanent_attributes_hash(AvbAtxOps *atx_ops,
 		printf("optee_read_permanent_attributes_hash error!\n");
 		return AVB_IO_RESULT_ERROR_IO;
 	}
-
-	return AVB_IO_RESULT_OK;
 #else
 	printf("Please open the macro CONFIG_OPTEE!\n");
 	return AVB_IO_RESULT_ERROR_IO;
 #endif
-#else
-	printf("No perm attr hash for efuse platforms!\n");
-
-	return AVB_IO_RESULT_ERROR_IO;
 #endif
+	return AVB_IO_RESULT_OK;
 }
 
 static void avb_set_key_version(AvbAtxOps *atx_ops,

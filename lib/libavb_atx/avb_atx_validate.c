@@ -21,16 +21,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
+#include <dm.h>
+#include <u-boot/rsa-mod-exp.h>
 #include <android_avb/avb_atx_validate.h>
-
+#include <android_avb/avb.h>
 #include <android_avb/avb_rsa.h>
 #include <android_avb/avb_sha.h>
 #include <android_avb/avb_sysdeps.h>
 #include <android_avb/avb_util.h>
-#ifdef CONFIG_DM_CRYPTO
-#include <crypto.h>
-#endif
 
 /* The most recent unlock challenge generated. */
 static uint8_t last_unlock_challenge[AVB_ATX_UNLOCK_CHALLENGE_SIZE];
@@ -71,22 +69,14 @@ static bool verify_permanent_attributes(
     const uint8_t expected_hash[AVB_SHA256_DIGEST_SIZE]) {
   __maybe_unused uint8_t hash[AVB_SHA256_DIGEST_SIZE];
 #ifdef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
-#ifdef CONFIG_DM_CRYPTO
-  u32 cap = CRYPTO_MD5 | CRYPTO_SHA1 | CRYPTO_SHA256 |
-#ifdef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
-      CRYPTO_RSA4096;
-#else
-      CRYPTO_RSA2048;
-#endif
   uint8_t rsa_sig[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
   uint8_t rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
-  u32 rsa_result_words[ROCKCHIP_RSA_PARAMETER_SIZE];
-  uint8_t *rsa_result_bytes = (uint8_t *)rsa_result_words;
-  unsigned char rsa_result[32] = {0};
+  uint8_t rsa_result[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
+  uint8_t rsa_hash[32] = {0};
   struct rk_pub_key pub_key;
   struct udevice *dev;
-  rsa_key rsa_key;
-  char *temp;
+  struct key_prop rsa_key_prop;
+  rsa_key_t rsa_key;
   int ret = 0;
   int i;
 
@@ -104,39 +94,41 @@ static bool verify_permanent_attributes(
   for (i = 0; i < RK_AVB_PERM_ATTR_CER_SIZE; i++)
     rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE - 1 - i] = rsa_sig[i];
 
-  dev = crypto_get_device(cap);
-  if (!dev) {
-    avb_error("Can't find crypto device for expected capability\n");
-    return false;
-  }
-
   memset(&rsa_key, 0x00, sizeof(rsa_key));
-#ifdef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
-  rsa_key.algo = CRYPTO_RSA4096;
-#else
-  rsa_key.algo = CRYPTO_RSA2048;
-#endif
   rsa_key.n = (u32 *)&pub_key.rsa_n;
   rsa_key.e = (u32 *)&pub_key.rsa_e;
-#ifdef CONFIG_ROCKCHIP_CRYPTO_V1
   rsa_key.c = (u32 *)&pub_key.rsa_c;
+
+  memset(&rsa_key_prop, 0x00, sizeof(rsa_key_prop));
+  rsa_key_prop.rsa_key = &rsa_key;
+#ifdef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
+  rsa_key_prop.num_bits = 4096;
+#else
+  rsa_key_prop.num_bits = 2048;
 #endif
-  ret = crypto_rsa_verify(dev, &rsa_key, (u8 *)rsa_sig_revert, (u8 *)rsa_result_words);
+
+  ret = uclass_get_device(UCLASS_MOD_EXP, 0, &dev);
   if (ret) {
-    avb_error("Hardware verify error!\n");
+    avb_error("Can't find mod exp device\n");
     return false;
   }
 
-  temp = (char *)rsa_result_bytes;
+  ret = rsa_mod_exp(dev, (u8 *)rsa_sig_revert, RK_AVB_PERM_ATTR_CER_SIZE,
+                    &rsa_key_prop, rsa_result);
+  if (ret) {
+    avb_error("Crypto RSA verify error!\n");
+    return false;
+  }
+
   for (i = 0; i < 32; i++)
-    rsa_result[31-i] = temp[i];
+    rsa_hash[31 - i] = rsa_result[i];
 
   sha256((const uint8_t*)attributes, sizeof(AvbAtxPermanentAttributes), hash);
-  if (memcmp((void*)rsa_result, (void*)hash, 32) == 0)
+  if (memcmp((void*)rsa_hash, (void*)hash, 32) == 0)
     return true;
 
   return false;
-#endif /* CONFIG_DM_CRYPTO */
+
 #else
   if (attributes->version != 1) {
     avb_error("Unsupported permanent attributes version.\n");
