@@ -753,6 +753,12 @@ static int rockchip_pcie_init_port(struct udevice *dev)
 		goto err_deassert_bulk;
 	}
 
+	ret = generic_phy_calibrate(&priv->phy);
+	if (ret) {
+		dev_err(dev, "failed to calibrate phy (ret=%d)\n", ret);
+		goto err_phy_calibrate;
+	}
+
 	/* LTSSM EN ctrl mode */
 	val = rk_pcie_readl_apb(priv, PCIE_CLIENT_HOT_RESET_CTRL);
 	val |= PCIE_LTSSM_ENABLE_ENHANCE | (PCIE_LTSSM_ENABLE_ENHANCE << 16);
@@ -774,10 +780,10 @@ static int rockchip_pcie_init_port(struct udevice *dev)
 	}
 
 	if (retries <= 0)
-		goto err_link_up;
+		goto err_phy_calibrate;
 
 	return 0;
-err_link_up:
+err_phy_calibrate:
 	clk_disable_bulk(&priv->clks);
 err_deassert_bulk:
 	reset_assert_bulk(&priv->rsts);
