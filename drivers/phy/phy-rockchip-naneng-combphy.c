@@ -73,6 +73,7 @@ struct rockchip_combphy_grfcfg {
 struct rockchip_combphy_cfg {
 	const struct rockchip_combphy_grfcfg *grfcfg;
 	bool force_det_out; /* Tx detect Rx errata */
+	bool txpll_lock_dis; /* TX pll lock check disable */
 	int (*combphy_cfg)(struct rockchip_combphy_priv *priv);
 };
 
@@ -133,6 +134,13 @@ static int rockchip_combphy_pcie_init(struct rockchip_combphy_priv *priv)
 		val = readl(priv->mmio + (0x19 << 2));
 		val |= BIT(5);
 		writel(val, priv->mmio + (0x19 << 2));
+	}
+
+	if (!priv->cfg->txpll_lock_dis &&
+	    dev_read_bool(priv->dev, "rockchip,ext-refclk")) {
+		ret = readl_poll_timeout(priv->mmio + (0x27 << 2), val, val & 0x1, 1000);
+		if (ret)
+			dev_err(priv->dev, "pcie phy lock failed, check input refclk\n");
 	}
 
 	return ret;
@@ -262,9 +270,11 @@ int rockchip_combphy_usb3_uboot_init(fdt_addr_t phy_addr)
 
 static int rockchip_combphy_set_mode(struct rockchip_combphy_priv *priv)
 {
+	int ret = 0;
+
 	switch (priv->mode) {
 	case PHY_TYPE_PCIE:
-		rockchip_combphy_pcie_init(priv);
+		ret = rockchip_combphy_pcie_init(priv);
 		break;
 	case PHY_TYPE_USB3:
 		rockchip_combphy_usb3_init(priv);
@@ -277,10 +287,10 @@ static int rockchip_combphy_set_mode(struct rockchip_combphy_priv *priv)
 		return rockchip_combphy_sgmii_init(priv);
 	default:
 		dev_err(priv->dev, "incompatible PHY type\n");
-		return -EINVAL;
+		ret = -EINVAL;
 	}
 
-	return 0;
+	return ret;
 }
 
 static int rockchip_combphy_init(struct phy *phy)
@@ -498,6 +508,7 @@ static const struct rockchip_combphy_grfcfg rk3528_combphy_grfcfgs = {
 static const struct rockchip_combphy_cfg rk3528_combphy_cfgs = {
 	.grfcfg		= &rk3528_combphy_grfcfgs,
 	.combphy_cfg	= rk3528_combphy_cfg,
+	.txpll_lock_dis = true,
 };
 #endif
 
