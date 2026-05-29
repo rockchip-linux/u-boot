@@ -1241,8 +1241,7 @@ null_basep:
 	} else {
 		if (dm_gpio_is_valid(&hdmi->enable_gpio))
 			dm_gpio_set_value(&hdmi->enable_gpio, 1);
-		hdmi->bus_width =
-			hdmi_get_tmdsclock(hdmi, pixel_clk * 10);
+		hdmi->bus_width = pixel_clk * 10;
 		if (hdmi_bus_fmt_is_yuv420(*bus_format))
 			hdmi->bus_width /= 2;
 
