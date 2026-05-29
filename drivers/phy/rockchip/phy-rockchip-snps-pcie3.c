@@ -31,6 +31,9 @@
 #define RK3588_PCIE3PHY_GRF_CMN_CON0 0x0
 #define RK3588_PCIE3PHY_GRF_PHY0_STATUS1 0x904
 #define RK3588_PCIE3PHY_GRF_PHY1_STATUS1 0xa04
+#define RK3588_SRAM_INIT_DONE(reg) ((reg & 0xf) == 0xf)
+
+#define RK_PCIE_SRAM_INIT_TIMEOUT 20000
 
 /*
  * pcie30_phy_mode[2:0]
@@ -177,6 +180,34 @@ static const struct rockchip_p3phy_ops rk3588_ops = {
 	.phy_init = &rockchip_p3phy_rk3588_init,
 };
 
+static int rockchip_p3phy_calibrate(struct phy *phy)
+{
+	struct rockchip_p3phy_priv *priv = dev_get_priv(phy->dev);
+	bool check_both = (priv->pcie30_phymode == PHY_MODE_PCIE_AGGREGATION);
+	u32 phy0_status, phy1_status;
+	int i, sleep_us = 100;
+
+	for (i = 0; i < RK_PCIE_SRAM_INIT_TIMEOUT; i += sleep_us) {
+		regmap_read(priv->phy_grf, RK3588_PCIE3PHY_GRF_PHY0_STATUS1, &phy0_status);
+		regmap_read(priv->phy_grf, RK3588_PCIE3PHY_GRF_PHY1_STATUS1, &phy1_status);
+
+		if (check_both) {
+			if (RK3588_SRAM_INIT_DONE(phy0_status) && RK3588_SRAM_INIT_DONE(phy1_status))
+				return 0;
+		} else {
+			if (RK3588_SRAM_INIT_DONE(phy0_status) || RK3588_SRAM_INIT_DONE(phy1_status))
+				return 0;
+		}
+
+		udelay(sleep_us);
+	}
+
+	pr_err("%s: lock failed p0=0x%x p1=0x%x, check input refclk and power supply\n",
+	       __func__, phy0_status, phy1_status);
+
+	return -ETIMEDOUT;
+}
+
 static int rochchip_p3phy_init(struct phy *phy)
 {
 	struct rockchip_p3phy_priv *priv = dev_get_priv(phy->dev);
@@ -286,6 +317,7 @@ static struct phy_ops rochchip_p3phy_ops = {
 	.init = rochchip_p3phy_init,
 	.exit = rochchip_p3phy_exit,
 	.configure = rockchip_p3phy_configure,
+	.calibrate = rockchip_p3phy_calibrate,
 };
 
 static const struct udevice_id rockchip_p3phy_of_match[] = {
