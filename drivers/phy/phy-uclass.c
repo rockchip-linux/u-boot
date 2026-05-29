@@ -355,6 +355,17 @@ int generic_phy_set_mode_ext(struct phy *phy, enum phy_mode mode, int submode)
 	return ret;
 }
 
+int generic_phy_calibrate(struct phy *phy)
+{
+	struct phy_ops const *ops;
+
+	if (!generic_phy_valid(phy))
+		return 0;
+	ops = phy_dev_ops(phy->dev);
+
+	return ops->calibrate ? ops->calibrate(phy) : 0;
+}
+
 UCLASS_DRIVER(phy) = {
 	.id		= UCLASS_PHY,
 	.name		= "phy",

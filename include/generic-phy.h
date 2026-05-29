@@ -189,6 +189,7 @@ struct phy_ops {
 	int	(*power_off)(struct phy *phy);
 
 	int     (*set_mode)(struct phy *phy, enum phy_mode mode, int submode);
+	int     (*calibrate)(struct phy *phy);
 };
 
 #ifdef CONFIG_PHY
@@ -251,6 +252,7 @@ int generic_phy_power_on(struct phy *phy);
 int generic_phy_power_off(struct phy *phy);
 
 int generic_phy_set_mode_ext(struct phy *phy, enum phy_mode mode, int submode);
+int generic_phy_calibrate(struct phy *phy);
 #define generic_phy_set_mode(phy, mode) \
 	generic_phy_set_mode_ext(phy, mode, 0)
 
@@ -369,6 +371,11 @@ static inline int generic_phy_get_by_name(struct udevice *user, const char *phy_
 
 static inline int generic_phy_set_mode_ext(struct phy *phy, enum phy_mode mode,
 					   int submode)
+{
+	return 0;
+}
+
+static inline int generic_phy_calibrate(struct phy *phy)
 {
 	return 0;
 }
