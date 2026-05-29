@@ -211,7 +211,7 @@ int generic_phy_init(struct phy *phy)
 	else
 		counts->init_count = 1;
 
-	return 0;
+	return ret;
 }
 
 int generic_phy_reset(struct phy *phy)
@@ -252,7 +252,7 @@ int generic_phy_exit(struct phy *phy)
 	else
 		counts->init_count = 0;
 
-	return 0;
+	return ret;
 }
 
 int generic_phy_power_on(struct phy *phy)
