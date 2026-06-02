@@ -150,6 +150,28 @@ int drm_dp_bw_code_to_link_rate(u8 link_bw)
 
 #define AUX_RETRY_INTERVAL 500 /* us */
 
+static void drm_dp_dump_access(const struct drm_dp_aux *aux,
+			       u8 request, unsigned int offset,
+			       void *buffer, int ret)
+{
+	const char *arrow = (request == DP_AUX_NATIVE_READ) ? "->" : "<-";
+
+	if (ret > 0) {
+		char hex[64];
+		int i;
+		int len = min_t(int, ret, 20);
+
+		for (i = 0; i < len; i++)
+			sprintf(hex + i * 3, "%02x ", ((u8 *)buffer)[i]);
+		hex[len * 3] = '\0';
+		debug("%s: 0x%05x AUX %s (ret=%3d) %s\n",
+		      aux->name, offset, arrow, ret, hex);
+	} else {
+		debug("%s: 0x%05x AUX %s (ret=%3d)\n",
+		      aux->name, offset, arrow, ret);
+	}
+}
+
 static int drm_dp_dpcd_access(struct drm_dp_aux *aux, u8 request,
 			      unsigned int offset, void *buffer, size_t size)
 {
@@ -217,6 +239,7 @@ ssize_t drm_dp_dpcd_read(struct drm_dp_aux *aux, unsigned int offset,
 				 buffer, size);
 
 out:
+	drm_dp_dump_access(aux, DP_AUX_NATIVE_READ, offset, buffer, ret);
 	return ret;
 }
 
@@ -228,6 +251,7 @@ ssize_t drm_dp_dpcd_write(struct drm_dp_aux *aux, unsigned int offset,
 	ret = drm_dp_dpcd_access(aux, DP_AUX_NATIVE_WRITE, offset,
 				 buffer, size);
 
+	drm_dp_dump_access(aux, DP_AUX_NATIVE_WRITE, offset, buffer, ret);
 	return ret;
 }
 
