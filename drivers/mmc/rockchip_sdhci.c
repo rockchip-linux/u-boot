@@ -303,6 +303,24 @@ static int rk3399_sdhci_set_ios_post(struct sdhci_host *host)
 }
 #endif
 
+static int rk3568_sdhci_set_enhanced_strobe(struct sdhci_host *host)
+{
+	struct mmc *mmc = host->mmc;
+	u32 vendor;
+
+	vendor = sdhci_readl(host, DWCMSHC_EMMC_EMMC_CTRL);
+	if (mmc->selected_mode == MMC_HS_400_ES)
+		vendor |= DWCMSHC_ENHANCED_STROBE;
+	else
+		vendor &= ~DWCMSHC_ENHANCED_STROBE;
+	sdhci_writel(host, vendor, DWCMSHC_EMMC_EMMC_CTRL);
+
+	/* some emmc device need a delay before send command */
+	udelay(100);
+
+	return 0;
+}
+
 static void rk3568_sdhci_set_clock(struct sdhci_host *host, u32 div)
 {
 	struct rockchip_sdhc *priv = container_of(host, struct rockchip_sdhc, host);
@@ -690,6 +708,7 @@ static const struct sdhci_data rk3528_data = {
 	.hs400_cmd_tapnum = 0x6,
 	.hs400_strbin_tapnum = 0x3,
 	.ddr50_strbin_delay_num = 10,
+	.set_enhanced_strobe = rk3568_sdhci_set_enhanced_strobe,
 };
 
 static const struct sdhci_data rk3562_data = {
@@ -702,7 +721,7 @@ static const struct sdhci_data rk3562_data = {
 	.hs400_cmd_tapnum = 0x6,
 	.hs400_strbin_tapnum = 0x3,
 	.ddr50_strbin_delay_num = 10,
-
+	.set_enhanced_strobe = rk3568_sdhci_set_enhanced_strobe,
 };
 
 static const struct sdhci_data rk3568_data = {
@@ -715,17 +734,20 @@ static const struct sdhci_data rk3568_data = {
 	.hs400_cmd_tapnum = 0x8,
 	.hs400_strbin_tapnum = 0x3,
 	.ddr50_strbin_delay_num = 16,
+	.set_enhanced_strobe = rk3568_sdhci_set_enhanced_strobe,
 };
 
 static const struct sdhci_data rk3576_data = {
 	.set_ios_post = rk3568_sdhci_set_ios_post,
 	.set_clock = rk3568_sdhci_set_clock,
 	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_TAP_VALUE_SEL,
 	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
 	.hs400_txclk_tapnum = 0x7,
 	.hs400_cmd_tapnum = 0x7,
 	.hs400_strbin_tapnum = 0x5,
 	.ddr50_strbin_delay_num = 10,
+	.set_enhanced_strobe = rk3568_sdhci_set_enhanced_strobe,
 };
 
 static const struct sdhci_data rk3588_data = {
@@ -738,6 +760,7 @@ static const struct sdhci_data rk3588_data = {
 	.hs400_cmd_tapnum = 0x8,
 	.hs400_strbin_tapnum = 0x4,
 	.ddr50_strbin_delay_num = 16,
+	.set_enhanced_strobe = rk3568_sdhci_set_enhanced_strobe,
 };
 
 static const struct udevice_id sdhci_ids[] = {
