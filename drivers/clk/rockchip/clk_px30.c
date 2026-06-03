@@ -27,7 +27,7 @@ enum {
 	OUTPUT_MIN_HZ	= 24 * 1000000,
 };
 
-#define PX30_VOP_PLL_LIMIT			600000000
+#define PX30_VOP_PLL_LIMIT			594000000
 
 #define PX30_PLL_RATE(_rate, _refdiv, _fbdiv, _postdiv1,	\
 			_postdiv2, _dsmpd, _frac)		\
@@ -854,7 +854,7 @@ static ulong px30_vop_set_clk(struct px30_clk_priv *priv, ulong clk_id, uint hz)
 		if (hz < PX30_VOP_PLL_LIMIT) {
 			src_clk_div = DIV_ROUND_UP(PX30_VOP_PLL_LIMIT, hz);
 			if (src_clk_div % 2)
-				src_clk_div = src_clk_div - 1;
+				src_clk_div = src_clk_div + 1;
 		} else {
 			src_clk_div = 1;
 		}
@@ -876,7 +876,7 @@ static ulong px30_vop_set_clk(struct px30_clk_priv *priv, ulong clk_id, uint hz)
 			if (hz < PX30_VOP_PLL_LIMIT) {
 				src_clk_div = DIV_ROUND_UP(PX30_VOP_PLL_LIMIT, hz);
 				if (src_clk_div % 2)
-					src_clk_div = src_clk_div - 1;
+					src_clk_div = src_clk_div + 1;
 			} else {
 				src_clk_div = 1;
 			}
