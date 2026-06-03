@@ -212,7 +212,7 @@ int mmc_set_blocklen(struct mmc *mmc, int len)
 {
 	struct mmc_cmd cmd;
 
-	if (mmc_card_ddr(mmc))
+	if (mmc_card_ddr(mmc) || !IS_SD(mmc))
 		return 0;
 
 	cmd.cmdidx = MMC_CMD_SET_BLOCKLEN;
