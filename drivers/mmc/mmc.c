@@ -354,7 +354,7 @@ int mmc_set_blocklen(struct mmc *mmc, int len)
 {
 	struct mmc_cmd cmd;
 
-	if (mmc->ddr_mode)
+	if (mmc->ddr_mode || !IS_SD(mmc))
 		return 0;
 
 	cmd.cmdidx = MMC_CMD_SET_BLOCKLEN;
