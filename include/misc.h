@@ -19,6 +19,7 @@
 #define IOCTL_REQ_DATA_SIZE	_IO('m', 0x05)
 #define IOCTL_REQ_KEYLAD_INIT	_IO('m', 0x06)
 #define IOCTL_REQ_KEYLAD_DEINIT	_IO('m', 0x07)
+#define IOCTL_REQ_FLUSH		_IO('m', 0x08)
 
 enum misc_mode {
 	DECOM_LZ4	= BIT(0),
@@ -26,6 +27,11 @@ enum misc_mode {
 	DECOM_ZLIB	= BIT(2),
 	OTP_S		= BIT(3),
 	OTP_NS		= BIT(4),
+};
+
+struct otp_param {
+	u32 flush_offset;
+	u32 flush_size;
 };
 
 /*
