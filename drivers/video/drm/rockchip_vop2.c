@@ -1463,21 +1463,22 @@
 
 #define VOP2_PLANE_NO_SCALING			BIT(16)
 
-#define VOP_FEATURE_OUTPUT_10BIT	BIT(0)
-#define VOP_FEATURE_AFBDC		BIT(1)
-#define VOP_FEATURE_ALPHA_SCALE		BIT(2)
-#define VOP_FEATURE_HDR10		BIT(3)
-#define VOP_FEATURE_NEXT_HDR		BIT(4)
+#define VOP_FEATURE_OUTPUT_10BIT		BIT(0)
+#define VOP_FEATURE_AFBDC			BIT(1)
+#define VOP_FEATURE_ALPHA_SCALE			BIT(2)
+#define VOP_FEATURE_HDR10			BIT(3)
+#define VOP_FEATURE_DOVI			BIT(4)
 /* a feature to splice two windows and two vps to support resolution > 4096 */
-#define VOP_FEATURE_SPLICE		BIT(5)
-#define VOP_FEATURE_OVERSCAN		BIT(6)
-#define VOP_FEATURE_VIVID_HDR		BIT(7)
-#define VOP_FEATURE_POST_ACM		BIT(8)
-#define VOP_FEATURE_POST_CSC		BIT(9)
-#define VOP_FEATURE_POST_FRC_V2		BIT(10)
-#define VOP_FEATURE_POST_SHARP		BIT(11)
-#define VOP_FEATURE_HW_CURSOR		BIT(12)
-#define VOP_FEATURE_CGC			BIT(13)
+#define VOP_FEATURE_SPLICE			BIT(5)
+#define VOP_FEATURE_OVERSCAN			BIT(6)
+#define VOP_FEATURE_VIVID_HDR			BIT(7)
+#define VOP_FEATURE_POST_ACM			BIT(8)
+#define VOP_FEATURE_POST_CSC			BIT(9)
+#define VOP_FEATURE_POST_FRC_V2			BIT(10)
+#define VOP_FEATURE_POST_SHARP			BIT(11)
+#define VOP_FEATURE_HW_CURSOR			BIT(12)
+#define VOP_FEATURE_CGC				BIT(13)
+#define VOP_FEATURE_DYNAMIC_METADATA_EMP	BIT(14)
 
 #define WIN_FEATURE_HDR2SDR		BIT(0)
 #define WIN_FEATURE_SDR2HDR		BIT(1)
@@ -9091,8 +9092,8 @@ static struct vop2_win_data rk3528_win_data[5] = {
 
 static struct vop2_vp_data rk3528_vp_data[2] = {
 	{
-		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_POST_ACM |
-			   VOP_FEATURE_POST_CSC,
+		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_VIVID_HDR |
+			   VOP_FEATURE_POST_ACM | VOP_FEATURE_POST_CSC | VOP_FEATURE_OUTPUT_10BIT,
 		.max_output = {4096, 4096},
 		.layer_mix_dly = 6,
 		.hdr_mix_dly = 2,
@@ -9319,7 +9320,7 @@ static struct vop2_vp_data rk3538_vp_data[1] = {
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_VIVID_HDR |
 			   VOP_FEATURE_POST_ACM | VOP_FEATURE_POST_CSC | VOP_FEATURE_OUTPUT_10BIT |
 			   VOP_FEATURE_POST_FRC_V2 | VOP_FEATURE_POST_SHARP | VOP_FEATURE_HW_CURSOR |
-			   VOP_FEATURE_CGC,
+			   VOP_FEATURE_CGC | VOP_FEATURE_DYNAMIC_METADATA_EMP,
 		.max_output = { 4096, 4096 },
 		.hdrvivid_dly = 21,
 		.sdr2hdr_dly = 18,
@@ -9702,17 +9703,18 @@ static struct vop2_win_data rk3568_win_data[6] = {
 
 static struct vop2_vp_data rk3568_vp_data[3] = {
 	{
-		.feature = VOP_FEATURE_OUTPUT_10BIT,
+		.feature = VOP_FEATURE_OUTPUT_10BIT | VOP_FEATURE_ALPHA_SCALE |
+			   VOP_FEATURE_HDR10 | VOP_FEATURE_OVERSCAN,
 		.pre_scan_max_dly = 42,
 		.max_output = {4096, 2304},
 	},
 	{
-		.feature = 0,
+		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN,
 		.pre_scan_max_dly = 40,
 		.max_output = {2048, 1536},
 	},
 	{
-		.feature = 0,
+		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN,
 		.pre_scan_max_dly = 40,
 		.max_output = {1920, 1080},
 	},
@@ -10021,7 +10023,7 @@ static struct vop2_vp_data rk3572_vp_data[3] = {
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_VIVID_HDR |
 			   VOP_FEATURE_POST_ACM | VOP_FEATURE_POST_CSC | VOP_FEATURE_OUTPUT_10BIT |
 			   VOP_FEATURE_POST_FRC_V2 | VOP_FEATURE_POST_SHARP | VOP_FEATURE_HW_CURSOR |
-			   VOP_FEATURE_CGC,
+			   VOP_FEATURE_CGC | VOP_FEATURE_DYNAMIC_METADATA_EMP,
 		.max_output = { 4096, 4096 },
 		.hdrvivid_dly = 21,
 		.sdr2hdr_dly = 18,
@@ -10296,7 +10298,8 @@ static struct vop2_vp_data rk3576_vp_data[3] = {
 	{
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_VIVID_HDR |
 			   VOP_FEATURE_POST_ACM | VOP_FEATURE_POST_CSC | VOP_FEATURE_OUTPUT_10BIT |
-			   VOP_FEATURE_POST_FRC_V2 | VOP_FEATURE_POST_SHARP,
+			   VOP_FEATURE_POST_FRC_V2 | VOP_FEATURE_POST_SHARP |
+			   VOP_FEATURE_DYNAMIC_METADATA_EMP,
 		.max_output = { 4096, 4096 },
 		.hdrvivid_dly = 21,
 		.sdr2hdr_dly = 21,
@@ -10769,25 +10772,26 @@ static struct vop2_dsc_data rk3588_dsc_data[] = {
 static struct vop2_vp_data rk3588_vp_data[4] = {
 	{
 		.splice_vp_id = 1,
-		.feature = VOP_FEATURE_OUTPUT_10BIT,
+		.feature = VOP_FEATURE_OUTPUT_10BIT | VOP_FEATURE_ALPHA_SCALE |
+			   VOP_FEATURE_HDR10 | VOP_FEATURE_DOVI,
 		.pre_scan_max_dly = 54,
 		.max_dclk = 600000,
 		.max_output = {7680, 4320},
 	},
 	{
-		.feature = VOP_FEATURE_OUTPUT_10BIT,
+		.feature = VOP_FEATURE_OUTPUT_10BIT | VOP_FEATURE_ALPHA_SCALE,
 		.pre_scan_max_dly = 54,
 		.max_dclk = 600000,
 		.max_output = {4096, 2304},
 	},
 	{
-		.feature = VOP_FEATURE_OUTPUT_10BIT,
+		.feature = VOP_FEATURE_OUTPUT_10BIT | VOP_FEATURE_ALPHA_SCALE,
 		.pre_scan_max_dly = 52,
 		.max_dclk = 600000,
 		.max_output = {4096, 2304},
 	},
 	{
-		.feature = 0,
+		.feature = VOP_FEATURE_ALPHA_SCALE,
 		.pre_scan_max_dly = 52,
 		.max_dclk = 200000,
 		.max_output = {1920, 1080},
