@@ -4045,8 +4045,12 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 
 	vop2_mask_write(vop2, RK3588_VP0_CLK_CTRL + vp_offset, 0x3,
 			DCLK_CORE_DIV_SHIFT, cstate->dclk_core_div, false);
-	vop2_mask_write(vop2, RK3588_VP0_CLK_CTRL + vp_offset, 0x3,
-			DCLK_OUT_DIV_SHIFT, cstate->dclk_out_div, false);
+	if (conn_state->type == DRM_MODE_CONNECTOR_DisplayPort ||
+	    conn_state->type == DRM_MODE_CONNECTOR_DSI ||
+	    (conn_state->type == DRM_MODE_CONNECTOR_HDMIA && cstate->dsc_enable)) {
+		vop2_mask_write(vop2, RK3588_VP0_CLK_CTRL + vp_offset, 0x3,
+				DCLK_OUT_DIV_SHIFT, cstate->dclk_out_div, false);
+	}
 
 	return dclk_rate / 1000;
 }
