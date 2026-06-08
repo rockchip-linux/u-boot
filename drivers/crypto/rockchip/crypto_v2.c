@@ -1630,7 +1630,6 @@ static int rockchip_crypto_ofdata_to_platdata(struct udevice *dev)
 
 	/* if there is no clocks in dts, just skip it */
 	if (!dev_read_prop(dev, "clocks", &len)) {
-		printf("Can't find \"clocks\" property\n");
 		return 0;
 	}
 
