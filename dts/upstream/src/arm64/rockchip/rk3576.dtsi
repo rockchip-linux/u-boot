@@ -1409,9 +1409,6 @@
 			clock-names = "core", "bus", "axi", "block", "timer";
 			interrupts = <GIC_SPI 253 IRQ_TYPE_LEVEL_HIGH>;
 			max-frequency = <200000000>;
-			pinctrl-0 = <&emmc_rstnout>, <&emmc_bus8>, <&emmc_clk>,
-				    <&emmc_cmd>, <&emmc_strb>;
-			pinctrl-names = "default";
 			power-domains = <&power RK3576_PD_NVM>;
 			resets = <&cru SRST_C_EMMC>, <&cru SRST_H_EMMC>,
 				 <&cru SRST_A_EMMC>, <&cru SRST_B_EMMC>,
