@@ -1170,6 +1170,8 @@
 #define V4L2_COLORSPACE_BT709F		0xfe
 #define V4L2_COLORSPACE_BT2020F		0xff
 
+#define VOP2_MAX_MULTI_AREA_WIN		4
+
 enum vop_csc_format {
 	CSC_BT601L,
 	CSC_BT709L,
@@ -1304,6 +1306,7 @@ enum vop3_esmart_lb_mode {
 	VOP3_ESMART_2K_2K_2K_2K_MODE,
 	VOP3_ESMART_4K_4K_4K_MODE,
 	VOP3_ESMART_4K_4K_2K_2K_MODE,
+	VOP3_ESMART_LB_MODE_MAX,
 };
 
 enum alpha_mode {
@@ -1458,6 +1461,11 @@ struct vop2_esmart_lb_map {
 	u8 lb_map_value;
 };
 
+struct vop2_scale_engine {
+	u8 plane_phy_id;
+	u8 scale_engine_num;
+};
+
 /**
 * struct vop2_ops - helper operations for vop2 hardware
 *
@@ -1535,6 +1543,7 @@ struct vop2_data {
 	struct dsc_error_info *dsc_error_buffer_flow;
 	struct vop2_dump_regs *dump_regs;
 	const struct vop2_esmart_lb_map *esmart_lb_mode_map;
+	const struct vop2_scale_engine *scale_engine;
 	const struct vop2_ops *ops;
 	u8 nr_vps;
 	u8 nr_layers; /* the maximum layers of each VP */
@@ -2798,46 +2807,52 @@ static bool vop3_ignore_plane(struct vop2 *vop2, struct vop2_win_data *win)
 		return false;
 }
 
-static void vop3_init_esmart_scale_engine(struct vop2 *vop2, struct display_state *state)
+static int vop3_get_esmart_scale_engine_by_lb_mode(struct vop2 *vop2, int phy_id)
 {
-	struct crtc_state *cstate = &state->crtc_state;
-	struct vop2_win_data *win_data;
-	int i, j;
-	u8 scale_engine_num = 0;
+	const struct vop2_scale_engine *scale_engine = vop2->data->scale_engine;
+	int i;
 
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		if (!cstate->crtc->vps[i].enable)
-			continue;
+	/* Find the scale engine configurations according to the esmart lb mode */
+	scale_engine += vop2->esmart_lb_mode * VOP2_MAX_MULTI_AREA_WIN;
 
-		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
-			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
-			if (win_data && vop2_multi_area_window(win_data) &&
-			    !vop3_ignore_plane(vop2, win_data))
-				win_data->scale_engine_num = scale_engine_num++;
-		}
-
-		if (vop2->vp_plane_mask[i].cursor_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
-			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].cursor_plane_id);
-			if (win_data && vop2_multi_area_window(win_data) &&
-			    !vop3_ignore_plane(vop2, win_data))
-				win_data->scale_engine_num = scale_engine_num++;
-		}
+	for (i = 0; i < VOP2_MAX_MULTI_AREA_WIN; i++) {
+		if (scale_engine[i].plane_phy_id == phy_id)
+			return scale_engine[i].scale_engine_num;
 	}
+
+	return 0;
+}
+
+/**
+ * RK3528/RK3562/RK3576 platforms require configuring the scale engine number
+ * for each esmart window during driver initialization. The configuration
+ * follows these rules:
+ *
+ * 1. The scale engine number must be unique for each esmart window.
+ * 2. Valid scale engine numbers are determined by the esmart lb mode:
+ *    - VOP3_ESMART_8K_MODE supports 0
+ *    - VOP3_ESMART_4K_4K_MODE supports 0, 1
+ *    - VOP3_ESMART_4K_2K_2K_MODE supports 0, 1, 2
+ *    - VOP3_ESMART_2K_2K_2K_2K_MODE supports 0, 1, 2, 3
+ *    - VOP3_ESMART_4K_4K_4K_MODE supports 0, 1, 2
+ *    - VOP3_ESMART_4K_4K_2K_2K_MODE supports 0, 1, 2, 3
+ * 3. Scale engine number is static and fixed at init time, cannot be changed
+ *    dynamically.
+ */
+static void vop3_init_esmart_scale_engine(struct vop2 *vop2)
+{
+	struct vop2_win_data *win_data;
+	int i;
+
+	if (!vop2->data->scale_engine)
+		return;
 
 	for (i = 0; i < vop2->data->win_size; i++) {
 		win_data = &vop2->data->win_data[i];
 		if (!vop2_multi_area_window(win_data) || vop3_ignore_plane(vop2, win_data))
 			continue;
 
-		for (j = 0; j < vop2->data->nr_vps; j++) {
-			if (win_data->phys_id == vop2->vp_plane_mask[j].primary_plane_id ||
-			    win_data->phys_id == vop2->vp_plane_mask[j].cursor_plane_id)
-				break;
-		}
-		if (j != vop2->data->nr_vps)
-			continue;
-
-		win_data->scale_engine_num = scale_engine_num++;
+		win_data->scale_engine_num = vop3_get_esmart_scale_engine_by_lb_mode(vop2, win_data->phys_id);
 	}
 }
 
@@ -3308,7 +3323,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		 * };
 		 */
 		tmp = dev_read_u8_array_ptr(cstate->dev, "esmart_lb_mode", 1);
-		if (tmp)
+		if (tmp && *tmp < VOP3_ESMART_LB_MODE_MAX)
 			vop2->esmart_lb_mode = *tmp;
 		else
 			vop2->esmart_lb_mode = vop2->data->esmart_lb_mode;
@@ -3323,7 +3338,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 					ESMART_LB_MODE_SEL_SHIFT,
 					vop3_get_esmart_lb_mode(vop2), false);
 
-		vop3_init_esmart_scale_engine(vop2, state);
+		vop3_init_esmart_scale_engine(vop2);
 
 		if (vop2->version == VOP_VERSION_RK3576)
 			vop2_mask_write(vop2, RK3576_SYS_PORT_CTRL, EN_MASK,
@@ -7568,6 +7583,51 @@ static struct vop2_vp_data rk3528_vp_data[2] = {
 	},
 };
 
+static const struct vop2_scale_engine rk3528_scale_engine[VOP3_ESMART_LB_MODE_MAX][VOP2_MAX_MULTI_AREA_WIN] = {
+	/* VOP3_ESMART_8K_MODE */
+	{
+		{ ROCKCHIP_VOP2_ESMART0, 0 },
+		{},
+		{},
+		{},
+	},
+	/* VOP3_ESMART_4K_4K_MODE */
+	{
+		{ ROCKCHIP_VOP2_ESMART0, 0 },
+		{ ROCKCHIP_VOP2_ESMART2, 1 },
+		{},
+		{},
+	},
+	/* VOP3_ESMART_4K_2K_2K_MODE */
+	{
+		{ ROCKCHIP_VOP2_ESMART0, 0 },
+		{ ROCKCHIP_VOP2_ESMART2, 1 },
+		{ ROCKCHIP_VOP2_ESMART3, 2 },
+		{},
+	},
+	/* VOP3_ESMART_2K_2K_2K_2K_MODE */
+	{
+		{ ROCKCHIP_VOP2_ESMART0, 0 },
+		{ ROCKCHIP_VOP2_ESMART1, 1 },
+		{ ROCKCHIP_VOP2_ESMART2, 2 },
+		{ ROCKCHIP_VOP2_ESMART3, 3 },
+	},
+	/* VOP3_ESMART_4K_4K_4K_MODE */
+	{
+		{ ROCKCHIP_VOP2_ESMART0, 0 },
+		{ ROCKCHIP_VOP2_ESMART1, 1 },
+		{ ROCKCHIP_VOP2_ESMART2, 2 },
+		{},
+	},
+	/* VOP3_ESMART_4K_4K_2K_2K_MODE */
+	{
+		{ ROCKCHIP_VOP2_ESMART0, 0 },
+		{ ROCKCHIP_VOP2_ESMART1, 1 },
+		{ ROCKCHIP_VOP2_ESMART2, 2 },
+		{ ROCKCHIP_VOP2_ESMART3, 3 },
+	},
+};
+
 static const struct vop2_ops rk3528_vop_ops = {
 	.setup_win_dly = rk3528_setup_win_dly,
 	.setup_overlay = rk3528_setup_overlay,
@@ -7587,6 +7647,7 @@ const struct vop2_data rk3528_vop = {
 	.esmart_lb_mode = VOP3_ESMART_4K_2K_2K_MODE,
 	.dump_regs = rk3528_dump_regs,
 	.dump_regs_size = ARRAY_SIZE(rk3528_dump_regs),
+	.scale_engine = rk3528_scale_engine[0],
 	.ops = &rk3528_vop_ops,
 
 };
@@ -7718,6 +7779,7 @@ const struct vop2_data rk3562_vop = {
 	.esmart_lb_mode = VOP3_ESMART_2K_2K_2K_2K_MODE,
 	.dump_regs = rk3562_dump_regs,
 	.dump_regs_size = ARRAY_SIZE(rk3562_dump_regs),
+	.scale_engine = rk3528_scale_engine[0],
 	.ops = &rk3562_vop_ops,
 };
 
@@ -8262,6 +8324,7 @@ const struct vop2_data rk3576_vop = {
 	.nr_pd = ARRAY_SIZE(rk3576_vop_pd_data),
 	.dump_regs = rk3576_dump_regs,
 	.dump_regs_size = ARRAY_SIZE(rk3576_dump_regs),
+	.scale_engine = rk3528_scale_engine[0],
 	.ops = &rk3576_vop_ops,
 };
 
