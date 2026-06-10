@@ -411,10 +411,9 @@ int arch_cpu_init(void)
 	board_set_iomux(UCLASS_MTD, 0, 0);
 #endif
 
-#if defined(CONFIG_ROCKCHIP_SDMMC_IOMUX)
-	/* Set the sdmmc iomux and power cycle */
-	board_set_iomux(UCLASS_MMC, 1, 0);
-#endif
+	/* Enabled SDMMC iomux in default except FSPI1_M0 boot */
+	if (readl(VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_IOMUX_SEL_0) != 0x1111)
+		board_set_iomux(UCLASS_MMC, 1, 0);
 #endif
 
 #if defined(CONFIG_UFS)
