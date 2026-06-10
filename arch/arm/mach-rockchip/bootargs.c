@@ -339,6 +339,7 @@ const char *board_fdt_chosen_bootargs(void *fdt)
 	bootargs_add_dtb_dtbo(fdt, verbose);
 	bootargs_add_partition(verbose);
 	bootargs_add_fwver(verbose);
+	/* WARNING: Must be the last one to handle all "androidboot.xxx" property */
 	bootargs_add_android(verbose);
 
 	/*
