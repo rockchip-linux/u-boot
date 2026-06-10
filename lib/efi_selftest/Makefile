@@ -52,6 +52,7 @@ efi_selftest_watchdog.o
 
 obj-$(CONFIG_GBL_EFI_BOOT_CONTROL_PROTOCOL) += efi_selftest_gbl_boot_control_protocol.o
 obj-$(CONFIG_GBL_EFI_FASTBOOT_PROTOCOL) += efi_selftest_gbl_fastboot_protocol.o
+obj-$(CONFIG_GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL) += efi_selftest_gbl_fastboot_transport_protocol.o
 
 obj-$(CONFIG_EFI_ECPT) += efi_selftest_ecpt.o
 obj-$(CONFIG_NETDEVICES) += efi_selftest_snp.o
@@ -80,8 +81,6 @@ obj-y += efi_selftest_block_device.o
 endif
 
 obj-$(CONFIG_EFI_ESRT) += efi_selftest_esrt.o
-
-obj-$(CONFIG_GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL) += efi_selftest_gbl_fastboot_transport_protocol.o
 
 targets += \
 efi_miniapp_file_image_exception.h \

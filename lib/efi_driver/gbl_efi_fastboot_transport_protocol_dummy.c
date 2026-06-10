@@ -35,18 +35,17 @@ static struct cyclic_info *cyclic_info = NULL;
 static void poll_loop(void *ctx)
 {
 	struct membuff *mb = &((Context *)ctx)->mb;
-	if (tstc()) {
+	if (tstc())
 		membuff_putbyte(mb, getchar());
-	}
+
 }
 
 static efi_status_t EFIAPI
 start(struct gbl_efi_fastboot_transport_protocol *this)
 {
 	EFI_ENTRY("%p", this);
-	if (this != &gbl_efi_fastboot_transport_dummy_proto) {
+	if (this != &gbl_efi_fastboot_transport_dummy_proto)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
 
 	membuff_init(&ctx.mb, context_inner_buffer, BUFFER_SIZE);
 	cyclic_info = cyclic_register(poll_loop, 100 * 1000 /*100ms*/,
@@ -59,12 +58,11 @@ start(struct gbl_efi_fastboot_transport_protocol *this)
 static efi_status_t EFIAPI stop(struct gbl_efi_fastboot_transport_protocol *this)
 {
 	EFI_ENTRY("%p", this);
-	if (this != &gbl_efi_fastboot_transport_dummy_proto) {
+	if (this != &gbl_efi_fastboot_transport_dummy_proto)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
-	if (!cyclic_info) {
+
+	if (!cyclic_info)
 		return EFI_EXIT(EFI_NOT_STARTED);
-	}
 
 	cyclic_unregister(cyclic_info);
 	cyclic_info = NULL;
@@ -108,8 +106,7 @@ receive(struct gbl_efi_fastboot_transport_protocol *this, size_t *bufsize,
 		return EFI_EXIT_NO_LOG(res);
 	}
 
-	*bufsize = 0;
-	return EFI_EXIT_NO_LOG(EFI_SUCCESS);
+	return EFI_EXIT_NO_LOG(EFI_NOT_READY);
 }
 
 static efi_status_t EFIAPI send(struct gbl_efi_fastboot_transport_protocol *this,
@@ -130,9 +127,8 @@ static efi_status_t EFIAPI
 gbl_efi_flush(struct gbl_efi_fastboot_transport_protocol *this)
 {
 	EFI_ENTRY_NO_LOG("%p", this);
-	if (this != &gbl_efi_fastboot_transport_dummy_proto) {
+	if (this != &gbl_efi_fastboot_transport_dummy_proto)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
 
 	return EFI_EXIT_NO_LOG(EFI_SUCCESS);
 }

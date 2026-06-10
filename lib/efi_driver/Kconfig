@@ -1,6 +1,14 @@
+menu "GBL support"
+
+config GBL
+	bool "GBL support"
+	depends on EFI_LOADER
+	help
+	  Enable support for GBL-specific EFI protocols and configuration.
+
+if GBL
 config GBL_EFI_BOOT_CONTROL_PROTOCOL
 	bool "Include GBL Boot Control protocol"
-	depends on EFI_LOADER
 	select CRC32
 	help
 	  Include the driver for the custom GBL Boot Control protocol.
@@ -8,9 +16,13 @@ config GBL_EFI_BOOT_CONTROL_PROTOCOL
 	  marking boot attempts, changing the currently active slot,
 	  and querying metadata about boot slots.
 
+config GBL_EFI_BOOT_MEMORY_PROTOCOL
+	bool "Include GBL Boot Memory protocol"
+	help
+	  Include the driver for the custom GBL Boot Memory protocol.
+
 config GBL_EFI_AVB_PROTOCOL
 	bool "Include GBL Android Verified Boot protocol"
-	depends on EFI_LOADER
 	help
 	  Include the driver for the custom GBL Android Verified Boot protocol.
 	  This protocol is used for platform-specific AVB logic, including
@@ -18,7 +30,6 @@ config GBL_EFI_AVB_PROTOCOL
 
 config GBL_EFI_FASTBOOT_PROTOCOL
 	bool "Include GBL Fastboot customization protocol"
-	depends on EFI_LOADER
 	help
 	  Include the driver for the custom GBL Fastboot customization protocol.
 	  This protocol is used for defining custom fastboot variables,
@@ -26,22 +37,27 @@ config GBL_EFI_FASTBOOT_PROTOCOL
 
 config GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL
 	bool "Include GBL Fastboot Transport protocol implementation"
-	depends on EFI_LOADER
-	default y if GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_SERIAL || GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_DUMMY
+	default y if GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_SERIAL || GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_DUMMY || GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_USB
 	help
 	  Include the driver for the GBL Fastboot Transport protocol.
           This protocol is used for defining fastboot transport.
 
+config GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_USB
+	bool "Include GBL Fastboot Transport protocol USB implementation"
+	depends on USB_GADGET_DOWNLOAD && USB_FUNCTION_FASTBOOT
+	help
+	  Include the USB gadget driver for the GBL Fastboot Transport protocol.
+
 config GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_SERIAL
 	bool "Include GBL Fastboot Transport protocol serial implementation"
-	depends on EFI_LOADER && CYCLIC
+	depends on CYCLIC
 	help
 	  Include the serial interactive driver for the GBL Fastboot Transport
           protocol. This protocol is used for defining fastboot transport.
 
 config GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_DUMMY
 	bool "Include GBL Fastboot Transport protocol dummy implementation"
-	depends on EFI_LOADER && CYCLIC
+	depends on CYCLIC
 	help
 	  Include the dummy driver for the GBL Fastboot Transport protocol.
 	  This protocol is used to verify multiple transport protocol
@@ -49,26 +65,16 @@ config GBL_EFI_FASTBOOT_TRANSPORT_PROTOCOL_DUMMY
 
 config GBL_EFI_OS_CONFIGURATION_PROTOCOL
 	bool "Include GBL Os Configuration protocol"
-	depends on EFI_LOADER
 	help
 	  Include the driver for the custom GBL os configuration protocol.
 	  This protocol is used to select base device trees and overlays
 	  and apply runtime fix-ups to kernel commandline and bootconfig.
 
-config EFI_DT_FIXUP_CF
-	bool "Includes Cuttlefish-specific EFI_DT_FIXUP protocol implementation"
-	depends on EFI_LOADER
-	help
-	  This is a Cuttlefish-specific option that includes the merge-based
-	  implementation for the EFI device tree fix-up protocol. This
-	  implementation is used to merge a DT provided by a firmware into a UEFI
-	  application DT. This is particularly useful in VM environments where the
-	  device tree provided by a VMM (e.g., QEMU, Crosvm) must be respected.
-
 config GBL_EFI_FW_API_LEVEL
-	string "GBL Firmware API Level"
-	depends on EFI_LOADER
-	default ""
+	bool "Enable GBL Firmware API Level"
 	help
 	  The API level of the platform firmware, in YYYYMM format.
 	  This will be reported in the gbl_fw_api_level UEFI variable.
+endif
+
+endmenu

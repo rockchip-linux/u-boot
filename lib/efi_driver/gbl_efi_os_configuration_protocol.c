@@ -2,79 +2,101 @@
  * Copyright (C) 2024 The Android Open Source Project
  */
 
-#include <avb_verify.h>
-#include <efi_api.h>
-#include <gbl_efi_os_configuration.h>
-#include <efi_loader.h>
+#include <bidram.h>
 #include <efi.h>
+#include <efi_api.h>
+#include <efi_loader.h>
+#include <env.h>
+#include <gbl_efi_os_configuration.h>
+#include <log.h>
+#include <string.h>
+#include <asm/global_data.h>
 
-#define ANDROID_PARTITION_BOOTCONFIG "bootconfig"
+DECLARE_GLOBAL_DATA_PTR;
 
 const efi_guid_t gbl_efi_os_config_guid =
 	GBL_EFI_OS_CONFIGURATION_PROTOCOL_GUID;
 
-static efi_status_t
-bootconfig_load_from_persistent_disk_device(char *fixup,
-					    size_t *fixup_buffer_size)
+static const char *gbl_efi_dt_source_name(u32 source)
 {
-	AvbSlotVerifyData *avb_verify_data = NULL;
-	AvbPartitionData *avb_bootconfig_data = NULL;
-	struct AvbOps *ops = NULL;
-	int ret = 0;
-	char devnum_str[3];
-	const char *slot_suffix = "";
-	static const char *const requested_partitions[] = {
-		ANDROID_PARTITION_BOOTCONFIG, NULL
-	};
-
-	sprintf(devnum_str, "%d", CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE);
-	ops = avb_ops_alloc("virtio", devnum_str);
-
-	ret = avb_verify_partitions(ops, slot_suffix, requested_partitions,
-				    &avb_verify_data, NULL);
-	if (ret != CMD_RET_SUCCESS) {
-		printf("Failed to verify bootconfig partition from persistent disk\n");
-		return EFI_LOAD_ERROR;
+	switch (source) {
+	case GBL_EFI_DEVICE_TREE_SOURCE_BOOT:
+		return "boot";
+	case GBL_EFI_DEVICE_TREE_SOURCE_VENDOR_BOOT:
+		return "vendor_boot";
+	case GBL_EFI_DEVICE_TREE_SOURCE_DTBO:
+		return "dtbo";
+	case GBL_EFI_DEVICE_TREE_SOURCE_DTB:
+		return "dtb";
+	default:
+		return "unknown";
 	}
+}
 
-	for (int i = 0; i < avb_verify_data->num_loaded_partitions; i++) {
-		AvbPartitionData *p = &avb_verify_data->loaded_partitions[i];
-		if (!strcmp(ANDROID_PARTITION_BOOTCONFIG, p->partition_name))
-			avb_bootconfig_data = p;
+static const char *gbl_efi_dt_type_name(u32 type)
+{
+	switch (type) {
+	case GBL_EFI_DEVICE_TREE_TYPE_DEVICE_TREE:
+		return "device_tree";
+	case GBL_EFI_DEVICE_TREE_TYPE_OVERLAY:
+		return "overlay";
+	case GBL_EFI_DEVICE_TREE_TYPE_PVM_DA_OVERLAY:
+		return "pvm_da_overlay";
+	default:
+		return "unknown";
 	}
-	if (!avb_bootconfig_data) {
-		printf("Failed to verify bootconfig partition from persistent disk\n");
-		return EFI_LOAD_ERROR;
-	}
-
-	if (avb_bootconfig_data->data_size > *fixup_buffer_size) {
-		printf("Buffer too small for bootconfig\n");
-		*fixup_buffer_size = avb_bootconfig_data->data_size;
-		return EFI_BUFFER_TOO_SMALL;
-	}
-
-	*fixup_buffer_size = strlen(avb_bootconfig_data->data);
-	memcpy(fixup, avb_bootconfig_data->data, *fixup_buffer_size);
-
-	return EFI_SUCCESS;
 }
 
 static efi_status_t EFIAPI fixup_bootconfig(
 	struct gbl_efi_os_configuration_protocol *self, size_t bootconfig_size,
 	const char *bootconfig, size_t *fixup_buffer_size, char *fixup)
 {
+	char *andr_bootargs;
+	size_t required_size;
+	ulong ddr_size;
+	char buf[64];
+
 	EFI_ENTRY("%p, %zu, %p, %p, %p", self, bootconfig_size, bootconfig,
 		  fixup_buffer_size, fixup);
 
 	if (!self || !bootconfig || !fixup_buffer_size || !fixup)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
 
-	if (IS_ENABLED(CONFIG_ANDROID_PERSISTENT_RAW_DISK_DEVICE))
-		return EFI_EXIT(bootconfig_load_from_persistent_disk_device(
-			fixup, fixup_buffer_size));
+	debug("GBL OS config: input bootconfig size=%zu\n", bootconfig_size);
+	debug("GBL OS config: input bootconfig begin\n");
+	debug("%.*s\n", (int)bootconfig_size, bootconfig);
+	debug("GBL OS config: input bootconfig end\n");
 
-	// No fixup needed, set fixup_buffer_size to 0
-	*fixup_buffer_size = 0;
+	/* Add: required by Android >= 17 */
+	ddr_size = gd->ram_size + bidram_append_size();
+	snprintf(buf, sizeof(buf), "androidboot.ddr_size=0x%08lx", ddr_size);
+	env_update("bootargs", buf);
+
+	/* extract */
+	if (env_update_extract_subset("bootargs", "andr_bootargs", "androidboot.")) {
+		printf("extract androidboot.xxx error\n");
+		return EFI_EXIT(EFI_LOAD_ERROR);
+	}
+
+	andr_bootargs = env_get("andr_bootargs");
+	if (!andr_bootargs) {
+		*fixup_buffer_size = 0;
+		return EFI_EXIT(EFI_SUCCESS);
+	}
+	debug("u-boot androidboot:\n    %s\n", andr_bootargs);
+
+	required_size = strlen(andr_bootargs);
+	if (*fixup_buffer_size < required_size) {
+		*fixup_buffer_size = required_size;
+		return EFI_EXIT(EFI_BUFFER_TOO_SMALL);
+	}
+
+	/* return */
+	memcpy(fixup, andr_bootargs, required_size);
+	*fixup_buffer_size = required_size;
+
+	debug("GBL: andr: %s\n", andr_bootargs);
+	debug("GBL: size: %ld\n", (ulong)(*fixup_buffer_size));
 
 	return EFI_EXIT(EFI_SUCCESS);
 }
@@ -84,18 +106,42 @@ static efi_status_t EFIAPI select_device_trees(
 	struct gbl_efi_verified_device_tree *device_trees)
 {
 	EFI_ENTRY("%p, %zu, %p", self, num_device_trees, device_trees);
+	bool found_base_dt = false;
 
 	if (!self || !num_device_trees || !device_trees)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
 
-	// Select first base device tree and ignore all overlays / device assignment overlays.
+	printf("# GBL OS DT num=%zu\n", num_device_trees);
+	for (size_t i = 0; i < num_device_trees; i++) {
+		struct gbl_efi_verified_device_tree *dt = &device_trees[i];
+
+		printf("# GBL OS DT: dt[%zu] source=%s(%u) type=%s(%u) id=0x%x rev=0x%x selected=%u dt=%p\n",
+		       i,
+		       gbl_efi_dt_source_name(dt->metadata.source),
+		       dt->metadata.source,
+		       gbl_efi_dt_type_name(dt->metadata.type),
+		       dt->metadata.type,
+		       dt->metadata.id,
+		       dt->metadata.rev,
+		       dt->selected,
+		       dt->device_tree);
+	}
+
 	for (size_t i = 0; i < num_device_trees; i++) {
 		if (device_trees[i].metadata.type ==
 		    GBL_EFI_DEVICE_TREE_TYPE_DEVICE_TREE) {
 			device_trees[i].selected = true;
-			return EFI_EXIT(EFI_SUCCESS);
+			printf("# GBL OS config: select dt[%zu] as base device tree\n", i);
+			found_base_dt = true;
+		} else if (device_trees[i].metadata.type ==
+		    GBL_EFI_DEVICE_TREE_TYPE_OVERLAY) {
+			device_trees[i].selected = true;
+			printf("# GBL OS config: select dt[%zu] as overlay\n", i);
 		}
 	}
+
+	if (found_base_dt)
+		return EFI_EXIT(EFI_SUCCESS);
 
 	log_err("No base device tree provided, nothing to select.\n");
 	return EFI_EXIT(EFI_INVALID_PARAMETER);

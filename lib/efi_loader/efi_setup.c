@@ -9,7 +9,9 @@
 #define LOG_CATEGORY LOGC_EFI
 
 #include <efi_driver.h>
-#include <efi_dt_fixup_cf.h>
+#include <gbl_efi_avb_protocol.h>
+#include <gbl_efi_boot_control_protocol.h>
+#include <gbl_efi_boot_memory_protocol.h>
 #include <gbl_efi_boot_control_protocol.h>
 #include <gbl_efi_avb_protocol.h>
 #include <gbl_efi_fastboot_protocol.h>
@@ -184,6 +186,7 @@ static efi_status_t efi_init_gbl_vars(void)
 	efi_status_t ret = EFI_SUCCESS;
 
 #if defined(CONFIG_GBL_EFI_FW_API_LEVEL)
+#if 0
 	const char *api_level = CONFIG_GBL_EFI_FW_API_LEVEL;
 	efi_uintn_t len = strlen(api_level);
 	if (len > 0) {
@@ -196,9 +199,9 @@ static efi_status_t efi_init_gbl_vars(void)
 		if (ret != EFI_SUCCESS)
 			goto out;
 	}
-#endif
-
 out:
+#endif
+#endif
 	return ret;
 }
 
@@ -385,6 +388,12 @@ efi_status_t efi_init_obj_list(void)
 		}
 	}
 
+	if (IS_ENABLED(CONFIG_GBL_EFI_BOOT_MEMORY_PROTOCOL)) {
+		ret = gbl_efi_boot_memory_register();
+		if (ret != EFI_SUCCESS)
+			goto out;
+	}
+
 	if (IS_ENABLED(CONFIG_GBL_EFI_AVB_PROTOCOL)) {
 		ret = gbl_efi_avb_register();
 		if (ret != EFI_SUCCESS) {
@@ -413,14 +422,6 @@ efi_status_t efi_init_obj_list(void)
 		ret = gbl_efi_os_config_register();
 		if (ret != EFI_SUCCESS) {
 			log_err("GBL_OS_CONFIGURATION initialization error\n");
-			goto out;
-		}
-	}
-
-	if (IS_ENABLED(CONFIG_EFI_DT_FIXUP_CF)) {
-		ret = efi_dt_fixup_cf_register();
-		if (ret != EFI_SUCCESS) {
-			log_err("EFI_DT_FIXUP_CF initialization error\n");
 			goto out;
 		}
 	}

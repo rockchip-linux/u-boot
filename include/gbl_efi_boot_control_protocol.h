@@ -75,5 +75,6 @@ struct gbl_efi_boot_control_protocol {
 };
 
 efi_status_t gbl_efi_boot_control_register(void);
+int gbl_control_get_current_slot_idx(void);
 
 #endif /* __GBL_EFI_BOOT_CONTROL_H__ */

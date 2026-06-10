@@ -2272,6 +2272,38 @@ out:
 	return EFI_EXIT(ret);
 }
 
+efi_status_t efi_exit_boot_services_current_image(void)
+{
+	efi_uintn_t map_size = 0, map_key, desc_size;
+	uint32_t desc_version;
+	struct efi_mem_desc *memory_map = NULL;
+	efi_status_t ret;
+
+	if (!current_image || !systab.boottime)
+		return EFI_INVALID_PARAMETER;
+
+	ret = efi_get_memory_map(&map_size, memory_map, &map_key, &desc_size,
+				 &desc_version);
+	if (ret != EFI_BUFFER_TOO_SMALL)
+		return ret;
+
+	map_size += desc_size;
+	ret = efi_allocate_pool(EFI_BOOT_SERVICES_DATA, map_size,
+				(void **)&memory_map);
+	if (ret != EFI_SUCCESS)
+		return ret;
+
+	ret = efi_get_memory_map(&map_size, memory_map, &map_key, &desc_size,
+				 &desc_version);
+	if (ret == EFI_SUCCESS)
+		ret = EFI_CALL(systab.boottime->exit_boot_services(current_image,
+								   map_key));
+
+	efi_free_pool(memory_map);
+
+	return ret;
+}
+
 /**
  * efi_get_next_monotonic_count() - get next value of the counter
  * @count: returned value of the counter

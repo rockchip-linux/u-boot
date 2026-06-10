@@ -640,11 +640,12 @@ static efi_status_t try_load_entry(u16 n, efi_handle_t *handle,
 		goto error;
 	}
 
-	log_debug("trying to load \"%ls\" from %pD\n", lo.label, lo.file_path);
+	log_info("trying to load \"%ls\" from %pD\n", lo.label, lo.file_path);
 
 	if (EFI_DP_TYPE(lo.file_path, MEDIA_DEVICE, FILE_PATH)) {
 		/* file_path doesn't contain a device path */
 		ret = try_load_from_short_path(lo.file_path, handle);
+
 	} else if (EFI_DP_TYPE(lo.file_path, MESSAGING_DEVICE, MSG_URI)) {
 		if (IS_ENABLED(CONFIG_EFI_HTTP_BOOT))
 			ret = try_load_from_uri_path(
@@ -766,7 +767,7 @@ efi_status_t efi_bootmgr_load(efi_handle_t *handle, void **load_options)
 
 	num = size / sizeof(uint16_t);
 	for (i = 0; i < num; i++) {
-		log_debug("trying to load Boot%04X\n", bootorder[i]);
+		log_info("trying to load Boot%04X\n", bootorder[i]);
 		ret = try_load_entry(bootorder[i], handle, load_options);
 		if (ret == EFI_SUCCESS)
 			break;

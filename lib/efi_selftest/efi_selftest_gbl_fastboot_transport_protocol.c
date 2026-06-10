@@ -78,7 +78,7 @@ static int setup(const efi_handle_t handle_in,
 		BY_PROTOCOL, &gbl_efi_fastboot_transport_guid, NULL,
 		&no_handles, (efi_handle_t **)&handles));
 	if (ret != EFI_SUCCESS)
-		return EFI_UNSUPPORTED;
+		return EFI_ST_FAILURE;
 
 	protocol = NULL;
 	for (i = 0, handle = handles; i < no_handles; i++, handle++) {

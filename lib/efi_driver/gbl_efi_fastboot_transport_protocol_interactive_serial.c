@@ -38,18 +38,17 @@ static void poll_loop(struct cyclic_info *c)
 {
 	Context *my_ctx = container_of(c, Context, cyclic);
 	struct membuff *mb = &my_ctx->mb;
-	if (tstc()) {
+	if (tstc())
 		membuff_putbyte(mb, getchar());
-	}
+
 }
 
 static efi_status_t EFIAPI
 start(struct gbl_efi_fastboot_transport_protocol *this)
 {
 	EFI_ENTRY("%p", this);
-	if (this != &gbl_efi_fastboot_transport_interactive_serial_proto) {
+	if (this != &gbl_efi_fastboot_transport_interactive_serial_proto)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
 
 	membuff_init(&ctx.mb, context_inner_buffer, BUFFER_SIZE);
 	cyclic_register(&ctx.cyclic, poll_loop, 100 * 1000 /*100ms*/,
@@ -63,12 +62,11 @@ start(struct gbl_efi_fastboot_transport_protocol *this)
 static efi_status_t EFIAPI stop(struct gbl_efi_fastboot_transport_protocol *this)
 {
 	EFI_ENTRY("%p", this);
-	if (this != &gbl_efi_fastboot_transport_interactive_serial_proto) {
+	if (this != &gbl_efi_fastboot_transport_interactive_serial_proto)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
-	if (!ctx.registered) {
+
+	if (!ctx.registered)
 		return EFI_EXIT(EFI_NOT_STARTED);
-	}
 
 	cyclic_unregister(&ctx.cyclic);
 	ctx.registered = false;
@@ -135,8 +133,7 @@ receive(struct gbl_efi_fastboot_transport_protocol *this, size_t *bufsize,
 		return EFI_EXIT_NO_LOG(res);
 	}
 
-	*bufsize = 0;
-	return EFI_EXIT_NO_LOG(EFI_SUCCESS);
+	return EFI_EXIT_NO_LOG(EFI_NOT_READY);
 }
 
 static efi_status_t EFIAPI send(struct gbl_efi_fastboot_transport_protocol *this,
@@ -153,9 +150,9 @@ static efi_status_t EFIAPI send(struct gbl_efi_fastboot_transport_protocol *this
 		return EFI_EXIT_NO_LOG(EFI_SUCCESS);
 	}
 
-	if (0 == strncmp(buf, "INFO", 4)) {
+	if (0 == strncmp(buf, "INFO", 4))
 		printf("%.*s\n", (int)*bufsize - 4, &((const char *)buf)[4]);
-	} else if (0 == strncmp(buf, "FAIL", 4)) {
+	else if (0 == strncmp(buf, "FAIL", 4)) {
 		printf("Fail: %.*s\n", (int)*bufsize - 4,
 		       &((const char *)buf)[4]);
 	} else if (0 == strncmp(buf, "OKAY", 4)) {
@@ -172,9 +169,8 @@ static efi_status_t EFIAPI
 gbl_efi_flush(struct gbl_efi_fastboot_transport_protocol *this)
 {
 	EFI_ENTRY_NO_LOG("%p", this);
-	if (this != &gbl_efi_fastboot_transport_interactive_serial_proto) {
+	if (this != &gbl_efi_fastboot_transport_interactive_serial_proto)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
 
 	return EFI_EXIT_NO_LOG(EFI_SUCCESS);
 }

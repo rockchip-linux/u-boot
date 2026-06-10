@@ -4,10 +4,9 @@
  */
 
 #include <blk.h>
-#include <u-boot/crc.h>
 #include <efi_api.h>
 #include <efi.h>
-#include <android_bootloader_message.h>
+#include <android_avb/libavb_ab.h>
 #include <gbl_efi_boot_control_protocol.h>
 #include <efi_selftest.h>
 #include <part.h>
@@ -134,34 +133,17 @@ static int execute(void)
 	}
 
 	int cmp = EFI_ST_SUCCESS;
-	struct bootloader_control expected_ctrl = {
-		.magic = BOOT_CTRL_MAGIC,
-		.version = BOOT_CTRL_VERSION,
-		.nb_slot = 2,
-		.slot_suffix = { 'a', 'b', '\0', '\0' },
-		.slot_info = {
-			{
-				.priority = 14,
-				.tries_remaining = 7,
-				.successful_boot = 0,
-			},
-			{
-				.priority = 15,
-				.tries_remaining = 7,
-				.successful_boot = 0,
-			},
-		{},
-		{},
-		},
-		.crc32_le = 0,
-	};
-	expected_ctrl.crc32_le = crc32(0,
-				       (const u8 *)&expected_ctrl,
-				       sizeof(expected_ctrl) - sizeof(expected_ctrl.crc32_le));
+	AvbABData expected_ab;
+	AvbABData expected_disk_ab;
 
-	if (memcmp(&expected_ctrl,
+	avb_ab_data_init(&expected_ab);
+	expected_ab.slots[0].priority = AVB_AB_MAX_PRIORITY - 1;
+	expected_ab.slots[1].priority = AVB_AB_MAX_PRIORITY;
+	avb_ab_data_update_crc_and_byteswap(&expected_ab, &expected_disk_ab);
+
+	if (memcmp(&expected_disk_ab,
 		   buffer + (2048 % ab_partition.blksz),
-		   sizeof(expected_ctrl)) != 0) {
+		   sizeof(expected_disk_ab)) != 0) {
 		efi_st_error("Slot metadata block differs from disk\n");
 		cmp = EFI_ST_FAILURE;
 	}

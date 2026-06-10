@@ -3,170 +3,281 @@
  * Copyright (C) 2024 The Android Open Source Project
  */
 
-#include <blk.h>
+#include <android_avb/ab.h>
+#include <android_avb/avb_ops_user.h>
+#include <bootm.h>
 #include <efi.h>
-#include <gbl_efi_boot_control_protocol.h>
 #include <efi_loader.h>
-#include <part.h>
+#include <efi_variable.h>
+#include <gbl_efi_boot_control_protocol.h>
+#include <gbl_efi_boot_memory_protocol.h>
+#include <image.h>
+#include <lmb.h>
+#include <linux/string.h>
+#include <mapmem.h>
 #include <stdlib.h>
-
-#include <android_bootloader_message.h>
-
-#include <memalign.h>
 #include <efi_selftest.h>
 #include <log.h>
-#include <string.h>
-#include <u-boot/crc.h>
-
-#define INITIAL_SLOT_PRIORITY 15
-#define INITIAL_SLOT_TRIES_REMAINING 7
-
-static const char *device_name = "virtio";
-static const char *ab_partition_name = "misc";
-static struct disk_partition ab_partition;
-static struct blk_desc *block_device;
+#include <avb_verify.h>
+#include <asm/arch-rockchip/boot_mode.h>
 
 const efi_guid_t gbl_efi_boot_control_guid = GBL_EFI_BOOT_CONTROL_PROTOCOL_GUID;
 static struct gbl_efi_boot_control_protocol gbl_efi_slot_proto;
 
-static u8 *buffer;
+static AvbABData g_ab_data;
+static bool g_ab_data_valid;
 
-static struct bootloader_control __aligned(ARCH_DMA_MINALIGN) android_metadata;
-static bool data_loaded;
+static efi_status_t load_ab_metadata(AvbABData *ab_data);
 
-u32 calculate_metadata_checksum(const struct bootloader_control *data)
+int gbl_control_get_current_slot_idx(void)
 {
-	return crc32(0, (const u8 *)data,
-		     sizeof(*data) - sizeof(data->crc32_le));
-}
+	AvbABData ab_data;
+	bool found = false;
+	u8 max_idx = 0;
+	efi_status_t ret;
 
-static efi_status_t ensure_buffer_initialized(void)
-{
-	if (!block_device) {
-		block_device = blk_get_dev(device_name, 0);
-		if (!block_device) {
-			log_err("Failed to get device: %s:0\n", device_name);
-			return EFI_DEVICE_ERROR;
-		}
+	ret = load_ab_metadata(&ab_data);
+	if (ret != EFI_SUCCESS)
+		return -1;
 
-		if (block_device->blksz < sizeof(android_metadata))
-			return EFI_BUFFER_TOO_SMALL;
+	for (int i = 0; i < ARRAY_SIZE(ab_data.slots); i++) {
+		AvbABSlotData *slot = &ab_data.slots[i];
 
-		if (part_get_info_by_name(block_device, ab_partition_name,
-					  &ab_partition) < 1) {
-			log_err("No partition '%s' on device '%s:0'\n",
-				ab_partition_name, device_name);
-			return EFI_DEVICE_ERROR;
+		if (slot_is_bootable(slot)) {
+			if (!found ||
+			    slot->priority > ab_data.slots[max_idx].priority) {
+				max_idx = i;
+				found = true;
+			}
 		}
 	}
 
-	if (!buffer) {
-		buffer = malloc_cache_aligned(block_device->blksz);
-		if (!buffer)
-			return EFI_OUT_OF_RESOURCES;
-		memset(buffer, 0, block_device->blksz);
-	}
+	if (!found)
+		return -1;
 
-	return EFI_SUCCESS;
+	return max_idx;
 }
 
-struct disk_offset {
-	u64 blocks;
-	u64 remaining_bytes;
-};
-
-struct disk_offset byte_offset_to_blocks(size_t byte_offset, ulong blksize)
+static int kernel_get_arch(efi_physical_addr_t kernel)
 {
-	struct disk_offset ret = {
-		.blocks = byte_offset / blksize,
-		.remaining_bytes = byte_offset % blksize,
-	};
+	/* See Documentation/arm64/booting.txt in the Linux kernel */
+#define LINUX_ARM64_IMAGE_MAGIC		0x644d5241
+	int magic_offset = 0x38;
+	u32 *ih_magic;
+
+	ih_magic = (u32 *)(kernel + magic_offset);
+
+	return (*ih_magic == le32_to_cpu(LINUX_ARM64_IMAGE_MAGIC)) ?
+						IH_ARCH_ARM64 : IH_ARCH_ARM;
+}
+
+static int gbl_prepare_loaded_os(const struct gbl_efi_loaded_os *os,
+				 struct bootm_info *bmi,
+				 boot_os_fn **boot_fn)
+{
+	ulong relocated_addr;
+	ulong image_size;
+	int states = BOOTM_STATE_MEASURE | BOOTM_STATE_OS_PREP |
+		     BOOTM_STATE_FDT;
+	int ret;
+
+	if (!os->kernel || !os->kernel_size || !os->device_tree ||
+	    !os->device_tree_size) {
+		log_err("# GBL loaded OS is missing kernel or device tree\n");
+		return -EINVAL;
+	}
+
+	bootm_init(bmi);
+	memset(&images, 0, sizeof(images));
+	bmi->images = &images;
+	bmi->cmd_name = "gbl";
+	images.verify = env_get_yesno("verify");
+	images.os.os = IH_OS_LINUX;
+	images.os.arch = kernel_get_arch(os->kernel);
+	images.os.type = IH_TYPE_KERNEL;
+	images.os.comp = IH_COMP_NONE;	/* decompressed by GBL by default */
+	images.os.image_start = os->kernel;
+	images.os.image_len = os->kernel_size;
+	images.os.load = os->kernel;
+	images.rd_start = os->ramdisk;
+	images.rd_end = os->ramdisk + os->ramdisk_size;
+	images.ft_addr = map_sysmem(os->device_tree, 0);
+	images.ft_len = os->device_tree_size;
+	relocated_addr = os->kernel;
+	image_size = os->kernel_size;
+
+	if (images.os.arch == IH_ARCH_ARM64) {
+		if (booti_setup(os->kernel, &relocated_addr, &image_size, false)) {
+			log_err("# GBL loaded kernel is not a valid ARM64 Image\n");
+			return -ENOEXEC;
+		}
+
+		if (relocated_addr != os->kernel) {
+			log_err("# GBL loaded kernel requires relocation (0x%lx -> 0x%lx), which is unsupported\n",
+				(ulong)os->kernel, relocated_addr);
+			return -ENOTSUPP;
+		}
+	}
+
+	images.ep = relocated_addr;
+	images.os.start = relocated_addr;
+	images.os.end = relocated_addr + image_size;
+
+	lmb_reserve(images.ep, image_size, LMB_NONE);
+	lmb_reserve(os->device_tree, os->device_tree_size, LMB_NONE);
+	if (os->ramdisk && os->ramdisk_size)
+		lmb_reserve(os->ramdisk, os->ramdisk_size, LMB_NONE);
+
+	if (IS_ENABLED(CONFIG_SYS_BOOT_RAMDISK_HIGH) &&
+	    os->ramdisk && os->ramdisk_size)
+		states |= BOOTM_STATE_RAMDISK;
+
+	log_debug("# GBL handoff: preparing kernel=%pa fdt=%p ramdisk=%pa\n",
+		  &images.ep, images.ft_addr, &images.rd_start);
+	ret = bootm_run_states(bmi, states);
+	if (ret)
+		return ret;
+
+	*boot_fn = bootm_os_get_boot_func(images.os.os);
+	if (!*boot_fn) {
+		log_err("No boot function for OS type %u\n", images.os.os);
+		return -ENOEXEC;
+	}
+
+	log_info("# GBL kernel: 0x%08llx - 0x%08llx (%lu KiB)\n",
+  		  os->kernel, os->kernel + os->kernel_size,
+  		  DIV_ROUND_UP(os->kernel_size, 1024));
+	log_info("# GBL fdt: 0x%08llx - 0x%08llx (%lu KiB)\n",
+  		  os->device_tree, os->device_tree + os->device_tree_size,
+  		  DIV_ROUND_UP(os->device_tree_size, 1024));
+	if (os->ramdisk_size)
+		log_info("# GBL ramdisk: 0x%08llx - 0x%08llx (%lu KiB)\n",
+	  		  os->ramdisk, os->ramdisk + os->ramdisk_size,
+	  		  DIV_ROUND_UP(os->ramdisk_size, 1024));
+
+	if (images.ep != os->kernel)
+		log_info("# GBL relocated kernel: 0x%08lx\n", (ulong)images.ep);
+
+	return 0;
+}
+
+static int fdt_remove_andr_bootargs(void *fdt)
+{
+	int chosen, len, ret = 0;
+	size_t str_len;
+	const char *bootargs;
+	char *bootargs_tmp, *new_bootargs;
+	char *item;
+	bool changed = false;
+	char *fwver;
+
+	if (!fdt)
+		return 0;
+
+	chosen = fdt_path_offset(fdt, "/chosen");
+	if (chosen < 0)
+		return 0;
+
+	bootargs = fdt_getprop(fdt, chosen, "bootargs", &len);
+	if (!bootargs)
+		return 0;
+
+	str_len = strnlen(bootargs, len);
+	if (str_len == len)
+		return -EINVAL;
+
+	bootargs_tmp = strdup(bootargs);
+	new_bootargs = calloc(1, str_len + 1);
+	if (!bootargs_tmp || !new_bootargs) {
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	for (item = strtok(bootargs_tmp, " "); item; item = strtok(NULL, " ")) {
+		if (!strncmp(item, "androidboot.", strlen("androidboot."))) {
+			changed = true;
+			continue;
+		}
+
+		if (*new_bootargs)
+			strcat(new_bootargs, " ");
+		strcat(new_bootargs, item);
+	}
+
+	if (changed)
+		ret = fdt_setprop_string(fdt, chosen, "bootargs", new_bootargs);
+
+	/* alias of "androidboot.fwver": for kernel cmdline can be read */
+	fwver = env_get("fwver");
+	if (fwver) {
+		env_update("bootargs", fwver);
+		env_set("fwver", NULL);
+	}
+out:
+	free(bootargs_tmp);
+	free(new_bootargs);
+
 	return ret;
 }
 
-static efi_status_t initialize_misc_partition(struct disk_offset offset)
+static efi_status_t ab_flow_to_efi_status(AvbABFlowResult result)
 {
-	const struct slot_metadata metadata = {
-		.priority = INITIAL_SLOT_PRIORITY,
-		.tries_remaining = INITIAL_SLOT_TRIES_REMAINING,
-		.successful_boot = 0,
-		.verity_corrupted = 0,
-		.reserved = 0
-	};
-
-	log_warning("On-disk AB metadata corrupted, initializing defaults\n");
-
-	memset(&android_metadata, 0, sizeof(android_metadata));
-	memcpy(android_metadata.slot_suffix, "_a\0\0", 4);
-	android_metadata.magic = BOOT_CTRL_MAGIC;
-	android_metadata.version = BOOT_CTRL_VERSION;
-	android_metadata.nb_slot = 2;
-	for (int i = 0; i < android_metadata.nb_slot; ++i) {
-		android_metadata.slot_info[i] = metadata;
-
-		if (i != 0)
-			android_metadata.slot_info[i].priority =
-				metadata.priority - 1;
-	}
-
-	android_metadata.crc32_le =
-		calculate_metadata_checksum(&android_metadata);
-	memset(buffer, 0, block_device->blksz);
-	memcpy(buffer + offset.remaining_bytes, &android_metadata,
-	       sizeof(android_metadata));
-	if (blk_dwrite(block_device, ab_partition.start + offset.blocks, 1,
-		       buffer) != 1) {
-		log_err("Failed to write initialized AB metadata\n");
+	switch (result) {
+	case AVB_AB_FLOW_RESULT_OK:
+		return EFI_SUCCESS;
+	case AVB_AB_FLOW_RESULT_ERROR_OOM:
+		return EFI_OUT_OF_RESOURCES;
+	default:
 		return EFI_DEVICE_ERROR;
 	}
+}
+
+static efi_status_t load_ab_metadata(AvbABData *ab_data)
+{
+	if (!ab_data)
+		return EFI_INVALID_PARAMETER;
+
+	if (!g_ab_data_valid) {
+		if (ab_get_slot_data(&g_ab_data) != 0)
+			return EFI_DEVICE_ERROR;
+
+		g_ab_data_valid = true;
+	}
+
+	*ab_data = g_ab_data;
+
 	return EFI_SUCCESS;
 }
 
-static efi_status_t load_boot_data(void)
+static void fill_slot_info(const AvbABData *ab_data, u8 idx,
+			   struct gbl_efi_slot_info *info)
 {
-	if (data_loaded) {
-		return EFI_SUCCESS;
-	}
+	const AvbABSlotData *slot = &ab_data->slots[idx];
 
-	struct disk_offset offset =
-		byte_offset_to_blocks(2048, ab_partition.blksz);
-	long res;
-	res = blk_dread(block_device, ab_partition.start + offset.blocks, 1,
-			buffer);
-
-	if (res != 1) {
-		log_err("Failed to read AB metadata: %l\n", res);
-		return EFI_DEVICE_ERROR;
-	}
-
-	data_loaded = true;
-	memcpy(&android_metadata, buffer + offset.remaining_bytes,
-	       sizeof(android_metadata));
-	if (calculate_metadata_checksum(&android_metadata) !=
-	    android_metadata.crc32_le) {
-		return initialize_misc_partition(offset);
-	}
-
-	return EFI_SUCCESS;
+	memset(info, 0, sizeof(*info));
+	info->suffix = 'a' + idx;
+	info->priority = slot->priority;
+	info->remaining_tries = slot->tries_remaining;
+	info->successful = slot->successful_boot;
+	info->unbootable_reason = slot_is_bootable((AvbABSlotData *)slot) ?
+					  GBL_EFI_UNBOOTABLE_REASON_UNKNOWN_REASON :
+					  GBL_EFI_UNBOOTABLE_REASON_NO_MORE_TRIES;
 }
 
 static efi_status_t EFIAPI
 get_slot_count(struct gbl_efi_boot_control_protocol *self, u8 *slot_count)
 {
+	AvbABData ab_data;
+
 	EFI_ENTRY("%p, %p", self, slot_count);
-	if (self != &gbl_efi_slot_proto || !slot_count) {
+	if (self != &gbl_efi_slot_proto || !slot_count)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
 
-	efi_status_t res = ensure_buffer_initialized();
+	efi_status_t res = load_ab_metadata(&ab_data);
 	if (res != EFI_SUCCESS)
 		return EFI_EXIT(res);
 
-	res = load_boot_data();
-	if (res != EFI_SUCCESS)
-		return EFI_EXIT(res);
-
-	*slot_count = android_metadata.nb_slot;
+	*slot_count = ARRAY_SIZE(ab_data.slots);
 
 	return EFI_EXIT(EFI_SUCCESS);
 }
@@ -175,63 +286,40 @@ static efi_status_t EFIAPI
 get_slot_info(struct gbl_efi_boot_control_protocol *self, u8 idx,
 	      struct gbl_efi_slot_info *info)
 {
-	EFI_ENTRY("%p, %uc, %p", self, idx, info);
-	if (self != &gbl_efi_slot_proto || !info) {
-		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
+	AvbABData ab_data;
 
-	efi_status_t res = ensure_buffer_initialized();
+	EFI_ENTRY("%p, %uc, %p", self, idx, info);
+	if (self != &gbl_efi_slot_proto || !info)
+		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	efi_status_t res = load_ab_metadata(&ab_data);
 	if (res != EFI_SUCCESS)
 		return EFI_EXIT(res);
 
-	res = load_boot_data();
-	if (res != EFI_SUCCESS) {
-		memset(info, 0, sizeof(*info));
-		return EFI_EXIT(res);
-	}
-
-	if (idx >= android_metadata.nb_slot) {
+	if (idx >= ARRAY_SIZE(ab_data.slots))
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
 
-	struct slot_metadata const *slot = &android_metadata.slot_info[idx];
-
-	info->suffix = 'a' + idx;
-	info->unbootable_reason =
-		(slot->tries_remaining == 0 && slot->successful_boot == 0) ?
-			GBL_EFI_UNBOOTABLE_REASON_NO_MORE_TRIES :
-			GBL_EFI_UNBOOTABLE_REASON_UNKNOWN_REASON;
-	info->priority = slot->priority;
-	info->remaining_tries = slot->tries_remaining;
-	info->successful = slot->successful_boot;
+	fill_slot_info(&ab_data, idx, info);
 
 	return EFI_EXIT(EFI_SUCCESS);
 }
 
 static efi_status_t
-get_current_slot_idx(struct gbl_efi_boot_control_protocol *self, u8 *idx)
+get_current_slot_idx(struct gbl_efi_boot_control_protocol *self,
+		     AvbABData *ab_data, u8 *idx)
 {
-	if (self != &gbl_efi_slot_proto || !idx) {
-		return EFI_INVALID_PARAMETER;
-	}
-
-	efi_status_t res = ensure_buffer_initialized();
-	if (res != EFI_SUCCESS)
-		return EFI_EXIT(res);
-
-	res = load_boot_data();
-	if (res != EFI_SUCCESS)
-		return res;
-	bool found = false;
 	u8 max_idx = 0;
+	bool found = false;
 
-	for (int i = 0; i < android_metadata.nb_slot; i++) {
-		struct slot_metadata *slot = &android_metadata.slot_info[i];
+	if (self != &gbl_efi_slot_proto || !ab_data || !idx)
+		return EFI_INVALID_PARAMETER;
 
-		if (slot->tries_remaining || slot->successful_boot) {
+	for (int i = 0; i < ARRAY_SIZE(ab_data->slots); i++) {
+		AvbABSlotData *slot = &ab_data->slots[i];
+
+		if (slot_is_bootable(slot)) {
 			if (!found ||
-			    slot->priority > android_metadata.slot_info[max_idx]
-						     .priority) {
+			    slot->priority > ab_data->slots[max_idx].priority) {
 				max_idx = i;
 				found = true;
 			}
@@ -249,90 +337,57 @@ static efi_status_t EFIAPI
 get_current_slot(struct gbl_efi_boot_control_protocol *self,
 		 struct gbl_efi_slot_info *info)
 {
-	EFI_ENTRY("%p, %p", self, info);
-	if (self != &gbl_efi_slot_proto || !info) {
-		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
-
+	AvbABData ab_data;
+	efi_status_t res;
 	u8 idx;
-	efi_status_t res = ensure_buffer_initialized();
+
+	EFI_ENTRY("%p, %p", self, info);
+	if (self != &gbl_efi_slot_proto || !info)
+		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	res = load_ab_metadata(&ab_data);
 	if (res != EFI_SUCCESS)
 		return EFI_EXIT(res);
 
-	res = get_current_slot_idx(self, &idx);
+	res = get_current_slot_idx(self, &ab_data, &idx);
 	if (res != EFI_SUCCESS)
 		return EFI_EXIT(res);
 
-	struct slot_metadata const *slot = &android_metadata.slot_info[idx];
-
-	info->suffix = 'a' + idx;
-	info->unbootable_reason = GBL_EFI_UNBOOTABLE_REASON_UNKNOWN_REASON;
-	info->priority = slot->priority;
-	info->remaining_tries = slot->tries_remaining;
-	info->successful = slot->successful_boot;
+	fill_slot_info(&ab_data, idx, info);
 
 	return EFI_EXIT(EFI_SUCCESS);
-}
-
-static efi_status_t flush_changes(void)
-{
-	efi_status_t res = ensure_buffer_initialized();
-	if (res != EFI_SUCCESS)
-		return res;
-
-	android_metadata.crc32_le =
-		calculate_metadata_checksum(&android_metadata);
-	struct disk_offset offset =
-		byte_offset_to_blocks(2048, ab_partition.blksz);
-	memset(buffer, 0, block_device->blksz);
-	memcpy(buffer + offset.remaining_bytes, &android_metadata,
-	       sizeof(android_metadata));
-	if (blk_dwrite(block_device, ab_partition.start + offset.blocks, 1,
-		       buffer) != 1) {
-		return EFI_DEVICE_ERROR;
-	}
-
-	return EFI_SUCCESS;
 }
 
 static efi_status_t EFIAPI
 set_active_slot(struct gbl_efi_boot_control_protocol *self, u8 idx)
 {
+	AvbABData ab_data;
+	unsigned int slot = idx;
+	AvbABFlowResult ret;
+	efi_status_t res;
+
 	EFI_ENTRY("%p, %uc", self, idx);
-	if (self != &gbl_efi_slot_proto) {
+	if (self != &gbl_efi_slot_proto)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
 
-	efi_status_t res = ensure_buffer_initialized();
+	res = load_ab_metadata(&ab_data);
 	if (res != EFI_SUCCESS)
 		return EFI_EXIT(res);
 
-	res = load_boot_data();
-	if (res != EFI_SUCCESS)
-		return EFI_EXIT(res);
-
-	if (idx >= android_metadata.nb_slot) {
+	if (idx >= ARRAY_SIZE(ab_data.slots))
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	ret = ab_set_slot_active(&slot);
+	if (ret == 0) {
+		efi_status_t res;
+
+		g_ab_data_valid = false;
+		res = load_ab_metadata(&ab_data);
+		if (res != EFI_SUCCESS)
+			return EFI_EXIT(res);
 	}
 
-	for (int i = 0; i < android_metadata.nb_slot; i++) {
-		struct slot_metadata *slot = &android_metadata.slot_info[i];
-
-		if (i == idx) {
-			slot->tries_remaining = INITIAL_SLOT_TRIES_REMAINING;
-			slot->priority = INITIAL_SLOT_PRIORITY;
-			slot->successful_boot = 0;
-		} else {
-			slot->priority = INITIAL_SLOT_PRIORITY - 1;
-		}
-	}
-
-	res = flush_changes();
-	if (res != EFI_SUCCESS) {
-		return EFI_EXIT(res);
-	}
-
-	return EFI_EXIT(EFI_SUCCESS);
+	return EFI_EXIT(ab_flow_to_efi_status(ret));
 }
 
 static efi_status_t EFIAPI
@@ -340,10 +395,17 @@ get_one_shot_boot_mode(struct gbl_efi_boot_control_protocol *self,
 		       enum gbl_efi_one_shot_boot_mode *mode)
 {
 	EFI_ENTRY("%p, %p", self, mode);
-	if (self != &gbl_efi_slot_proto || !mode) {
-		return EFI_EXIT(EFI_INVALID_PARAMETER);
-	}
+	int boot_mode = plat_boot_mode();
 
+	if (self != &gbl_efi_slot_proto || !mode)
+		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	*mode = GBL_EFI_ONE_SHOT_BOOT_MODE_NONE;
+
+	if (boot_mode == BOOT_MODE_RECOVERY)
+		*mode = GBL_EFI_ONE_SHOT_BOOT_MODE_RECOVERY;
+	else if (boot_mode == BOOT_MODE_BOOTLOADER)
+		*mode = GBL_EFI_ONE_SHOT_BOOT_MODE_BOOTLOADER;
 	/*
 	 * TODO: GBL_EFI_BOOT_CONTROL_PROTOCOL.GetOneShotBootMode()
 	 * must only be used for one-shot, non-persistent boot modes triggered
@@ -355,20 +417,92 @@ get_one_shot_boot_mode(struct gbl_efi_boot_control_protocol *self,
 	 * to the serial-based fastboot transport) could serve as a better
 	 * reference implementation.
 	 */
-	return EFI_EXIT(EFI_UNSUPPORTED);
+	return EFI_EXIT(EFI_SUCCESS);
 }
 
-/* TODO: implement */
+#ifdef CONFIG_GBL_EFI_FW_API_LEVEL
+static efi_status_t efi_init_gbl_fw_api_level(int andr_version)
+{
+	char *api_level = NULL;
+	int ret;
+
+	if (andr_version == 16)
+		api_level = "202604";
+
+	if (api_level) {
+		log_info("# GBL Android %d api_level: %s\n", andr_version, api_level);
+	} else {
+		log_info("# GBL Android %d no api_level to set\n", andr_version);
+		return -EINVAL;
+	}
+
+	ret = efi_set_variable_int(u"gbl_fw_api_level", &gbl_efi_vendor_guid,
+				   EFI_VARIABLE_BOOTSERVICE_ACCESS |
+				   EFI_VARIABLE_RUNTIME_ACCESS |
+				   EFI_VARIABLE_READ_ONLY,
+				   strlen(api_level), api_level, false);
+	if (ret != EFI_SUCCESS) {
+		log_info("# GBL Failed to set api_level, ret=0x%x\n", ret);
+		ret = -EIO;
+	}
+
+	return ret;
+}
+#endif
+
 static efi_status_t EFIAPI
 handle_loaded_os(struct gbl_efi_boot_control_protocol *self,
 		 const struct gbl_efi_loaded_os *os)
 {
+	struct gbl_android_boot_version version;
+	struct bootm_info bmi;
+	boot_os_fn *boot_fn;
+	efi_status_t ret;
+	u32 andr_version;
+
 	EFI_ENTRY("%p, %p", self, os);
-	if (self != &gbl_efi_slot_proto || !os) {
+	if (self != &gbl_efi_slot_proto || !os)
 		return EFI_EXIT(EFI_INVALID_PARAMETER);
+
+	ret = gbl_efi_boot_memory_get_init_boot_version(&version);
+	if (ret == EFI_SUCCESS) {
+		if (version.os_version) {
+			andr_version = (version.os_version >> 25) & 0x7f;
+			log_info("# GBL init_boot: Android %u.%u, Build %u.%u, v%d\n",
+				 andr_version,
+				 (version.os_version >> 18) & 0x7F,
+				 ((version.os_version >> 4) & 0x7f) + 2000,
+				 version.os_version & 0x0F,
+				 version.header_version);
+#ifdef CONFIG_GBL_EFI_FW_API_LEVEL
+			if (efi_init_gbl_fw_api_level(andr_version))
+				return EFI_EXIT(EFI_INVALID_PARAMETER);
+#endif
+		}
+	} else {
+		log_info("# GBL: No 'init_boot' record !\n");
 	}
 
-	return EFI_EXIT(EFI_UNSUPPORTED);
+	log_debug("# GBL: %s\n", env_get("andr_bootargs"));
+
+	log_info("# GBL handoff os: kernel=0x%08llx, fdt=0x%08llx, ramdisk=0x%08llx\n",
+		 os->kernel, os->device_tree, os->ramdisk);
+
+	if (gbl_prepare_loaded_os(os, &bmi, &boot_fn))
+		return EFI_EXIT(EFI_DEVICE_ERROR);
+
+	if (fdt_remove_andr_bootargs((void *)os->device_tree))
+		return EFI_EXIT(EFI_DEVICE_ERROR);
+
+	log_info("# GBL handoff: exit boot-services\n");
+	if (efi_exit_boot_services_current_image() != EFI_SUCCESS)
+		return EFI_EXIT(EFI_DEVICE_ERROR);
+
+	log_info("# GBL handoff: jumping to kernel entry 0x%08lx\n", images.ep);
+	if (boot_selected_os(BOOTM_STATE_OS_GO, &bmi, boot_fn))
+		return EFI_EXIT(EFI_DEVICE_ERROR);
+
+	return EFI_EXIT(EFI_SUCCESS);
 }
 
 static struct gbl_efi_boot_control_protocol gbl_efi_slot_proto = {

@@ -88,6 +88,8 @@ void efi_net_set_dhcp_ack(void *pkt, int len);
 /* Print information about all loaded images */
 void efi_print_image_infos(void *pc);
 
+efi_status_t efi_exit_boot_services_current_image(void);
+
 /* Hook at initialization */
 efi_status_t efi_launch_capsules(void);
 
