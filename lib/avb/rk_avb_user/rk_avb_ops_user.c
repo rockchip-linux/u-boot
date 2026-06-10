@@ -681,7 +681,6 @@ int rk_avb_write_perm_attr(u16 id, void *pbuf, u16 size)
 {
 	uint8_t lock_state;
 #ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
-	sha256_context ctx;
 	uint8_t digest[SHA256_SUM_LEN] = {0};
 	uint8_t digest_temp[SHA256_SUM_LEN] = {0};
 	uint8_t perm_attr_temp[PERM_ATTR_TOTAL_SIZE] = {0};
@@ -715,11 +714,8 @@ int rk_avb_write_perm_attr(u16 id, void *pbuf, u16 size)
 					return -EIO;
 				}
 
-				sha256_starts(&ctx);
-				sha256_update(&ctx,
-					      (const uint8_t *)perm_attr_temp,
-					      PERM_ATTR_TOTAL_SIZE);
-				sha256_finish(&ctx, digest);
+				sha256_csum((const unsigned char *)perm_attr_temp,
+					    PERM_ATTR_TOTAL_SIZE, digest);
 				if (memcmp(digest, digest_temp, SHA256_SUM_LEN) == 0) {
 					debug("%s The hash has been written!\n", __func__);
 					return 0;
@@ -745,10 +741,8 @@ int rk_avb_write_perm_attr(u16 id, void *pbuf, u16 size)
 		}
 #ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
 		memset(digest, 0, SHA256_SUM_LEN);
-		sha256_starts(&ctx);
-		sha256_update(&ctx, (const uint8_t *)pbuf,
-			      PERM_ATTR_TOTAL_SIZE);
-		sha256_finish(&ctx, digest);
+		sha256_csum((const unsigned char *)pbuf, PERM_ATTR_TOTAL_SIZE,
+			    digest);
 
 		if (rk_avb_write_attribute_hash((uint8_t *)digest,
 						SHA256_SUM_LEN)) {

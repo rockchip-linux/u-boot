@@ -1906,7 +1906,6 @@ static void cb_oem_perm_attr(void)
 {
 #ifdef CONFIG_RK_AVB_LIBAVB_USER
 #ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
-	sha256_context ctx;
 	uint8_t digest[SHA256_SUM_LEN] = {0};
 	uint8_t digest_temp[SHA256_SUM_LEN] = {0};
 	uint8_t perm_attr_temp[PERM_ATTR_TOTAL_SIZE] = {0};
@@ -1940,11 +1939,8 @@ static void cb_oem_perm_attr(void)
 				return;
 			}
 
-			sha256_starts(&ctx);
-			sha256_update(&ctx,
-				      (const uint8_t *)perm_attr_temp,
-				      PERM_ATTR_TOTAL_SIZE);
-			sha256_finish(&ctx, digest);
+			sha256_csum((const unsigned char *)perm_attr_temp,
+				    PERM_ATTR_TOTAL_SIZE, digest);
 			if (memcmp(digest, digest_temp, SHA256_SUM_LEN) == 0) {
 				printf("The hash has been written!\n");
 				fastboot_tx_write_str("OKAY");
@@ -1970,10 +1966,8 @@ static void cb_oem_perm_attr(void)
 	}
 #ifndef CONFIG_ROCKCHIP_PRELOADER_PUB_KEY
 	memset(digest, 0, SHA256_SUM_LEN);
-	sha256_starts(&ctx);
-	sha256_update(&ctx, (const uint8_t *)CONFIG_FASTBOOT_BUF_ADDR,
-		      PERM_ATTR_TOTAL_SIZE);
-	sha256_finish(&ctx, digest);
+	sha256_csum((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
+		    PERM_ATTR_TOTAL_SIZE, digest);
 
 	if (rk_avb_write_attribute_hash((uint8_t *)digest,
 					SHA256_SUM_LEN)) {
@@ -2268,7 +2262,6 @@ static void cb_oem(struct usb_ep *ep, struct usb_request *req)
 		cb_oem_perm_attr_rsa_cer();
 	} else if (strncmp("fuse at-bootloader-vboot-key", cmd + 4, 27) == 0) {
 #ifdef CONFIG_RK_AVB_LIBAVB_USER
-		sha256_context ctx;
 		uint8_t digest[SHA256_SUM_LEN];
 
 		if (download_bytes != VBOOT_KEY_SIZE) {
@@ -2277,10 +2270,8 @@ static void cb_oem(struct usb_ep *ep, struct usb_request *req)
 			return;
 		}
 
-		sha256_starts(&ctx);
-		sha256_update(&ctx, (const uint8_t *)CONFIG_FASTBOOT_BUF_ADDR,
-			      VBOOT_KEY_SIZE);
-		sha256_finish(&ctx, digest);
+		sha256_csum((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
+			    VBOOT_KEY_SIZE, digest);
 
 		if (rk_avb_write_vbootkey_hash((uint8_t *)digest,
 					       SHA256_SUM_LEN)) {
