@@ -338,8 +338,8 @@ const char *board_fdt_chosen_bootargs(void *fdt)
 
 	bootargs_add_dtb_dtbo(fdt, verbose);
 	bootargs_add_partition(verbose);
-	bootargs_add_android(verbose);
 	bootargs_add_fwver(verbose);
+	bootargs_add_android(verbose);
 
 	/*
 	 * Initrd fixup: remove unused "initrd=0x...,0x...",
