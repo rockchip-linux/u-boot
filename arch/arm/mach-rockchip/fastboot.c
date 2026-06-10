@@ -16,7 +16,6 @@ static void oem_permanent_attributes(char *response)
 {
 #ifdef CONFIG_LIBAVB_USER
 #ifndef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
-	sha256_context ctx;
 	AvbAtxPermanentAttributes permanent_attributes_temp;
 	uint8_t digest[SHA256_SUM_LEN] = {0};
 	uint8_t digest_temp[SHA256_SUM_LEN] = {0};
@@ -62,11 +61,8 @@ static void oem_permanent_attributes(char *response)
 				return;
 			}
 
-			sha256_starts(&ctx);
-			sha256_update(&ctx,
-				      (const uint8_t *)&permanent_attributes_temp,
-				      PERM_ATTR_TOTAL_SIZE);
-			sha256_finish(&ctx, digest);
+			sha256_csum((const unsigned char *)&permanent_attributes_temp,
+				    PERM_ATTR_TOTAL_SIZE, digest);
 			if (memcmp(digest, digest_temp, SHA256_SUM_LEN) == 0) {
 				printf("The hash has been written!\n");
 				fastboot_okay(NULL, response);
@@ -91,10 +87,8 @@ static void oem_permanent_attributes(char *response)
 	}
 #ifndef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
 	memset(digest, 0, SHA256_SUM_LEN);
-	sha256_starts(&ctx);
-	sha256_update(&ctx, (const uint8_t *)CONFIG_FASTBOOT_BUF_ADDR,
-		      PERM_ATTR_TOTAL_SIZE);
-	sha256_finish(&ctx, digest);
+	sha256_csum((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
+		    PERM_ATTR_TOTAL_SIZE, digest);
 
 	if (avb_write_permanent_attributes_hash((uint8_t *)digest,
 						SHA256_SUM_LEN)) {
@@ -216,7 +210,6 @@ void fastboot_oem_board(char *cmd_parameter, void *data, u32 size, char *respons
 		oem_permanent_attributes_rsa_cer(response);
 	} else if (strncmp("fuse at-bootloader-vboot-key", cmd_parameter, 27) == 0) {
 #ifdef CONFIG_LIBAVB_USER
-		sha256_context ctx;
 		uint8_t digest[SHA256_SUM_LEN];
 		u32 image_size = env_get_hex("filesize", 0);
 
@@ -226,10 +219,8 @@ void fastboot_oem_board(char *cmd_parameter, void *data, u32 size, char *respons
 			return;
 		}
 
-		sha256_starts(&ctx);
-		sha256_update(&ctx, (const uint8_t *)CONFIG_FASTBOOT_BUF_ADDR,
-			      VBOOT_KEY_SIZE);
-		sha256_finish(&ctx, digest);
+		sha256_csum((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
+			    VBOOT_KEY_SIZE, digest);
 
 		if (avb_write_vbootkey_hash((uint8_t *)digest,
 					    SHA256_SUM_LEN)) {
