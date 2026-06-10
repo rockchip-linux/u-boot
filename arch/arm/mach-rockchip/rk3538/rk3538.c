@@ -60,6 +60,17 @@ DECLARE_GLOBAL_DATA_PTR;
 #define GPIO1B_IOMUX_SEL_0		0x28
 #define GPIO1B_IOMUX_SEL_1		0x2c
 #define GPIO1C_IOMUX_SEL_0		0x30
+#define GPIO1A_DS_0			0x140
+#define GPIO1A_DS_1			0x144
+#define GPIO1A_DS_2			0x148
+#define GPIO1A_DS_3			0x14c
+#define GPIO1B_DS_0			0x150
+#define GPIO1B_DS_1			0x154
+#define GPIO1B_DS_2			0x158
+#define GPIO1B_DS_3			0x15c
+#define GPIO1C_DS_0			0x160
+#define GPIO1_IDDQ			0x910
+#define GPIO1_VD_3V3			BIT(15)
 
 #define GPIO2_IOC_BASE			0xFD1E0000
 #define GPIO2A_IOMUX_SEL_0		0x40
@@ -245,6 +256,36 @@ int arch_cpu_init(void)
 
 	/* dbg_core_en and dbg_m_en */
 	writel(0x000C000C, PMU_SGRF_BASE + PMU_SGRF_SOC_CON0);
+
+	/* Set NandC io strength */
+	if (readl(GPIO1_IOC_BASE + GPIO1A_IOMUX_SEL_0) == 0x2222) {
+		writel(0x3f3f1d1d, GPIO1_IOC_BASE + GPIO1A_DS_0);
+		writel(0x3f3f1d1d, GPIO1_IOC_BASE + GPIO1A_DS_1);
+		writel(0x3f3f1d1d, GPIO1_IOC_BASE + GPIO1A_DS_2);
+		writel(0x3f3f1d1d, GPIO1_IOC_BASE + GPIO1A_DS_3);
+		writel(0x003f001d, GPIO1_IOC_BASE + GPIO1B_DS_0);
+		writel(0x003f001d, GPIO1_IOC_BASE + GPIO1B_DS_1);
+		writel(0x3f3f1d1d, GPIO1_IOC_BASE + GPIO1B_DS_2);
+		writel(0x3f3f1d1d, GPIO1_IOC_BASE + GPIO1B_DS_3);
+	}
+	/* Set FSPI io strength */
+	if (readl(GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_1) == 0x1111) {
+		if (readl(GPIO1_IOC_BASE + GPIO1_IDDQ) & GPIO1_VD_3V3) {
+			writel(0x3f001e00, GPIO1_IOC_BASE + GPIO1B_DS_1);
+			writel(0x3f3f1e1e, GPIO1_IOC_BASE + GPIO1B_DS_2);
+			writel(0x3f3f1e1e, GPIO1_IOC_BASE + GPIO1B_DS_3);
+			writel(0x003f001e, GPIO1_IOC_BASE + GPIO1C_DS_0);
+		} else {
+			writel(0x3f001c00, GPIO1_IOC_BASE + GPIO1B_DS_1);
+			writel(0x3f3f1c1c, GPIO1_IOC_BASE + GPIO1B_DS_2);
+			writel(0x3f3f1c1c, GPIO1_IOC_BASE + GPIO1B_DS_3);
+			writel(0x003f001c, GPIO1_IOC_BASE + GPIO1C_DS_0);
+		}
+#ifdef CONFIG_ROCKCHIP_SFC_OCTAL_SETTING
+		writel(0x3f3f1c1c, GPIO1_IOC_BASE + GPIO1A_DS_2);
+		writel(0x3f3f1c1c, GPIO1_IOC_BASE + GPIO1A_DS_3);
+#endif
+	}
 
 #elif defined(CONFIG_SUPPORT_USBPLUG)
 	board_set_iomux(UCLASS_MMC, 0, 0);
