@@ -290,16 +290,6 @@ void rockchip_stimer_init(void)
 	writel(0xffffffff, CONFIG_ROCKCHIP_STIMER_BASE + 0x18);
 	writel(0x00010001, CONFIG_ROCKCHIP_STIMER_BASE + 0x04);
 }
-
-void spl_board_storages_fixup(struct spl_image_loader *loader)
-{
-	if (!loader)
-		return;
-
-	if (loader->boot_device == BOOT_DEVICE_MMC2)
-		/* Unset the sdmmc0 iomux */
-		board_unset_iomux(UCLASS_MMC, 1, 0);
-}
 #endif
 
 #ifndef CONFIG_TPL_BUILD
