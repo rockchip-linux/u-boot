@@ -840,7 +840,7 @@ void spl_board_sd_iomux_save(void)
 	gpio0a_iomux_sel_h = readl(&pmu1_ioc->gpio0a_iomux_sel_h);
 }
 
-void spl_board_storages_fixup(struct spl_image_loader *loader)
+void spl_board_storages_finish(struct spl_image_loader *loader)
 {
 	int ret = 0;
 

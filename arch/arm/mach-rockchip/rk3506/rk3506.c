@@ -142,7 +142,7 @@ void spl_board_storages_prepare(struct spl_image_loader *loader)
 #endif
 }
 
-void spl_board_storages_fixup(struct spl_image_loader *loader)
+void spl_board_storages_finish(struct spl_image_loader *loader)
 {
 	if (!loader)
 		return;

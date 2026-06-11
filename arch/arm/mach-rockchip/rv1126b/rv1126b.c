@@ -304,7 +304,7 @@ void rockchip_stimer_init(void)
 	writel(0x00010001, CONFIG_ROCKCHIP_STIMER_BASE + 0x04);
 }
 
-void spl_board_storages_fixup(struct spl_image_loader *loader)
+void spl_board_storages_finish(struct spl_image_loader *loader)
 {
 	if (!loader)
 		return;

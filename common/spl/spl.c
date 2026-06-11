@@ -102,7 +102,7 @@ __weak void spl_board_storages_prepare(struct spl_image_loader *loader)
 }
 
 /* Fix storages, like iomux */
-__weak void spl_board_storages_fixup(struct spl_image_loader *loader)
+__weak void spl_board_storages_finish(struct spl_image_loader *loader)
 {
 	/* Nothing to do! */
 }
@@ -472,7 +472,7 @@ static int boot_from_devices(struct spl_image_info *spl_image,
 			return 0;
 		}
 
-		spl_board_storages_fixup(loader);
+		spl_board_storages_finish(loader);
 	}
 
 	return -ENODEV;
