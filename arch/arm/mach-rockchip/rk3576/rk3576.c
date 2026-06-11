@@ -594,9 +594,6 @@ int arch_cpu_init(void)
 	val = readl(FW_SYS_SGRF_BASE + SGRF_DOMAIN_CON1);
 	writel(val | 0x700, FW_SYS_SGRF_BASE + SGRF_DOMAIN_CON1);
 
-	/* Set the sdmmc0 iomux */
-	board_set_iomux(IF_TYPE_MMC, 1, 0);
-
 	/* UFS PHY select 26M from ppll */
 	writel(0x00030002, PMU1_CRU_BASE + PMU1_CRU_CLKSEL_CON03);
 
