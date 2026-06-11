@@ -84,6 +84,7 @@ obj-y += bootm.o
 obj-y += bootdev.o
 obj-y += efi.o
 obj-y += download.o
+obj-y += fastboot.o
 obj-y += misc.o
 obj-y += load_dtb.o
 obj-y += lowlevel_init.o

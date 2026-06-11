@@ -23,7 +23,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern struct bootm_headers images;
 
-//#ifdef CONFIG_ANDROID_BOOT_IMAGE
 static int bootm_image_populate_dtb(void *img)
 {
 	ulong fdt_addr_r = env_get_ulong("fdt_addr_r", 16, 0);
@@ -35,7 +34,6 @@ static int bootm_image_populate_dtb(void *img)
 
 	return rockchip_ram_read_dtb_file(img, (void *)gd->fdt_blob);
 }
-//#endif
 
 /*
  * Implement it to support CLI command:
@@ -131,29 +129,11 @@ int board_do_bootm(int argc, char * const argv[])
 }
 #endif
 
-#if 0
 int bootm_board_start(void)
 {
-	/*
-	 * print console record data
-	 *
-	 * On some rockchip platforms, uart debug and sdmmc pin are multiplex.
-	 * If boot from sdmmc mode, the console data would be record in buffer,
-	 * we switch to uart debug function in order to print it after loading
-	 * images.
-	 */
-#if 0
-	if (!strcmp("mmc", env_get("devtype")) &&
-	    !strcmp("1", env_get("devnum"))) {
-		printf("IOMUX: sdmmc => uart debug");
-		pinctrl_select_state(gd->cur_serial_dev, "default");
-		console_record_print_purge();
-	}
-#endif
 	/* sysmem */
 	hotkey_run(HK_SYSMEM);
 	sysmem_overflow_check();
 
 	return 0;
 }
-#endif
