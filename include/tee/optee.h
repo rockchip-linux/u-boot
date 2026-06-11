@@ -213,7 +213,7 @@ uint32_t optee_oem_otp_key_cipher(enum RK_OEM_OTP_KEYID key_id, rk_cipher_config
 				  uint32_t src_phys_addr, uint32_t dst_phys_addr, uint32_t len);
 uint32_t optee_fw_key_cipher(enum RK_FW_KEYID key_id, rk_cipher_config *config,
 			     uint32_t src_phys_addr, uint32_t dst_phys_addr, uint32_t len);
-uint32_t optee_verify_config_ip(char *licence_str);
+uint32_t optee_verify_config_ip(char *licence_str, char *IP_str);
 
 /* rockchip optee api for user ta */
 uint32_t optee_oem_user_ta_transfer(void);

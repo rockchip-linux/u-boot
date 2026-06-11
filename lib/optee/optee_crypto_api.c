@@ -252,15 +252,15 @@ uint32_t optee_fw_key_cipher(enum RK_FW_KEYID key_id, rk_cipher_config *config,
 	return ret;
 }
 
-uint32_t optee_verify_config_ip(char *licence_str)
+uint32_t optee_verify_config_ip(char *licence_str, char *IP_str)
 {
 	int rc = 0;
 	uint32_t ret;
-	uint32_t length;
-	struct tee_shm *shm_buf;
-	struct tee_param param[1];
+	uint32_t lic_len, ip_len;
+	struct tee_shm *lic_shm_buf, *ip_shm_buf;
+	struct tee_param param[2];
 
-	if (!licence_str)
+	if (!licence_str || !IP_str)
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	if (!tee) {
@@ -268,23 +268,39 @@ uint32_t optee_verify_config_ip(char *licence_str)
 			return TEE_ERROR_CANCEL;
 	}
 
-	length = strlen(licence_str);
-	rc = tee_shm_alloc(tee, length,
-			   TEE_SHM_ALLOC, &shm_buf);
+	lic_len = strlen(licence_str);
+	ip_len = strlen(IP_str);
+	if (lic_len == 0 || ip_len == 0)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	rc = tee_shm_alloc(tee, lic_len,
+			   TEE_SHM_ALLOC, &lic_shm_buf);
 	if (rc)
 		return TEE_ERROR_OUT_OF_MEMORY;
 
-	memcpy(shm_buf->addr, licence_str, length);
+	rc = tee_shm_alloc(tee, ip_len,
+			   TEE_SHM_ALLOC, &ip_shm_buf);
+	if (rc) {
+		tee_shm_free(lic_shm_buf);
+		return TEE_ERROR_OUT_OF_MEMORY;
+	}
+
+	memcpy(lic_shm_buf->addr, licence_str, lic_len);
+	memcpy(ip_shm_buf->addr, IP_str, ip_len);
 
 	memset(param, 0, sizeof(param));
 	param[0].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
-	param[0].u.memref.shm = shm_buf;
-	param[0].u.memref.size = length;
+	param[0].u.memref.shm = lic_shm_buf;
+	param[0].u.memref.size = lic_len;
+	param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	param[1].u.memref.shm = ip_shm_buf;
+	param[1].u.memref.size = ip_len;
 
 	ret = invoke_func(CRYPTO_SERVICE_CMD_VERIFY_CONFIG_IP,
 			  ARRAY_SIZE(param), param);
 
-	tee_shm_free(shm_buf);
+	tee_shm_free(lic_shm_buf);
+	tee_shm_free(ip_shm_buf);
 
 	tee_close_session(tee, session);
 	tee = NULL;
