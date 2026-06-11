@@ -446,9 +446,9 @@
 #define DCLK_DIV2_MASK				0x3
 #define MIPI_DUAL_EN_SHIFT			20
 #define MIPI_DUAL_SWAP_EN_SHIFT			21
-#define EDPI_TE_EN				28
-#define EDPI_WMS_HOLD_EN			30
-#define EDPI_WMS_FS				31
+#define EDPI_TE_EN_SHIFT			28
+#define EDPI_WMS_HOLD_EN_SHIFT			30
+#define EDPI_WMS_FS_SHIFT			31
 
 
 #define RK3568_VP0_COLOR_BAR_CTRL		0xC08
@@ -3944,9 +3944,9 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 
 		if (conn_state->hold_mode) {
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, EDPI_TE_EN, !cstate->soft_te, false);
+					EN_MASK, EDPI_TE_EN_SHIFT, !cstate->soft_te, false);
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
+					EN_MASK, EDPI_WMS_HOLD_EN_SHIFT, 1, false);
 		}
 	}
 
@@ -3970,9 +3970,9 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 
 		if (conn_state->hold_mode) {
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, EDPI_TE_EN, !cstate->soft_te, false);
+					EN_MASK, EDPI_TE_EN_SHIFT, !cstate->soft_te, false);
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
+					EN_MASK, EDPI_WMS_HOLD_EN_SHIFT, 1, false);
 		}
 	}
 
@@ -4284,9 +4284,9 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 
 		if (conn_state->hold_mode) {
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, EN_MASK,
-					EDPI_TE_EN, !cstate->soft_te, false);
+					EDPI_TE_EN_SHIFT, !cstate->soft_te, false);
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, EN_MASK,
-					EDPI_WMS_HOLD_EN, 1, false);
+					EDPI_WMS_HOLD_EN_SHIFT, 1, false);
 		}
 	}
 
@@ -4614,9 +4614,9 @@ static unsigned long rk3562_vop2_if_cfg(struct display_state *state)
 
 		if (conn_state->hold_mode) {
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, EDPI_TE_EN, !cstate->soft_te, false);
+					EN_MASK, EDPI_TE_EN_SHIFT, !cstate->soft_te, false);
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
+					EN_MASK, EDPI_WMS_HOLD_EN_SHIFT, 1, false);
 		}
 	}
 
@@ -6572,7 +6572,7 @@ static int rockchip_vop2_apply_soft_te(struct display_state *state)
 	int ret = 0;
 
 	ret = readl_poll_timeout(vop2->regs + RK3568_VP0_MIPI_CTRL + vp_offset, val,
-				 (val >> EDPI_WMS_FS) & 0x1, 50 * 1000);
+				 (val >> EDPI_WMS_FS_SHIFT) & 0x1, 50 * 1000);
 	if (!ret) {
 #ifndef CONFIG_SPL_BUILD
 		ret = readx_poll_timeout(dm_gpio_get_value, conn_state->te_gpio, val,
@@ -6582,7 +6582,7 @@ static int rockchip_vop2_apply_soft_te(struct display_state *state)
 						 val, 50 * 1000);
 			if (!ret) {
 				vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-						EN_MASK, EDPI_WMS_FS, 1, false);
+						EN_MASK, EDPI_WMS_FS_SHIFT, 1, false);
 			} else {
 				printf("ERROR: vp%d wait for active TE signal timeout\n",
 				       cstate->crtc_id);
