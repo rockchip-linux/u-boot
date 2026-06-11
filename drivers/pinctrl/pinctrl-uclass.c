@@ -361,6 +361,17 @@ int pinctrl_get_gpio_mux(struct udevice *dev, int banknum, int index)
 	return ops->get_gpio_mux(dev, banknum, index);
 }
 
+int pinctrl_set_gpio_mux(struct udevice *dev, int banknum, int index,
+			 unsigned int func_selector)
+{
+	struct pinctrl_ops *ops = pinctrl_get_ops(dev);
+
+	if (!ops->set_gpio_mux)
+		return -ENOSYS;
+
+	return ops->set_gpio_mux(dev, banknum, index, func_selector);
+}
+
 int pinctrl_get_pins_count(struct udevice *dev)
 {
 	struct pinctrl_ops *ops = pinctrl_get_ops(dev);
