@@ -248,6 +248,19 @@ static int rockchip_set_mux(struct rockchip_pin_bank *bank, int pin, int mux)
 	return 0;
 }
 
+static int rockchip_pinctrl_set_gpio_mux(struct udevice *dev, int banknum,
+					 int index, unsigned int mux)
+{	struct rockchip_pinctrl_priv *priv = dev_get_priv(dev);
+	struct rockchip_pin_ctrl *ctrl = priv->ctrl;
+
+	if (banknum >= ctrl->nr_banks || index >= MAX_ROCKCHIP_GPIO_PER_BANK) {
+		debug("gpio mux pin out of range\n");
+		return -EINVAL;
+	}
+
+	return rockchip_set_mux(&ctrl->pin_banks[banknum], index, 0);
+}
+
 static int rockchip_perpin_drv_list[DRV_TYPE_MAX][8] = {
 	{ 2, 4, 8, 12, -1, -1, -1, -1 },
 	{ 3, 6, 9, 12, -1, -1, -1, -1 },
@@ -552,6 +565,7 @@ const struct pinctrl_ops rockchip_pinctrl_ops = {
 	.get_pins_count			= rockchip_pinctrl_get_pins_count,
 	.set_state			= rockchip_pinctrl_set_state,
 	.get_gpio_mux			= rockchip_pinctrl_get_gpio_mux,
+	.set_gpio_mux			= rockchip_pinctrl_set_gpio_mux,
 };
 
 /* retrieve the soc specific data */
