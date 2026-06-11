@@ -148,6 +148,25 @@ struct pinctrl_ops {
 	int (*get_gpio_mux)(struct udevice *dev, int banknum, int index);
 
 	/**
+	 * set_gpio_mux() - set the mux value for a particular GPIO
+
+	 * This allows the raw mux value for a GPIO to be set. It is very
+	 * useful for switching the function being used by that GPIO, such
+	 * as changing a pin to GPIO mode or to an alternate function. This
+	 * function is internal to the GPIO subsystem and should not be used
+	 * by generic code. Typically it is used by a GPIO driver with
+	 * knowledge of the SoC pinctrl setup.
+	 *
+	 * @dev:	Pinctrl device to use
+	 * @banknum:	GPIO bank number
+	 * @index:	GPIO index within the bank
+	 * @func:	GPIO muxing value
+	 * return 0 if OK, -ve on error
+	 */
+	int (*set_gpio_mux)(struct udevice *dev, int banknum, int index,
+			    unsigned int func);
+
+	/**
 	 * get_pin_muxing() - show pin muxing
 	 *
 	 * This allows to display the muxing of a given pin. It's useful for
@@ -375,6 +394,25 @@ int pinctrl_decode_pin_config(const void *blob, int node);
 int pinctrl_get_gpio_mux(struct udevice *dev, int banknum, int index);
 
 /**
+ * pinctrl_set_gpio_mux() - set the mux value for a particular GPIO
+ *
+ * This allows the raw mux value for a GPIO to be set. It is very
+ * useful for switching the function being used by that GPIO, such
+ * as changing a pin to GPIO mode or to an alternate function. This
+ * function is internal to the GPIO subsystem and should not be used
+ * by generic code. Typically it is used by a GPIO driver with
+ * knowledge of the SoC pinctrl setup.
+ *
+ * @dev:	Pinctrl device to use
+ * @banknum:	GPIO bank number
+ * @index:	GPIO index within the bank
+ * @func:	GPIO func selector
+ * @return 0 if OK, -ve on error
+*/
+int pinctrl_set_gpio_mux(struct udevice *dev, int banknum, int index,
+			 unsigned int func);
+
+/**
  * pinctrl_get_pins_count() - get the total pins count for all GPIOs
  *
  * This allows the total pins count for all GPIO to be obtained.
@@ -458,6 +496,12 @@ static inline int pinctrl_decode_pin_config(const void *blob, int node)
 }
 
 static inline int pinctrl_get_gpio_mux(struct udevice *dev, int banknum, int index)
+{
+	return -EINVAL;
+}
+
+static inline int pinctrl_set_gpio_mux(struct udevice *dev, int banknum, int index,
+				       unsigned int func)
 {
 	return -EINVAL;
 }
