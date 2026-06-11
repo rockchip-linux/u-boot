@@ -251,6 +251,8 @@ static int boot_get_kernel(const char *addr_fit, struct bootm_headers *images,
 	return 0;
 }
 
+__weak int bootm_board_start(void) { return 0; }
+
 static int bootm_start(void)
 {
 	memset((void *)&images, 0, sizeof(images));
@@ -259,7 +261,7 @@ static int bootm_start(void)
 	bootstage_mark_name(BOOTSTAGE_ID_BOOTM_START, "bootm_start");
 	images.state = BOOTM_STATE_START;
 
-	return 0;
+	return bootm_board_start();
 }
 
 static ulong bootm_data_addr(const char *addr_str)
