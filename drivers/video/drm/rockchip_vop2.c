@@ -1572,6 +1572,18 @@ struct vop2 {
 	fdt_size_t reg_len;
 	u32 version;
 	u32 esmart_lb_mode;
+	u8 active_vp_mask;
+	/**
+	 * @sync_vp_mask: Bitmask of video ports with the display synchronization function;
+	 *
+	 * If the VP0 and VP1 are synchronized via DT configs:
+	 *   &vop {
+	 *       rockchip,sync-vp-mask = /bits/ 8 <3>;
+	 *   };
+	 *
+	 * The value of it should be the same with above DT property: 0x3.
+	 */
+	u8 sync_vp_mask;
 	bool global_init;
 	bool merge_irq;
 	const struct vop2_data *data;
@@ -3395,6 +3407,10 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		vop2_mask_write(vop2, RK3576_SYS_PORT_CTRL, INTERLACE_FRM_REG_DONE_MASK,
 				INTERLACE_FRM_REG_DONE_SHIFT, 0, false);
 	}
+
+	tmp = dev_read_u8_array_ptr(cstate->dev, "rockchip,sync-vp-mask", 1);
+	if (tmp)
+		vop2->sync_vp_mask = *tmp;
 
 	vop2->global_init = true;
 }
@@ -6228,6 +6244,8 @@ static int rockchip_vop2_enable(struct display_state *state)
 		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
 				MCU_HOLD_MODE_SHIFT, 0, false);
 
+	vop2->active_vp_mask |= BIT(cstate->crtc_id);
+
 	return 0;
 }
 
@@ -6303,6 +6321,81 @@ static int rk3576_vop2_post_enable(struct display_state *state)
 	return 0;
 }
 
+static bool rockchip_vop2_wait_vps_standby(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	u32 sync_vp_mask = vop2->sync_vp_mask;
+	u32 nr_vps = hweight32(sync_vp_mask);
+	u32 vp_id, vp_offset, val;
+	int i;
+
+	/*
+	 * The edpi_wms_fs reg can help check whether the VP is in standby
+	 * state: 1 is in standby while 0 is not.
+	 */
+	for (i = 0; i < nr_vps; i++) {
+		vp_id = ffs(sync_vp_mask) - 1;
+		vp_offset = vp_id * 0x100;
+		sync_vp_mask &= ~BIT(vp_id);
+		val = vop2_readl(vop2, RK3568_VP0_MIPI_CTRL + vp_offset);
+		if (!(val & BIT(EDPI_WMS_FS_SHIFT)))
+			return false;
+	}
+
+	return true;
+}
+
+static int rockchip_vop2_sync(struct display_state *state, u32 crtc_mask)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct vop2 *vop2 = cstate->private;
+	u32 timeout_ms = 0;
+	u32 nr_vps, sync_vp_mask, vp_id, vp_offset;
+	bool status;
+	int i;
+	int ret;
+
+	/* It is not allowed to operate on a vp which is not active yet */
+	crtc_mask &= vop2->active_vp_mask;
+	if (!crtc_mask)
+		return 0;
+
+	pr_info("Sync crtc_mask: 0x%x\n", crtc_mask);
+
+	nr_vps = hweight32(crtc_mask);
+	sync_vp_mask = crtc_mask;
+	for (i = 0; i < nr_vps; i++) {
+		vp_id = ffs(sync_vp_mask) - 1;
+		vp_offset = vp_id * 0x100;
+		sync_vp_mask &= ~BIT(vp_id);
+
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				STANDBY_EN_SHIFT, 1, false);
+		/* The frame rate of all VPs shall be consistent */
+		timeout_ms += DIV_ROUND_UP(1000, drm_mode_vrefresh(mode));
+	}
+
+	ret = readx_poll_timeout(rockchip_vop2_wait_vps_standby, state,
+				 status, status, timeout_ms * 1000 * 3 / 2);
+	if (ret)
+		printf("Wait vps standby timeout\n");
+
+	sync_vp_mask = crtc_mask;
+	for (i = 0; i < nr_vps; i++) {
+		vp_id = ffs(sync_vp_mask) - 1;
+		vp_offset = vp_id * 0x100;
+		sync_vp_mask &= ~BIT(vp_id);
+
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				STANDBY_EN_SHIFT, 0, false);
+	}
+
+	return 0;
+}
+
 static int rockchip_vop2_post_enable(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -6312,6 +6405,11 @@ static int rockchip_vop2_post_enable(struct display_state *state)
 		rk3588_vop2_post_enable(state);
 	else if (vop2->version == VOP_VERSION_RK3576)
 		rk3576_vop2_post_enable(state);
+
+	if (vop2->sync_vp_mask) {
+		if ((vop2->active_vp_mask & vop2->sync_vp_mask) == vop2->sync_vp_mask)
+			rockchip_vop2_sync(state, vop2->sync_vp_mask);
+	}
 
 	return 0;
 }
@@ -6330,6 +6428,8 @@ static int rockchip_vop2_disable(struct display_state *state)
 		cfg_done |= BIT(cstate->splice_crtc_id) | (BIT(cstate->splice_crtc_id) << 16);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+
+	vop2->active_vp_mask &= ~BIT(cstate->crtc_id);
 
 	return 0;
 }
