@@ -41,6 +41,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+__weak void board_set_iomux(enum if_type if_type, int devnum, int routing)
+{
+}
+
 __weak int rk_board_early_fdt_fixup(void *blob)
 {
 	return 0;
@@ -82,12 +86,26 @@ int bootdev_init(const char *devtype, const char *devnum)
 	return 0;
 }
 
+static void assign_bootdev_set_iomux(char *s_devtype, char *s_devnum, char *s_routing)
+{
+	enum if_type devtype;
+	int devnum;
+	int routing;
+
+	devtype = if_typename_to_iftype(s_devtype);
+	devnum = atoi(s_devnum);
+	routing = atoi(s_routing);
+
+	board_set_iomux(devtype, devnum, routing);
+}
+
 /*
  * Priority: configuration > atags > scan list.
  */
 static void boot_devtype_init(void)
 {
 	char *devtype = NULL, *devnum = NULL;
+	char *routing = NULL;
 	char *src = "scan";
 	static int done;	/* static */
 	int ret;
@@ -100,7 +118,8 @@ static void boot_devtype_init(void)
 #endif
 
 	/* configuration */
-	if (!param_parse_assign_bootdev(&devtype, &devnum)) {
+	if (!param_parse_assign_bootdev(&devtype, &devnum, &routing)) {
+		assign_bootdev_set_iomux(devtype, devnum, routing);
 		if (!bootdev_init(devtype, devnum)) {
 			src = "assign";
 			goto finish;
