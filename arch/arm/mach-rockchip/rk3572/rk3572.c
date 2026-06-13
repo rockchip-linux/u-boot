@@ -493,3 +493,21 @@ int fit_standalone_release(char *id, uintptr_t entry_point)
 
 	return 0;
 }
+
+int rk_board_init(void)
+{
+#if defined(CONFIG_ROCKCHIP_VENDOR_PARTITION)
+	char licence_str[1024] = {0};
+	int ret, size;
+	char *ip_verify = "npu";
+
+	size = vendor_storage_read(MULTI_MODULE_KEY_ID, licence_str, 1024);
+	if (size > 0) {
+		ret = optee_verify_config_ip(licence_str, ip_verify);
+		if (ret)
+			printf("%s: %s verification failed!!!\n", __func__, ip_verify);
+	}
+#endif
+
+	return 0;
+}
