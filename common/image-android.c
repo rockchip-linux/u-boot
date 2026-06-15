@@ -744,6 +744,7 @@ static int android_image_separate(struct andr_img_hdr *hdr,
 		uchar hash[20];
 
 		/* rk crypto: requires total length before sha init */
+		sha1_ctx.hw_en_magic = SHA_HW_EN_MAGIC;
 		sha1_ctx.length = 0;
 		sha1_ctx.length += hdr->kernel_size + sizeof(hdr->kernel_size) +
 				hdr->ramdisk_size + sizeof(hdr->ramdisk_size) +

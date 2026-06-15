@@ -22,6 +22,9 @@ extern "C" {
 #define SHA1_SUM_POS	-0x20
 #define SHA1_SUM_LEN	20
 #define SHA1_DER_LEN	15
+#ifndef SHA_HW_EN_MAGIC
+#define SHA_HW_EN_MAGIC		0x48415348
+#endif
 
 extern const uint8_t sha1_der_prefix[];
 
@@ -36,6 +39,7 @@ typedef struct
 
 #if !defined(USE_HOSTCC)
     struct udevice *cdev;
+    u32 hw_en_magic; /* Enable rk-crypto only when caller sets the magic */
     u32 length; /* Data total length */
 #endif
 }

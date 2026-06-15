@@ -72,7 +72,7 @@ void sha1_starts (sha1_context * ctx)
 	u32 algo = CRYPTO_SHA1;
 
 	ctx->cdev = NULL;
-	if (ctx->length) {
+	if (ctx->hw_en_magic == SHA_HW_EN_MAGIC && ctx->length) {
 		ctx->cdev = crypto_get_device(algo);
 		if (ctx->cdev) {
 			cctx.algo = algo;
@@ -328,6 +328,7 @@ void sha1_finish (sha1_context * ctx, unsigned char output[20])
 		cctx.algo = CRYPTO_SHA1;
 		cctx.length = ctx->length;
 		crypto_sha_final(ctx->cdev, &cctx, output);
+		memset(ctx, 0, sizeof(*ctx));
 		return;
 	}
 #endif
@@ -350,6 +351,7 @@ void sha1_finish (sha1_context * ctx, unsigned char output[20])
 	PUT_UINT32_BE (ctx->state[2], output, 8);
 	PUT_UINT32_BE (ctx->state[3], output, 12);
 	PUT_UINT32_BE (ctx->state[4], output, 16);
+	memset(ctx, 0, sizeof(*ctx));
 }
 
 /*
@@ -362,6 +364,7 @@ void sha1_csum(const unsigned char *input, unsigned int ilen,
 
 #if !defined(USE_HOSTCC)
 #if !CONFIG_IS_ENABLED(ARMV8_CE_SHA1) && CONFIG_IS_ENABLED(DM_CRYPTO)
+	ctx.hw_en_magic = SHA_HW_EN_MAGIC;
 	ctx.length = ilen;
 #endif
 #endif
@@ -384,6 +387,7 @@ void sha1_csum_wd(const unsigned char *input, unsigned int ilen,
 #endif
 #if !defined(USE_HOSTCC)
 #if !CONFIG_IS_ENABLED(ARMV8_CE_SHA1) && CONFIG_IS_ENABLED(DM_CRYPTO)
+	ctx.hw_en_magic = SHA_HW_EN_MAGIC;
 	ctx.length = ilen;
 #endif
 #endif
@@ -433,6 +437,7 @@ void sha1_hmac(const unsigned char *key, int keylen,
 
 #if !defined(USE_HOSTCC)
 #if !CONFIG_IS_ENABLED(ARMV8_CE_SHA1) && CONFIG_IS_ENABLED(DM_CRYPTO)
+	ctx.hw_en_magic = SHA_HW_EN_MAGIC;
 	ctx.length = 64 + ilen;
 #endif
 #endif
@@ -443,6 +448,7 @@ void sha1_hmac(const unsigned char *key, int keylen,
 
 #if !defined(USE_HOSTCC)
 #if !CONFIG_IS_ENABLED(ARMV8_CE_SHA1) && CONFIG_IS_ENABLED(DM_CRYPTO)
+	ctx.hw_en_magic = SHA_HW_EN_MAGIC;
 	ctx.length = 64 + 20;
 #endif
 #endif

@@ -40,6 +40,7 @@
 
 #if defined(CONFIG_DM_CRYPTO) || (CONFIG_ARMV8_CRYPTO)
 void avb_sha256_init(AvbSHA256Ctx* ctx) {
+  ctx->sha256ctx.hw_en_magic = SHA_HW_EN_MAGIC;
   ctx->sha256ctx.length = ctx->tot_len;
   sha256_starts(&ctx->sha256ctx);
   memset(ctx->buf, 0, sizeof(ctx->buf));
