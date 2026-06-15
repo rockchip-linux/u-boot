@@ -25,6 +25,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+__weak void board_set_iomux(enum uclass_id uclass, int devnum, int routing) {}
+
 /* Don't use env_xxx() for boot device init */
 static struct blk_desc *g_bootdev;
 static char *g_devnum, *g_devtype;
@@ -88,18 +90,36 @@ static int bootdev_do_probe(const char *devtype, const char *devnum)
 	return 0;
 }
 
+static void assign_bootdev_set_iomux(char *s_devtype, char *s_devnum,
+				      char *s_routing)
+{
+	enum uclass_id uclass;
+	int devnum;
+	int routing;
+
+	uclass = uclass_name_to_iftype(s_devtype);
+	devnum = simple_strtoul(s_devnum, NULL, 10);
+	routing = simple_strtoul(s_routing, NULL, 10);
+	if (uclass < 0)
+		return;
+
+	board_set_iomux(uclass, devnum, routing);
+}
+
 /*
  * Priority: configuration > atags.
  */
 static int bootdev_probe(void)
 {
 	char *devtype, *devnum;
+	char *routing;
 	char *src = "scan";
 	int ret;
 
 	/* configuration */
 #ifdef CONFIG_ROCKCHIP_BOOTDEV
-	if (!param_parse_assign_bootdev(&devtype, &devnum)) {
+	if (!param_parse_assign_bootdev(&devtype, &devnum, &routing)) {
+		assign_bootdev_set_iomux(devtype, devnum, routing);
 		if (!bootdev_do_probe(devtype, devnum)) {
 			src = "assign";
 			goto finish;
@@ -271,4 +291,3 @@ int usb_boot_init(void)
 	return 0;
 }
 #endif
-

@@ -166,21 +166,34 @@ struct memblock param_parse_common_resv_mem(void)
 	return mem;
 }
 
-int param_parse_assign_bootdev(char **devtype, char **devnum)
+int param_parse_assign_bootdev(char **devtype, char **devnum, char **routing)
 {
 	char *bootdev_str = CONFIG_ROCKCHIP_BOOTDEV;
-	char *type, *num;
-
-	num = strchr(bootdev_str, ' ');
-	if (!num)
-		return -ENODEV;
+	char *type, *num, *route;
 
 	type = strdup(bootdev_str);
-	type[num - bootdev_str] = 0;
-	num++;
+	if (!type)
+		return -ENOMEM;
+
+	num = strchr(type, ' ');
+	if (!num) {
+		free(type);
+		return -ENODEV;
+	}
+
+	*num++ = '\0';
+	route = strchr(num, ' ');
+	if (route) {
+		*route++ = '\0';
+		if (!*route)
+			route = "0";
+	} else {
+		route = "0";
+	}
 
 	*devtype = type;
 	*devnum = num;
+	*routing = route;
 
 	return 0;
 }

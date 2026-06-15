@@ -60,10 +60,11 @@ int param_parse_atags_bootdev(char **devtype, char **devtnum);
  *
  * @devtype: out data to store dev type
  * @devnum: out data to store dev number
+ * @routing: out data to store routing number
  *
  * @return 0 on success, otherwise failed.
  */
-int param_parse_assign_bootdev(char **devtype, char **devtnum);
+int param_parse_assign_bootdev(char **devtype, char **devnum, char **routing);
 
 /**
  * param_parse_pre_serial() - Parse and Init serial according to pre-loader serial.
