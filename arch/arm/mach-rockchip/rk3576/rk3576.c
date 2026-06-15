@@ -928,7 +928,7 @@ int rk_board_fdt_fixup(const void *blob)
 
 	size = vendor_storage_read(MULTI_MODULE_KEY_ID, licence_str, 1024);
 	if (size > 0) {
-		ret = trusty_verify_config_ip(licence_str);
+		ret = trusty_verify_config_ip(licence_str, "gmac0");
 		if (!ret)
 			printf("gmac0 can be enabled safely\n");
 		else
