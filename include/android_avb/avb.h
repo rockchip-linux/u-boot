@@ -36,11 +36,11 @@ extern "C" {
 #define UBOOT_RB_INDEX_OFFSET		24
 #define TRUST_RB_INDEX_OFFSET		28
 #ifndef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
-#define ROCHCHIP_RSA_PARAMETER_SIZE	64
+#define ROCKCHIP_RSA_PARAMETER_SIZE	64
 #else
-#define ROCHCHIP_RSA_PARAMETER_SIZE	128
+#define ROCKCHIP_RSA_PARAMETER_SIZE	128
 #endif
-#define RK_AVB_RSA_NUM_BYTES		(ROCHCHIP_RSA_PARAMETER_SIZE * sizeof(u_int32_t))
+#define RK_AVB_RSA_NUM_BYTES		(ROCKCHIP_RSA_PARAMETER_SIZE * sizeof(u_int32_t))
 #define RK_AVB_PERM_ATTR_CER_SIZE	RK_AVB_RSA_NUM_BYTES
 /* write/read permanent attributes all use. */
 #define AT_PERM_ATTR_FUSE		1
@@ -48,9 +48,9 @@ extern "C" {
 #define AT_LOCK_VBOOT			3
 
 struct rk_pub_key {
-	u_int32_t rsa_n[ROCHCHIP_RSA_PARAMETER_SIZE];
-	u_int32_t rsa_e[ROCHCHIP_RSA_PARAMETER_SIZE];
-	u_int32_t rsa_c[ROCHCHIP_RSA_PARAMETER_SIZE];
+	u_int32_t rsa_n[ROCKCHIP_RSA_PARAMETER_SIZE];
+	u_int32_t rsa_e[ROCKCHIP_RSA_PARAMETER_SIZE];
+	u_int32_t rsa_c[ROCKCHIP_RSA_PARAMETER_SIZE];
 };
 
 /**

@@ -80,7 +80,8 @@ static bool verify_permanent_attributes(
 #endif
   uint8_t rsa_sig[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
   uint8_t rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
-  unsigned int rsa_result_temp[ROCHCHIP_RSA_PARAMETER_SIZE];
+  u32 rsa_result_words[ROCKCHIP_RSA_PARAMETER_SIZE];
+  uint8_t *rsa_result_bytes = (uint8_t *)rsa_result_words;
   unsigned char rsa_result[32] = {0};
   struct rk_pub_key pub_key;
   struct udevice *dev;
@@ -120,13 +121,13 @@ static bool verify_permanent_attributes(
 #ifdef CONFIG_ROCKCHIP_CRYPTO_V1
   rsa_key.c = (u32 *)&pub_key.rsa_c;
 #endif
-  ret = crypto_rsa_verify(dev, &rsa_key, (u8 *)rsa_sig_revert, (u8 *)rsa_result_temp);
+  ret = crypto_rsa_verify(dev, &rsa_key, (u8 *)rsa_sig_revert, (u8 *)rsa_result_words);
   if (ret) {
     avb_error("Hardware verify error!\n");
     return false;
   }
 
-  temp = (char *)rsa_result_temp;
+  temp = (char *)rsa_result_bytes;
   for (i = 0; i < 32; i++)
     rsa_result[31-i] = temp[i];
 
