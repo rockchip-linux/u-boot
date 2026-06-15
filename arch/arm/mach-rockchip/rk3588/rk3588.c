@@ -8,6 +8,7 @@
 
 #include <dm.h>
 #include <misc.h>
+#include <mmc.h>
 #include <spl.h>
 #include <asm/armv8/mmu.h>
 #include <asm/arch-rockchip/bootrom.h>
@@ -843,6 +844,32 @@ static void spl_board_sd_iomux_save(void)
 	gpio4d_iomux_sel_h = readl(&bus_ioc->gpio4d_iomux_sel_h);
 	gpio0a_iomux_sel_h = readl(&pmu1_ioc->gpio0a_iomux_sel_h);
 }
+
+void spl_board_storages_finish(struct spl_image_loader *loader)
+{
+	int ret = 0;
+
+	if (!loader)
+		return;
+
+	if (loader->boot_device == BOOT_DEVICE_MMC2 && gpio4d_iomux_sel_l != 0xffffffff) {
+		struct rk3588_bus_ioc * const bus_ioc = (void *)BUS_IOC_BASE;
+		struct rk3588_pmu1_ioc * const pmu1_ioc = (void *)PMU1_IOC_BASE;
+		struct mmc *mmc = NULL;
+		bool no_card;
+
+		ret = spl_mmc_find_device(&mmc, BOOT_DEVICE_MMC2);
+		if (ret)
+			return;
+
+		no_card = mmc_getcd(mmc) == 0;
+		if (no_card) {
+			writel(0xffffuL << 16 | gpio4d_iomux_sel_l, &bus_ioc->gpio4d_iomux_sel_l);
+			writel(0xffffuL << 16 | gpio4d_iomux_sel_h, &bus_ioc->gpio4d_iomux_sel_h);
+			writel(0xffffuL << 16 | gpio0a_iomux_sel_h, &pmu1_ioc->gpio0a_iomux_sel_h);
+		}
+	}
+}
 #endif
 
 void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
@@ -1454,4 +1481,4 @@ int checkboard(void)
 
 	return 0;
 }
-// TODO: spl_board_storages_fixup()
+

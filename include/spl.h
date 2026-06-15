@@ -1180,6 +1180,7 @@ int board_spl_fit_append_fdt_skip(const char *name);
 
 void board_boot_order(u32 *spl_boot_list);
 void spl_save_restore_data(void);
+int spl_mmc_find_device(struct mmc **mmcp, int mmc_dev);
 
 /**
  * spl_load_fit_image() - Fully parse and a FIT image in SPL

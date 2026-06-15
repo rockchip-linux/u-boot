@@ -140,8 +140,14 @@ int __weak spl_board_prepare_for_jump(struct spl_image_info *spl_image)
 	return 0;
 }
 
-/* Fix storages, like iomux  */
-__weak void spl_board_storages_fixup(struct spl_image_loader *loader)
+/* Prepare storages, like iomux */
+__weak void spl_board_storages_prepare(struct spl_image_loader *loader)
+{
+	/* Nothing to do! */
+}
+
+/* Fix storages, like iomux */
+__weak void spl_board_storages_finish(struct spl_image_loader *loader)
 {
 	/* Nothing to do! */
 }
@@ -752,12 +758,15 @@ static int boot_from_devices(struct spl_image_info *spl_image,
 				}
 			}
 			if (loader) {
+				spl_board_storages_prepare(loader);
+
 				ret = spl_load_image(spl_image, loader);
 				if (!ret) {
 					spl_image->boot_device = bootdev;
 					return 0;
 				}
-				spl_board_storages_fixup(loader);
+
+				spl_board_storages_finish(loader);
 				printf("Error: %d\n", ret);
 			}
 		}

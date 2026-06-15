@@ -75,7 +75,7 @@ static int spl_mmc_get_device_index(uint boot_device)
 	return -ENODEV;
 }
 
-static int spl_mmc_find_device(struct mmc **mmcp, int mmc_dev)
+int spl_mmc_find_device(struct mmc **mmcp, int mmc_dev)
 {
 	int ret;
 
