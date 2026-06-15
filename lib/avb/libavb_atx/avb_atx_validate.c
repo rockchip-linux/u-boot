@@ -87,7 +87,7 @@ static bool verify_permanent_attributes(
   uint8_t rsa_hash[32] = {0};
   uint8_t rsa_sig[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
   uint8_t rsa_sig_revert[RK_AVB_PERM_ATTR_CER_SIZE] = {0};
-  u32 rsa_result_words[ROCHCHIP_RSA_PARAMETER_SIZE];
+  u32 rsa_result_words[ROCKCHIP_RSA_PARAMETER_SIZE];
   uint8_t *rsa_result_bytes = (uint8_t *)rsa_result_words;
   struct rk_pub_key pub_key;
   struct udevice *dev;
