@@ -2471,7 +2471,7 @@ exit:
 	return TeecResult;
 }
 
-uint32_t trusty_verify_config_ip(char *licence_str)
+uint32_t trusty_verify_config_ip(char *licence_str, char *IP_str)
 {
 	TEEC_Result TeecResult;
 	TEEC_Context TeecContext;
@@ -2481,6 +2481,9 @@ uint32_t trusty_verify_config_ip(char *licence_str)
 	TEEC_UUID tempuuid = RK_CRYPTO_SERVICE_UUID;
 	TEEC_UUID *TeecUuid = &tempuuid;
 	TEEC_Operation TeecOperation = {0};
+
+	if (!licence_str || !IP_str)
+		return TEEC_ERROR_BAD_PARAMETERS;
 
 	TeecResult = OpteeClientApiLibInitialize();
 	if (TeecResult != TEEC_SUCCESS)
@@ -2502,20 +2505,36 @@ uint32_t trusty_verify_config_ip(char *licence_str)
 		return TeecResult;
 	}
 
-	TEEC_SharedMemory SharedMem = {0};
+	TEEC_SharedMemory lic_shm_buf = {0};
+	TEEC_SharedMemory ip_shm_buf = {0};
 
-	SharedMem.size = strlen(licence_str);
-	SharedMem.flags = 0;
+	lic_shm_buf.size = strlen(licence_str);
+	ip_shm_buf.size = strlen(IP_str);
+	lic_shm_buf.flags = 0;
+	ip_shm_buf.flags = 0;
 
-	TeecResult = TEEC_AllocateSharedMemory(&TeecContext, &SharedMem);
+	if (lic_shm_buf.size == 0 || ip_shm_buf.size == 0) {
+		TeecResult = TEEC_ERROR_BAD_PARAMETERS;
+		goto exit_session;
+	}
+
+	TeecResult = TEEC_AllocateSharedMemory(&TeecContext, &lic_shm_buf);
 	if (TeecResult != TEEC_SUCCESS)
-		goto exit;
+		goto exit_session;
 
-	memcpy(SharedMem.buffer, licence_str, SharedMem.size);
-	TeecOperation.params[0].tmpref.buffer = SharedMem.buffer;
-	TeecOperation.params[0].tmpref.size = SharedMem.size;
+	TeecResult = TEEC_AllocateSharedMemory(&TeecContext, &ip_shm_buf);
+	if (TeecResult != TEEC_SUCCESS)
+		goto exit_lic;
+
+	memcpy(lic_shm_buf.buffer, licence_str, lic_shm_buf.size);
+	memcpy(ip_shm_buf.buffer, IP_str, ip_shm_buf.size);
+
+	TeecOperation.params[0].tmpref.buffer = lic_shm_buf.buffer;
+	TeecOperation.params[0].tmpref.size = lic_shm_buf.size;
+	TeecOperation.params[1].tmpref.buffer = ip_shm_buf.buffer;
+	TeecOperation.params[1].tmpref.size = ip_shm_buf.size;
 	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
-						    TEEC_NONE,
+						    TEEC_MEMREF_TEMP_INPUT,
 						    TEEC_NONE,
 						    TEEC_NONE);
 
@@ -2523,11 +2542,11 @@ uint32_t trusty_verify_config_ip(char *licence_str)
 					CRYPTO_SERVICE_CMD_VERIFY_CONFIG_IP,
 					&TeecOperation,
 					&ErrorOrigin);
-	if (TeecResult != TEEC_SUCCESS)
-		goto exit;
 
-exit:
-	TEEC_ReleaseSharedMemory(&SharedMem);
+	TEEC_ReleaseSharedMemory(&ip_shm_buf);
+exit_lic:
+	TEEC_ReleaseSharedMemory(&lic_shm_buf);
+exit_session:
 	TEEC_CloseSession(&TeecSession);
 	TEEC_FinalizeContext(&TeecContext);
 

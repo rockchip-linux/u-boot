@@ -157,6 +157,6 @@ uint32_t trusty_write_fw_encrypt_key(enum RK_FW_KEYID key_id,
 uint32_t trusty_fw_key_cipher(enum RK_FW_KEYID key_id, rk_cipher_config *config,
 			      uint32_t src_phys_addr, uint32_t dst_phys_addr,
 			      uint32_t len);
-uint32_t trusty_verify_config_ip(char *licence_str);
+uint32_t trusty_verify_config_ip(char *licence_str, char *IP_str);
 
 #endif
