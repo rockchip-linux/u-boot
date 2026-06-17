@@ -311,6 +311,46 @@ finish:
 }
 
 #ifdef CONFIG_MOS_SECONDARY
+int rk_board_early_fdt_fixup(void *blob)
+{
+	struct tag *t;
+	const char *vp_path[] = {
+	        "/vop@27d00000/ports/port@0",
+	        "/vop@27d00000/ports/port@1",
+	        "/vop@27d00000/ports/port@2",
+	};
+	int i, noffset;
+	u32 mode;
+
+	/*
+	 *	Secondary os early(rtt/u-boot) display policy.
+	 *
+	 * - Cold boot: rtt handles display.
+	 * - Warm boot: u-boot handles display with "rockchip,drm-fbd-mode" and
+	 *   "rockchip,reserved-plane".
+	 */
+	t = atags_get_tag(ATAG_MOS);
+	if (t && t->u.mos.secondary_cold_boot_once) {
+		t->u.mos.secondary_cold_boot_once = 0; /* clear */
+		atags_set_tag(ATAG_MOS, &t->u.mos);
+		return 0;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(vp_path); i++) {
+		noffset = fdt_path_offset(blob, vp_path[i]);
+		if (noffset < 0)
+			continue;
+
+		mode = fdtdec_get_uint(blob, noffset, "rockchip,drm-fbd-mode", 0);
+		if (mode == 2) { // ROCKCHIP_DRM_FBD_FROM_RTOS
+			fdt_delprop(blob, noffset, "rockchip,drm-fbd-mode");
+			fdt_delprop(blob, noffset, "rockchip,reserved-plane");
+		}
+	}
+
+	return 0;
+}
+
 static int mos_atags_setup_serial(void *cfg_fdt)
 {
 	const struct fdt_property *prop;
@@ -584,6 +624,14 @@ int mos_spl_init(void)
 	mos_atags_setup_serial(cfg_fdt);
 	mos_atags_init_cntfrq();
 #else
+	struct tag_mos t_mos;
+
+	/* tag mos */
+	memset(&t_mos, 0, sizeof(t_mos));
+	t_mos.version = 0;
+	t_mos.secondary_cold_boot_once = 1;
+	atags_set_tag(ATAG_MOS, &t_mos);
+
 	/* for secondary SPL */
 	memcpy((void *)SECONDARY_ATAGS_BASE, (void *)ATAGS_PHYS_BASE, ATAGS_SIZE);
 	flush_dcache_range(SECONDARY_ATAGS_BASE, SECONDARY_ATAGS_BASE + ATAGS_SIZE);
