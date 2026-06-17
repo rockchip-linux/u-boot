@@ -264,6 +264,9 @@ int atags_set_tag(u32 magic, void *tagdata)
 	case ATAG_FWVER:
 		size = tag_size(tag_fwver);
 		break;
+	case ATAG_MOS:
+		size = tag_size(tag_mos);
+		break;
 	case ATAG_CONSOLE:
 		size = tag_size(tag_console);
 		break;
@@ -423,4 +426,3 @@ void atags_destroy(void)
 	if (atags_is_available())
 		memset((char *)ATAGS_PHYS_BASE, 0, sizeof(struct tag));
 }
-

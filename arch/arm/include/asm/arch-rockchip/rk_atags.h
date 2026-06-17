@@ -23,6 +23,7 @@
 #define ATAG_PSTORE		0x54410059
 #define ATAG_FWVER		0x5441005a
 #define ATAG_CONSOLE		0x5441005b
+#define ATAG_MOS		0x5441005c
 #define ATAG_MAX		0x544100ff
 
 /* Tag size and offset */
@@ -223,6 +224,14 @@ struct tag_fwver {
 	u32 hash;
 } __packed;
 
+struct tag_mos {
+	u32 version;
+	u8 secondary_cold_boot_once; /* 1: brought up by primary os */
+	u8 reserved0[3];
+	u32 reserved1[11];
+	u32 hash;
+} __packed;
+
 struct console {
 	u8 owner;
 	u8 uart_id;
@@ -264,6 +273,7 @@ struct tag {
 		struct tag_boot1p	boot1p;
 		struct tag_pstore	pstore;
 		struct tag_fwver	fwver;
+		struct tag_mos		mos;
 		struct tag_console	console;
 	} u;
 } __aligned(4);
