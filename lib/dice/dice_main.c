@@ -538,7 +538,13 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 		return -ENODEV;
 	}
 
-	/* Relation: GKI must be enabled when DICE=y, but GKI=y not require DICE=y */
+	/*
+	 * Relation: DICE=y base on GKI=y (while GKI=y not require DICE=y)
+	 *
+	 * Compatible:
+	 *	Try to get cmdline from vendor boot partition(GKI=y), fallback
+	 *	to get from boot partition(GKI=n) if failed.
+	 */
 	if (part_get_info_by_name(desc, PART_VENDOR_BOOT, &part) > 0) {
 		blkcnt = DIV_ROUND_UP(sizeof(*vboot_hdr), desc->blksz);
 		vboot_hdr = memalign(ARCH_DMA_MINALIGN, blkcnt * desc->blksz);
@@ -551,6 +557,7 @@ static int dice_set_profile_name(struct DiceContext *DiceCtx, int i)
 		}
 	}
 
+	/* fallback to boot.img when GKI=n (header v2) */
 	if (!cmdline && part_get_info_by_name(desc, PART_BOOT, &part) > 0) {
 		blkcnt = DIV_ROUND_UP(sizeof(*hdr), desc->blksz);
 		hdr = memalign(ARCH_DMA_MINALIGN, blkcnt * desc->blksz);
