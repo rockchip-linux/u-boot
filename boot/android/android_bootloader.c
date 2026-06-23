@@ -582,7 +582,7 @@ static int avb_image_distribute_finish(AvbSlotVerifyData *slot_data,
 	 */
 
 	hdr = boot_hdr;
-	if (hdr->header_version >= 3 &&
+	if (hdr && hdr->header_version >= 3 &&
 	    !(flags & AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR)) {
 		hdr = malloc(sizeof(struct andr_img_hdr));
 		if (!hdr)
