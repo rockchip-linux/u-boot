@@ -61,8 +61,9 @@ static void oem_permanent_attributes(char *response)
 				return;
 			}
 
-			sha256_csum((const unsigned char *)&permanent_attributes_temp,
-				    PERM_ATTR_TOTAL_SIZE, digest);
+			sha256_csum_wd((const unsigned char *)&permanent_attributes_temp,
+				       PERM_ATTR_TOTAL_SIZE, digest,
+				       CHUNKSZ_SHA256);
 			if (memcmp(digest, digest_temp, SHA256_SUM_LEN) == 0) {
 				printf("The hash has been written!\n");
 				fastboot_okay(NULL, response);
@@ -87,8 +88,8 @@ static void oem_permanent_attributes(char *response)
 	}
 #ifndef CONFIG_LIBAVB_RK_PRELOADER_PUB_KEY
 	memset(digest, 0, SHA256_SUM_LEN);
-	sha256_csum((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
-		    PERM_ATTR_TOTAL_SIZE, digest);
+	sha256_csum_wd((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
+		       PERM_ATTR_TOTAL_SIZE, digest, CHUNKSZ_SHA256);
 
 	if (avb_write_permanent_attributes_hash((uint8_t *)digest,
 						SHA256_SUM_LEN)) {
@@ -219,8 +220,8 @@ void fastboot_oem_board(char *cmd_parameter, void *data, u32 size, char *respons
 			return;
 		}
 
-		sha256_csum((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
-			    VBOOT_KEY_SIZE, digest);
+		sha256_csum_wd((const unsigned char *)CONFIG_FASTBOOT_BUF_ADDR,
+			       VBOOT_KEY_SIZE, digest, CHUNKSZ_SHA256);
 
 		if (avb_write_vbootkey_hash((uint8_t *)digest,
 					    SHA256_SUM_LEN)) {
