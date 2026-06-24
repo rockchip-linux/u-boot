@@ -1174,9 +1174,12 @@ static int android_get_dtbo(ulong *fdt_dtbo,
 	disk_partition_t part_info;
 	u32 blk_offset, blk_cnt;
 	void *buf;
+#ifdef CONFIG_ANDROID_AVB
 	ulong e_addr;
+#endif
 	int ret;
 
+#ifdef CONFIG_ANDROID_AVB
 	if (!strcmp(part_dtbo, PART_RECOVERY) &&
 	    preload_user_data.boot.addr &&
 	    preload_user_data.boot_partition &&
@@ -1184,18 +1187,17 @@ static int android_get_dtbo(ulong *fdt_dtbo,
 		buf = preload_user_data.boot.addr + hdr->recovery_dtbo_offset;
 		return android_get_dtbo_from_mem(buf, part_dtbo, true, fdt_dtbo, index);
 	} else if (!strcmp(part_dtbo, PART_DTBO)) {
-#ifdef CONFIG_ANDROID_AVB
 		ret = android_image_verify_dtbo(&e_addr);
 		if (ret) {
 			printf("DTBO: '%s', avb verify fail: %d\n", part_dtbo, ret);
 			return ret;
 		}
-#endif
 		if (preload_user_data.dtbo.size) {
 			buf = preload_user_data.dtbo.addr;
 			return android_get_dtbo_from_mem(buf, part_dtbo, true, fdt_dtbo, index);
 		}
 	}
+#endif
 
 	/* Get partition info */
 	dev_desc = rockchip_get_bootdev();
