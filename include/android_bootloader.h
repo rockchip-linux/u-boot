@@ -41,6 +41,14 @@ enum android_boot_mode {
 int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 				 unsigned long load_address);
 
+/**
+ * is_gbl_bootflow() - Check whether the block device uses GBL boot flow.
+ * @dev_desc: device descriptor
+ *
+ * Return: true when android_esp partition exists, false otherwise.
+ */
+bool is_gbl_bootflow(struct blk_desc *dev_desc);
+
 /** android_avb_boot_flow - Execute the Android Bootloader Flow.
  * This fuction use to select and boot kernel through ab_suffix.
  *

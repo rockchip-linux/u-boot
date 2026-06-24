@@ -32,18 +32,24 @@
 
 #undef CONFIG_BOOTCOMMAND
 #if defined(CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE)
+#ifdef CONFIG_GBL
+#define CONFIG_BOOTCOMMAND			\
+	"boot_gbl;"				\
+	"boot_android ${devtype} ${devnum};"
+#else
 #define CONFIG_BOOTCOMMAND			\
 	"boot_android ${devtype} ${devnum};"
+#endif
 #elif defined(CONFIG_FIT_SIGNATURE)
 #define CONFIG_BOOTCOMMAND			\
 	"boot_fit;"
 #else
 #define CONFIG_BOOTCOMMAND			\
+	"boot_gbl;"				\
 	"boot_android ${devtype} ${devnum};"	\
 	"boot_fit;"				\
 	"bootflow scan -bl;"
 #endif
-
 #endif
 
 #endif /* _ROCKCHIP_COMMON_H_ */

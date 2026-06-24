@@ -21,6 +21,7 @@
 #include <hotkey.h>
 #include <image-android-dt.h>
 #include <malloc.h>
+#include <part.h>
 #include <sysmem.h>
 #include <tee/optee.h>
 #include <asm/cache.h>
@@ -499,6 +500,13 @@ bail:
 
 static struct AvbOpsData preload_user_data;
 
+bool is_gbl_bootflow(struct blk_desc *dev_desc)
+{
+	struct disk_partition part;
+
+	return part_get_info_by_name(dev_desc, PART_ANDROID_ESP, &part) > 0;
+}
+
 static int avb_image_distribute_prepare(AvbSlotVerifyData *slot_data,
 					AvbOps *ops, char *slot_suffix)
 {
@@ -642,7 +650,6 @@ static int android_image_verify_partitions(const char *const *requested_partitio
 		*ops_ret = ops;
 		return 0;
 	}
-
 
 #ifdef CONFIG_ANDROID_AB
 	ret = ab_get_current_slot(slot_suffix);

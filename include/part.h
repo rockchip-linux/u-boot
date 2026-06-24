@@ -27,6 +27,7 @@
 #define PART_METADATA		"metadata"
 #define PART_USERDATA		"userdata"
 #define PART_META		"meta"
+#define PART_ANDROID_ESP	"android_esp"
 
 struct block_drvr {
 	char *name;

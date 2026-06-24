@@ -36,6 +36,7 @@ obj-$(CONFIG_CMD_BLOBLIST) += bloblist.o
 obj-$(CONFIG_CMD_BLOCK_CACHE) += blkcache.o
 obj-$(CONFIG_CMD_BMP) += bmp.o
 obj-$(CONFIG_CMD_BOOT_ANDROID) += boot_android.o android.o
+obj-$(CONFIG_CMD_BOOT_GBL) += bootgbl.o
 obj-$(CONFIG_CMD_BOOT_FIT) += bootfit.o
 obj-$(CONFIG_CMD_BOOT_UIMAGE) += bootuimage.o
 

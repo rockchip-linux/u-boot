@@ -372,6 +372,15 @@ config CMD_BOOT_ANDROID
 	  and booting it. The boot mode is determined by the contents of the
 	  Android Bootloader Message.
 
+config CMD_BOOT_GBL
+	bool "boot_gbl"
+	default y
+	depends on ANDROID_BOOT_IMAGE
+	depends on GBL
+	help
+	  Performs the Android GBL boot flow, which is responsible to load
+	  and verify android images.
+
 config CMD_BOOT_FIT
 	bool "boot_fit"
 	default n

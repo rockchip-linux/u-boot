@@ -24,6 +24,7 @@
 #define ANDROID_PARTITION_SYSTEM "system"
 #define ANDROID_PARTITION_VBMETA "vbmeta"
 #define ANDROID_PARTITION_SUPER "super"
+#define ANDROID_PARTITION_ESP "android_esp"
 
 #define ANDROID_ARG_SLOT_SUFFIX "androidboot.slot_suffix="
 #define ANDROID_ARG_ROOT "root="

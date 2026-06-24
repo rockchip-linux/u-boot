@@ -27,6 +27,8 @@ static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
 	if (argc > 5)
 		return CMD_RET_USAGE;
 
+	printf("## Booting Android Image\n");
+
 #ifdef CONFIG_MP_BOOT_BOOTM
 	mpb_post(5);
 #endif
@@ -52,6 +54,11 @@ static int do_boot_android(struct cmd_tbl *cmdtp, int flag, int argc,
 	dev_desc = blk_get_dev(argv[1], simple_strtoul(argv[2], NULL, 16));
 	if (!dev_desc) {
 		printf("Could not get %s %s\n", argv[1], argv[2]);
+		return CMD_RET_FAILURE;
+	}
+
+	if (is_gbl_bootflow(dev_desc)) {
+		printf("boot_android: android_esp partition found. Exit\n");
 		return CMD_RET_FAILURE;
 	}
 
