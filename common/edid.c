@@ -16,6 +16,8 @@
 #include <log.h>
 #include <malloc.h>
 #include <hexdump.h>
+#include <linux/bug.h>
+#include <linux/build_bug.h>
 #include <linux/compat.h>
 #include <linux/ctype.h>
 #include <linux/fb.h>
@@ -74,6 +76,11 @@ struct detailed_mode_closure {
 	bool preferred;
 	u32 quirks;
 	int modes;
+};
+
+struct drm_edid_match_closure {
+	const struct drm_edid_ident *ident;
+	bool matched;
 };
 
 #define LEVEL_DMT	0
@@ -1674,6 +1681,229 @@ static const struct minimode extra_modes[] = {
 	{ 2048, 1152, 60, 0 },
 	{ 2048, 1536, 60, 0 },
 };
+
+static int edid_extension_block_count(const struct edid *edid)
+{
+	return edid->extensions;
+}
+
+static int edid_block_count(const struct edid *edid)
+{
+	return edid_extension_block_count(edid) + 1;
+}
+
+static int edid_size_by_blocks(int num_blocks)
+{
+	return num_blocks * EDID_LENGTH;
+}
+
+static int edid_size(const struct edid *edid)
+{
+	return edid_size_by_blocks(edid_block_count(edid));
+}
+
+static const void *edid_block_data(const struct edid *edid, int index)
+{
+	BUILD_BUG_ON(sizeof(*edid) != EDID_LENGTH);
+
+	return edid + index;
+}
+
+static const void *edid_extension_block_data(const struct edid *edid, int index)
+{
+	return edid_block_data(edid, index + 1);
+}
+
+static const u8 edid_header[] = {
+	0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00
+};
+
+static void edid_header_fix(void *edid)
+{
+	memcpy(edid, edid_header, sizeof(edid_header));
+}
+
+/**
+ * drm_edid_header_is_valid - sanity check the header of the base EDID block
+ * @_edid: pointer to raw base EDID block
+ *
+ * Sanity check the header of the base EDID block.
+ *
+ * Return: 8 if the header is perfect, down to 0 if it's totally wrong.
+ */
+int drm_edid_header_is_valid(const void *_edid)
+{
+	const struct edid *edid = _edid;
+	int i, score = 0;
+
+	for (i = 0; i < sizeof(edid_header); i++) {
+		if (edid->header[i] == edid_header[i])
+			score++;
+	}
+
+	return score;
+}
+
+static const int edid_fixup = 6;
+
+static int edid_block_compute_checksum(const void *_block)
+{
+	const u8 *block = _block;
+	int i;
+	u8 csum = 0, crc = 0;
+
+	for (i = 0; i < EDID_LENGTH - 1; i++)
+		csum += block[i];
+
+	crc = 0x100 - csum;
+
+	return crc;
+}
+
+static int edid_block_get_checksum(const void *_block)
+{
+	const struct edid *block = _block;
+
+	return block->checksum;
+}
+
+static int edid_block_tag(const void *_block)
+{
+	const u8 *block = _block;
+
+	return block[0];
+}
+
+static bool edid_block_is_zero(const void *edid)
+{
+	return !memchr_inv(edid, 0, EDID_LENGTH);
+}
+
+enum edid_block_status {
+	EDID_BLOCK_OK = 0,
+	EDID_BLOCK_READ_FAIL,
+	EDID_BLOCK_NULL,
+	EDID_BLOCK_ZERO,
+	EDID_BLOCK_HEADER_CORRUPT,
+	EDID_BLOCK_HEADER_REPAIR,
+	EDID_BLOCK_HEADER_FIXED,
+	EDID_BLOCK_CHECKSUM,
+	EDID_BLOCK_VERSION,
+};
+
+static enum edid_block_status edid_block_check(const void *_block,
+					       bool is_base_block)
+{
+	const struct edid *block = _block;
+
+	if (!block)
+		return EDID_BLOCK_NULL;
+
+	if (is_base_block) {
+		int score = drm_edid_header_is_valid(block);
+
+		if (score < clamp(edid_fixup, 0, 8)) {
+			if (edid_block_is_zero(block))
+				return EDID_BLOCK_ZERO;
+			else
+				return EDID_BLOCK_HEADER_CORRUPT;
+		}
+
+		if (score < 8)
+			return EDID_BLOCK_HEADER_REPAIR;
+	}
+
+	if (edid_block_compute_checksum(block) != edid_block_get_checksum(block)) {
+		if (edid_block_is_zero(block))
+			return EDID_BLOCK_ZERO;
+		else
+			return EDID_BLOCK_CHECKSUM;
+	}
+
+	if (is_base_block) {
+		if (block->version != 1)
+			return EDID_BLOCK_VERSION;
+	}
+
+	return EDID_BLOCK_OK;
+}
+
+static bool edid_block_status_valid(enum edid_block_status status, int tag)
+{
+	return status == EDID_BLOCK_OK ||
+		status == EDID_BLOCK_HEADER_FIXED ||
+		(status == EDID_BLOCK_CHECKSUM && tag == CEA_EXT);
+}
+
+static bool edid_block_valid(const void *block, bool base)
+{
+	return edid_block_status_valid(edid_block_check(block, base),
+				       edid_block_tag(block));
+}
+
+static void edid_block_status_print(enum edid_block_status status,
+				    const struct edid *block,
+				    int block_num)
+{
+	switch (status) {
+	case EDID_BLOCK_OK:
+		break;
+	case EDID_BLOCK_READ_FAIL:
+		pr_debug("EDID block %d read failed\n", block_num);
+		break;
+	case EDID_BLOCK_NULL:
+		pr_debug("EDID block %d pointer is NULL\n", block_num);
+		break;
+	case EDID_BLOCK_ZERO:
+		pr_notice("EDID block %d is all zeroes\n", block_num);
+		break;
+	case EDID_BLOCK_HEADER_CORRUPT:
+		pr_notice("EDID has corrupt header\n");
+		break;
+	case EDID_BLOCK_HEADER_REPAIR:
+		pr_debug("EDID corrupt header needs repair\n");
+		break;
+	case EDID_BLOCK_HEADER_FIXED:
+		pr_debug("EDID corrupt header fixed\n");
+		break;
+	case EDID_BLOCK_CHECKSUM:
+		if (edid_block_status_valid(status, edid_block_tag(block))) {
+			pr_debug("EDID block %d (tag 0x%02x) checksum is invalid, remainder is %d, ignoring\n",
+				 block_num, edid_block_tag(block),
+				 edid_block_compute_checksum(block));
+		} else {
+			pr_notice("EDID block %d (tag 0x%02x) checksum is invalid, remainder is %d\n",
+				  block_num, edid_block_tag(block),
+				  edid_block_compute_checksum(block));
+		}
+		break;
+	case EDID_BLOCK_VERSION:
+		pr_notice("EDID has major version %d, instead of 1\n",
+			  block->version);
+		break;
+	default:
+		pr_notice("EDID block %d unknown edid block status code %d\n",
+			  block_num, status);
+		break;
+	}
+}
+
+static void edid_block_dump(const void *block, int block_num)
+{
+	enum edid_block_status status;
+	char prefix[20];
+
+	status = edid_block_check(block, block_num == 0);
+	if (status == EDID_BLOCK_ZERO)
+		sprintf(prefix, "\t[%02x] ZERO ", block_num);
+	else if (!edid_block_status_valid(status, edid_block_tag(block)))
+		sprintf(prefix, "\t[%02x] BAD  ", block_num);
+	else
+		sprintf(prefix, "\t[%02x] GOOD ", block_num);
+
+	print_hex_dump(prefix, DUMP_PREFIX_NONE, 16, 1,
+		       block, EDID_LENGTH, false);
+}
 
 static const struct drm_display_mode *cea_mode_for_vic(u8 vic)
 {
@@ -3406,17 +3636,30 @@ static bool cea_db_is_hdmi_forum_eeodb(const void *db)
 		cea_db_payload_len(db) >= 2;
 }
 
+/*
+ * Get the HF-EEODB override extension block count from EDID.
+ *
+ * The passed in EDID may be partially read, as long as it has at least two
+ * blocks (base block and one extension block) if EDID extension count is > 0.
+ *
+ * Note that this is *not* how you should parse CTA Data Blocks in general; this
+ * is only to handle partially read EDIDs. Normally, use the CTA Data Block
+ * iterators instead.
+ *
+ * References:
+ * - HDMI 2.1 section 10.3.6 HDMI Forum EDID Extension Override Data Block
+ */
 static int edid_hfeeodb_extension_block_count(const struct edid *edid)
 {
 	const u8 *cta;
 
 	/* No extensions according to base block, no HF-EEODB. */
-	if (!edid->extensions)
+	if (!edid_extension_block_count(edid))
 		return 0;
 
 	/* HF-EEODB is always in the first EDID extension block only */
-	cta = (u8 *)edid + HDMI_EDID_BLOCK_SIZE * 1;
-	if (cta[0] != CEA_EXT || cta[1] < 3)
+	cta = edid_extension_block_data(edid, 0);
+	if (edid_block_tag(cta) != CEA_EXT || cea_revision(cta) < 3)
 		return 0;
 
 	/* Need to have the data block collection, and at least 3 bytes. */
@@ -4474,6 +4717,17 @@ static struct drm_display_mode *drm_mode_find_dmt(
 	return NULL;
 }
 
+static bool is_display_descriptor(const struct detailed_timing *descriptor, u8 type)
+{
+	BUILD_BUG_ON(offsetof(typeof(*descriptor), pixel_clock) != 0);
+	BUILD_BUG_ON(offsetof(typeof(*descriptor), data.other_data.pad1) != 2);
+	BUILD_BUG_ON(offsetof(typeof(*descriptor), data.other_data.type) != 3);
+
+	return descriptor->pixel_clock == 0 &&
+		descriptor->data.other_data.pad1 == 0 &&
+		descriptor->data.other_data.type == type;
+}
+
 static struct drm_display_mode *
 drm_gtf_mode_complex(int hdisplay, int vdisplay,
 		     int vrefresh, bool interlaced, int margins,
@@ -5504,139 +5758,55 @@ static void edid_fixup_preferred(struct hdmi_edid_data *data,
 	data->preferred_mode = preferred_mode;
 }
 
-static const u8 edid_header[] = {
-	0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00
-};
-
-/**
- * drm_edid_header_is_valid - sanity check the header of the base EDID block
- * @raw_edid: pointer to raw base EDID block
- *
- * Sanity check the header of the base EDID block.
- *
- * Return: 8 if the header is perfect, down to 0 if it's totally wrong.
- */
-static int drm_edid_header_is_valid(const u8 *raw_edid)
-{
-	int i, score = 0;
-
-	for (i = 0; i < sizeof(edid_header); i++)
-		if (raw_edid[i] == edid_header[i])
-			score++;
-
-	return score;
-}
-
-static int drm_edid_block_checksum(const u8 *raw_edid)
-{
-	int i;
-	u8 csum = 0;
-
-	for (i = 0; i < EDID_SIZE; i++)
-		csum += raw_edid[i];
-
-	return csum;
-}
-
-static bool drm_edid_is_zero(const u8 *in_edid, int length)
-{
-	if (memchr_inv(in_edid, 0, length))
-		return false;
-
-	return true;
-}
-
-/**
- * drm_edid_block_valid - Sanity check the EDID block (base or extension)
- * @raw_edid: pointer to raw EDID block
- * @block: type of block to validate (0 for base, extension otherwise)
- * @print_bad_edid: if true, dump bad EDID blocks to the console
- * @edid_corrupt: if true, the header or checksum is invalid
- *
+/*
  * Validate a base or extension EDID block and optionally dump bad blocks to
  * the console.
- *
- * Return: True if the block is valid, false otherwise.
  */
-static
-bool drm_edid_block_valid(u8 *raw_edid, int block, bool print_bad_edid,
-			  bool *edid_corrupt)
+static bool drm_edid_block_valid(void *_block, int block_num, bool print_bad_edid,
+				 bool *edid_corrupt)
 {
-	u8 csum;
-	int edid_fixup = 6;
-	struct edid *edid = (struct edid *)raw_edid;
+	struct edid *block = _block;
+	enum edid_block_status status;
+	bool is_base_block = block_num == 0;
+	bool valid;
 
-	if ((!raw_edid))
+	if (WARN_ON(!block))
 		return false;
 
-	if (block == 0) {
-		int score = drm_edid_header_is_valid(raw_edid);
+	status = edid_block_check(block, is_base_block);
+	if (status == EDID_BLOCK_HEADER_REPAIR) {
+		pr_debug("Fixing EDID header, your hardware may be failing\n");
+		edid_header_fix(block);
 
-		if (score == 8) {
-			if (edid_corrupt)
-				*edid_corrupt = false;
-		} else if (score >= edid_fixup) {
-			/* Displayport Link CTS Core 1.2 rev1.1 test 4.2.2.6
-			 * The corrupt flag needs to be set here otherwise, the
-			 * fix-up code here will correct the problem, the
-			 * checksum is correct and the test fails
-			 */
-			if (edid_corrupt)
-				*edid_corrupt = true;
-			debug("Fixing header, your hardware may be failing\n");
-			memcpy(raw_edid, edid_header, sizeof(edid_header));
-		} else {
-			if (edid_corrupt)
-				*edid_corrupt = true;
-			goto bad;
-		}
+		/* Retry with fixed header, update status if that worked. */
+		status = edid_block_check(block, is_base_block);
+		if (status == EDID_BLOCK_OK)
+			status = EDID_BLOCK_HEADER_FIXED;
 	}
 
-	csum = drm_edid_block_checksum(raw_edid);
-	if (csum) {
-		if (print_bad_edid) {
-			debug("EDID checksum is invalid, remainder is %d\n",
-			      csum);
-		}
-
-		if (edid_corrupt)
+	if (edid_corrupt) {
+		/*
+		 * Unknown major version isn't corrupt but we can't use it. Only
+		 * the base block can reset edid_corrupt to false.
+		 */
+		if (is_base_block &&
+		    (status == EDID_BLOCK_OK || status == EDID_BLOCK_VERSION))
+			*edid_corrupt = false;
+		else if (status != EDID_BLOCK_OK)
 			*edid_corrupt = true;
-
-		/* allow CEA to slide through, switches mangle this */
-		if (raw_edid[0] != 0x02)
-			goto bad;
 	}
 
-	/* per-block-type checks */
-	switch (raw_edid[0]) {
-	case 0: /* base */
-		if (edid->version != 1) {
-			debug("EDID has major version %d, instead of 1\n",
-			      edid->version);
-			goto bad;
-		}
+	edid_block_status_print(status, block, block_num);
 
-		if (edid->revision > 4)
-			debug("minor > 4, assuming backward compatibility\n");
-		break;
+	/* Determine whether we can use this block with this status. */
+	valid = edid_block_status_valid(status, edid_block_tag(block));
 
-	default:
-		break;
+	if (!valid && print_bad_edid && status != EDID_BLOCK_ZERO) {
+		pr_notice("Raw EDID:\n");
+		edid_block_dump(block, block_num);
 	}
 
-	return true;
-
-bad:
-	if (print_bad_edid) {
-		if (drm_edid_is_zero(raw_edid, EDID_SIZE)) {
-			debug("EDID block is all zeroes\n");
-		} else {
-			debug("Raw EDID:\n");
-			print_hex_dump("", DUMP_PREFIX_NONE, 16, 1,
-				       raw_edid, EDID_SIZE, false);
-		}
-	}
-	return false;
+	return valid;
 }
 
 /**
@@ -5650,24 +5820,30 @@ bad:
 static bool drm_edid_is_valid(struct edid *edid)
 {
 	int i;
-	u8 *raw = (u8 *)edid;
 
 	if (!edid)
 		return false;
 
-	for (i = 0; i <= edid->extensions; i++)
-		if (!drm_edid_block_valid(raw + i * EDID_SIZE, i, true, NULL))
+	for (i = 0; i <= edid->extensions; i++) {
+		void *block = (void *)edid_block_data(edid, i);
+
+		if (!drm_edid_block_valid(block, i, true, NULL))
 			return false;
+	}
 
 	return true;
 }
 
 /**
  * drm_add_edid_modes - add modes from EDID data, if available
- * @data: data we're probing
- * @edid: EDID data
+ * @connector: data we're probing
+ * @raw_edid: EDID data
  *
- * Add the specified modes to the data's mode list.
+ * Add the specified modes to the connector's mode list. Also fills out the
+ * &drm_display_info structure and ELD in @connector with any information which
+ * can be derived from the edid.
+ *
+ * This function is deprecated. Use drm_edid_connector_add_modes() instead.
  *
  * Return: The number of modes added or 0 if we couldn't find any.
  */
@@ -6997,64 +7173,121 @@ drm_do_probe_ddc_edid(struct ddc_adapter *adap, u8 *buf, unsigned int block,
 	return ret == xfers ? 0 : -1;
 }
 
-u8 *drm_do_get_edid(struct ddc_adapter *adap)
+static enum edid_block_status edid_block_read(void *block, unsigned int block_num,
+					      struct ddc_adapter *adap)
 {
-	int i, j, block_num, valid_extensions = 0, invalid_blocks = 0, block = 0;
-	bool edid_corrupt;
-	u8 *new, *edid;
-#ifdef DEBUG
-	u8 *buff;
-#endif
+	enum edid_block_status status;
+	bool is_base_block = block_num == 0;
+	int try;
 
-	edid = malloc(HDMI_EDID_BLOCK_SIZE);
-	if (!edid)
-		goto err;
+	for (try = 0; try < 4; try++) {
+		if (drm_do_probe_ddc_edid(adap, block, block_num, HDMI_EDID_BLOCK_SIZE))
+			return EDID_BLOCK_READ_FAIL;
 
-	/* base block fetch */
-	for (i = 0; i < 4; i++) {
-		if (drm_do_probe_ddc_edid(adap, edid, 0, HDMI_EDID_BLOCK_SIZE))
-			goto err;
-		if (drm_edid_block_valid(edid, 0, true,
-					 &edid_corrupt))
+		status = edid_block_check(block, is_base_block);
+		if (status == EDID_BLOCK_HEADER_REPAIR) {
+			edid_header_fix(block);
+
+			/* Retry with fixed header, update status if that worked. */
+			status = edid_block_check(block, is_base_block);
+			if (status == EDID_BLOCK_OK)
+				status = EDID_BLOCK_HEADER_FIXED;
+		}
+
+		if (edid_block_status_valid(status, edid_block_tag(block)))
 			break;
-		if (i == 0 && drm_edid_is_zero(edid, HDMI_EDID_BLOCK_SIZE)) {
-			printf("edid base block is 0, get edid failed\n");
-			goto err;
+
+		/* Fail early for unrepairable base block all zeros. */
+		if (try == 0 && is_base_block && status == EDID_BLOCK_ZERO)
+			break;
+	}
+
+	return status;
+}
+
+static struct edid *edid_filter_invalid_blocks(struct edid *edid,
+					       size_t *alloc_size)
+{
+	struct edid *new;
+	int i, valid_blocks = 0;
+
+	/*
+	 * Note: If the EDID uses HF-EEODB, but has invalid blocks, we'll revert
+	 * back to regular extension count here. We don't want to start
+	 * modifying the HF-EEODB extension too.
+	 */
+	for (i = 0; i < edid_block_count(edid); i++) {
+		const void *src_block = edid_block_data(edid, i);
+
+		if (edid_block_valid(src_block, i == 0)) {
+			void *dst_block = (void *)edid_block_data(edid, valid_blocks);
+
+			memmove(dst_block, src_block, EDID_LENGTH);
+			valid_blocks++;
 		}
 	}
 
-	if (i == 4)
-		goto err;
+	/* We already trusted the base block to be valid here... */
+	if (WARN_ON(!valid_blocks)) {
+		kfree(edid);
+		return NULL;
+	}
 
-	/* if there's no extensions, we're done */
-	valid_extensions = edid[0x7e];
-	if (valid_extensions == 0)
-		return edid;
+	edid->extensions = valid_blocks - 1;
+	edid->checksum = edid_block_compute_checksum(edid);
 
-	new = realloc(edid, (valid_extensions + 1) * HDMI_EDID_BLOCK_SIZE);
+	*alloc_size = edid_size_by_blocks(valid_blocks);
+
+	new = realloc(edid, *alloc_size);
 	if (!new)
-		goto err;
+		free(edid);
+
+	return new;
+}
+
+u8 *drm_do_get_edid(struct ddc_adapter *adap)
+{
+	enum edid_block_status status;
+	int i, num_blocks, invalid_blocks = 0;
+	struct edid *edid, *new;
+	size_t alloc_size = EDID_LENGTH;
+
+	edid = malloc(HDMI_EDID_BLOCK_SIZE);
+	if (!edid)
+		goto fail;
+
+	status = edid_block_read(edid, 0, adap);
+
+	edid_block_status_print(status, edid, 0);
+
+	if (status == EDID_BLOCK_READ_FAIL)
+		goto fail;
+
+	if (!edid_block_status_valid(status, edid_block_tag(edid)))
+		goto fail;
+
+	if (!edid_extension_block_count(edid))
+		goto ok;
+
+	alloc_size = edid_size(edid);
+	new = realloc(edid, alloc_size);
+	if (!new)
+		goto fail;
 	edid = new;
 
-	/* get the number of extensions */
-	block_num = edid[0x7e] + 1;
+	num_blocks = edid_block_count(edid);
+	for (i = 1; i < num_blocks; i++) {
+		void *block = (void *)edid_block_data(edid, i);
 
-	for (j = 1; j < block_num; j++) {
-		u8 *block = edid + j * HDMI_EDID_BLOCK_SIZE;
+		status = edid_block_read(block, i, adap);
 
-		for (i = 0; i < 4; i++) {
-			if (drm_do_probe_ddc_edid(adap, block, j,
-						  HDMI_EDID_BLOCK_SIZE))
-				goto err;
-			if (drm_edid_block_valid(block, j,
-						 true, NULL))
-				break;
-		}
+		edid_block_status_print(status, block, i);
 
-		if (i == 4)
+		if (!edid_block_status_valid(status, edid_block_tag(block))) {
+			if (status == EDID_BLOCK_READ_FAIL)
+				goto fail;
 			invalid_blocks++;
-
-		if (j == 1) {
+		} else if (i == 1) {
 			/*
 			 * If the first EDID extension is a CTA extension, and
 			 * the first Data Block is HF-EEODB, override the
@@ -7064,61 +7297,34 @@ u8 *drm_do_get_edid(struct ddc_adapter *adap)
 			 * count too, but we can't risk allocating a smaller
 			 * amount.
 			 */
-			int eeodb = edid_hfeeodb_block_count((const struct edid *)edid);
+			int eeodb = edid_hfeeodb_block_count(edid);
 
-			if (eeodb > block_num) {
-				block_num = eeodb;
-				new = realloc(edid, block_num * HDMI_EDID_BLOCK_SIZE);
+			if (eeodb > num_blocks) {
+				num_blocks = eeodb;
+				alloc_size = edid_size_by_blocks(num_blocks);
+				new = realloc(edid, alloc_size);
 				if (!new)
-					goto err;
+					goto fail;
 				edid = new;
 			}
 		}
 	}
 
-	if (invalid_blocks) {
-		u8 *base;
+	if (invalid_blocks)
+		edid = edid_filter_invalid_blocks(edid, &alloc_size);
 
-		new = kcalloc(valid_extensions + 1, HDMI_EDID_BLOCK_SIZE, GFP_KERNEL);
-		if (!new)
-			goto err;
-
-		base = new;
-		for (i = 0; i <= edid[0x7e]; i++) {
-			u8 *block = edid + i * HDMI_EDID_BLOCK_SIZE;
-
-			if (!drm_edid_block_valid(block, i, false, NULL))
-				continue;
-
-			memcpy(base, block, HDMI_EDID_BLOCK_SIZE);
-			base += HDMI_EDID_BLOCK_SIZE;
-		}
-
-		new[HDMI_EDID_BLOCK_SIZE - 1] += new[0x7e] - valid_extensions;
-		new[0x7e] = valid_extensions;
-
-		kfree(edid);
-		edid = new;
-	}
-
-#ifdef DEBUG
-	printf("RAW EDID:\n");
-	for (i = 0; i < block_num; i++) {
-		buff = &edid[0x80 * i];
-		for (j = 0; j < HDMI_EDID_BLOCK_SIZE; j++) {
-			if (j % 16 == 0)
-				printf("\n");
-			printf("0x%02x, ", buff[j]);
-		}
-		printf("\n");
+#ifdef EDID_RAW_DUMP
+	if (edid) {
+		for (i = 0; i < edid_block_count(edid); i++)
+			edid_block_dump(edid + i, i);
 	}
 #endif
 
-	return edid;
+ok:
+	return (u8 *)edid;
 
-err:
-	printf("can't get edid block:%d\n", block);
-
+fail:
+	kfree(edid);
 	return NULL;
 }
 
@@ -7208,3 +7414,164 @@ u8 drm_scdc_writeb(struct ddc_adapter *adap, u8 offset,
 			      sizeof(value));
 }
 
+/* Interface based on struct drm_edid */
+
+/* Allocate struct drm_edid container *without* duplicating the edid data */
+static const struct drm_edid *_drm_edid_alloc(const void *edid, size_t size)
+{
+	struct drm_edid *drm_edid;
+
+	if (!edid || !size || size < EDID_LENGTH)
+		return NULL;
+
+	drm_edid = kzalloc(sizeof(*drm_edid), GFP_KERNEL);
+	if (drm_edid) {
+		drm_edid->edid = edid;
+		drm_edid->size = size;
+	}
+
+	return drm_edid;
+}
+
+/**
+ * drm_edid_alloc - Allocate a new drm_edid container
+ * @edid: Pointer to raw EDID data
+ * @size: Size of memory allocated for EDID
+ *
+ * Allocate a new drm_edid container. Do not calculate edid size from edid, pass
+ * the actual size that has been allocated for the data. There is no validation
+ * of the raw EDID data against the size, but at least the EDID base block must
+ * fit in the buffer.
+ *
+ * The returned pointer must be freed using drm_edid_free().
+ *
+ * Return: drm_edid container, or NULL on errors
+ */
+const struct drm_edid *drm_edid_alloc(const void *edid, size_t size)
+{
+	const struct drm_edid *drm_edid;
+
+	if (!edid || !size || size < EDID_LENGTH)
+		return NULL;
+
+	edid = kmemdup(edid, size, GFP_KERNEL);
+	if (!edid)
+		return NULL;
+
+	drm_edid = _drm_edid_alloc(edid, size);
+	if (!drm_edid)
+		kfree(edid);
+
+	return drm_edid;
+}
+
+/**
+ * drm_edid_free - Free the drm_edid container
+ * @drm_edid: EDID to free
+ */
+void drm_edid_free(const struct drm_edid *drm_edid)
+{
+	if (!drm_edid)
+		return;
+
+	kfree(drm_edid->edid);
+	kfree(drm_edid);
+}
+
+/**
+ * drm_edid_get_panel_id - Get a panel's ID from EDID
+ * @drm_edid: EDID that contains panel ID.
+ *
+ * This function uses the first block of the EDID of a panel and (assuming
+ * that the EDID is valid) extracts the ID out of it. The ID is a 32-bit value
+ * (16 bits of manufacturer ID and 16 bits of per-manufacturer ID) that's
+ * supposed to be different for each different modem of panel.
+ *
+ * Return: A 32-bit ID that should be different for each make/model of panel.
+ *         See the functions drm_edid_encode_panel_id() and
+ *         drm_edid_decode_panel_id() for some details on the structure of this
+ *         ID. Return 0 if the EDID size is less than a base block.
+ */
+u32 drm_edid_get_panel_id(const struct drm_edid *drm_edid)
+{
+	const struct edid *edid = drm_edid->edid;
+
+	if (drm_edid->size < EDID_LENGTH)
+		return 0;
+
+	/*
+	 * We represent the ID as a 32-bit number so it can easily be compared
+	 * with "==".
+	 *
+	 * NOTE that we deal with endianness differently for the top half
+	 * of this ID than for the bottom half. The bottom half (the product
+	 * id) gets decoded as little endian by the EDID_PRODUCT_ID because
+	 * that's how everyone seems to interpret it. The top half (the mfg_id)
+	 * gets stored as big endian because that makes
+	 * drm_edid_encode_panel_id() and drm_edid_decode_panel_id() easier
+	 * to write (it's easier to extract the ASCII). It doesn't really
+	 * matter, though, as long as the number here is unique.
+	 */
+	return (u32)edid->mfg_id[0] << 24   |
+	       (u32)edid->mfg_id[1] << 16   |
+	       (u32)EDID_PRODUCT_ID(edid);
+}
+
+static void
+match_identity(struct detailed_timing *timing, void *data)
+{
+	struct drm_edid_match_closure *closure = data;
+	unsigned int i;
+	const char *name = closure->ident->name;
+	unsigned int name_len = strlen(name);
+	const char *desc = timing->data.other_data.data.str.str;
+	unsigned int desc_len = ARRAY_SIZE(timing->data.other_data.data.str.str);
+
+	if (name_len > desc_len ||
+	    !(is_display_descriptor(timing, EDID_DETAIL_MONITOR_NAME) ||
+	      is_display_descriptor(timing, EDID_DETAIL_MONITOR_STRING)))
+		return;
+
+	if (strncmp(name, desc, name_len))
+		return;
+
+	for (i = name_len; i < desc_len; i++) {
+		if (desc[i] == '\n')
+			break;
+		/* Allow white space before EDID string terminator. */
+		if (!isspace(desc[i]))
+			return;
+	}
+
+	closure->matched = true;
+}
+
+/**
+ * drm_edid_match - match drm_edid with given identity
+ * @drm_edid: EDID
+ * @ident: the EDID identity to match with
+ *
+ * Check if the EDID matches with the given identity.
+ *
+ * Return: True if the given identity matched with EDID, false otherwise.
+ */
+bool drm_edid_match(const struct drm_edid *drm_edid,
+		    const struct drm_edid_ident *ident)
+{
+	if (!drm_edid || drm_edid_get_panel_id(drm_edid) != ident->panel_id)
+		return false;
+
+	/* Match with name only if it's not NULL. */
+	if (ident->name) {
+		struct drm_edid_match_closure closure = {
+			.ident = ident,
+			.matched = false,
+		};
+
+		drm_for_each_detailed_block((u8 *)drm_edid->edid, match_identity, &closure);
+
+		return closure.matched;
+	}
+
+	return true;
+}
