@@ -946,6 +946,8 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 	generic_phy_power_on(&dp->phy);
 	analogix_dp_init_dp(dp);
 
+	conn->aux = &dp->aux;
+
 	return 0;
 }
 
