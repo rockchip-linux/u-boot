@@ -39,6 +39,8 @@
 #include "rockchip_bridge.h"
 #include "rockchip_panel.h"
 #include <dm.h>
+#include <dm/device-internal.h>
+#include <dm/lists.h>
 #include <dm/of_access.h>
 #include <dm/ofnode.h>
 #include <asm/io.h>
@@ -1723,10 +1725,39 @@ rockchip_of_graph_get_remote_node(ofnode node, int port, int endpoint)
 	return ofnode_to_np(ep);
 }
 
+static int rockchip_get_panel_by_aux_bus(struct udevice *parent, ofnode aux_bus_node,
+					 struct udevice **panel_dev)
+{
+	const struct driver *panel_drv;
+	ofnode panel_ofnode;
+	int ret;
+
+	panel_ofnode = ofnode_find_subnode(aux_bus_node, "panel");
+	if (!ofnode_valid(panel_ofnode))
+		return -ENODEV;
+
+	panel_drv = lists_driver_lookup_name("rockchip_edp_panel");
+	if (!panel_drv)
+		return -ENOENT;
+
+	ret = device_bind(parent, panel_drv, ofnode_get_name(panel_ofnode),
+			  NULL, panel_ofnode, panel_dev);
+	if (ret)
+		return ret;
+
+	ret = device_probe(*panel_dev);
+	if (ret) {
+		device_unbind(*panel_dev);
+		return ret;
+	}
+
+	return 0;
+}
+
 static int rockchip_of_find_panel(struct udevice *dev, struct rockchip_panel **panel)
 {
 	struct device_node *ep_node, *panel_node;
-	ofnode panel_ofnode, port, mcu_panel_ofnode;
+	ofnode panel_ofnode, port, mcu_panel_ofnode, aux_bus_node;
 	struct udevice *panel_dev;
 	int ret = 0;
 
@@ -1743,6 +1774,13 @@ static int rockchip_of_find_panel(struct udevice *dev, struct rockchip_panel **p
 	if (ofnode_valid(mcu_panel_ofnode)) {
 		ret = uclass_get_device_by_ofnode(UCLASS_PANEL, mcu_panel_ofnode,
 						  &panel_dev);
+		if (!ret)
+			goto found;
+	}
+
+	aux_bus_node = dev_read_subnode(dev, "aux-bus");
+	if (ofnode_valid(aux_bus_node)) {
+		ret = rockchip_get_panel_by_aux_bus(dev, aux_bus_node, &panel_dev);
 		if (!ret)
 			goto found;
 	}
