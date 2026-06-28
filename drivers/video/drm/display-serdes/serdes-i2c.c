@@ -37,6 +37,7 @@ static int serdes_i2c_probe(struct udevice *dev)
 {
 	struct serdes *serdes = dev_get_priv(dev);
 	int ret;
+	u32 mode;
 
 	ret = i2c_set_chip_offset_len(dev, 2);
 	if (ret)
@@ -75,6 +76,11 @@ static int serdes_i2c_probe(struct udevice *dev)
 			       __func__, ret);
 
 	serdes->mcu_enable = dev_read_bool(dev, "mcu-enable");
+	if (!serdes->mcu_enable) {
+		ret = serdes_get_route_mode(dev_ofnode(dev), &mode);
+		if (!ret && mode == ROCKCHIP_DRM_FBD_FROM_RTOS)
+			serdes->mcu_enable = true;
+	}
 	serdes->dual_link = dev_read_bool(dev, "dual-link");
 
 	if (serdes->chip_data->serdes_type == TYPE_OTHER) {
@@ -162,11 +168,17 @@ static const struct udevice_id serdes_of_match[] = {
 	{ }
 };
 
+static int serdes_i2c_bind(struct udevice *dev)
+{
+	serdes_route_bind(serdes_of_match);
+	return dm_scan_fdt_dev(dev);
+}
+
 U_BOOT_DRIVER(serdes_i2c) = {
 	.name = "serdes-i2c",
 	.id = UCLASS_MISC,
 	.of_match = serdes_of_match,
 	.probe = serdes_i2c_probe,
-	.bind = dm_scan_fdt_dev,
+	.bind = serdes_i2c_bind,
 	.priv_auto = sizeof(struct serdes),
 };
