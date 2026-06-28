@@ -20,11 +20,14 @@ struct rockchip_connector {
 #include "rockchip_bridge.h"
 #include "rockchip_panel.h"
 
+struct drm_dp_aux;
+
 struct rockchip_connector {
 	struct udevice *dev;
 	struct rockchip_bridge *bridge;
 	struct rockchip_panel *panel;
 	struct list_head head;
+	struct drm_dp_aux *aux;
 	int id;
 	int type;
 	bool hpd;
