@@ -14,6 +14,7 @@
 #include <dm/of_access.h>
 #include <dm/read.h>
 #include <linux/bitfield.h>
+#include <linux/iopoll.h>
 #include <linux/list.h>
 #include <linux/media-bus-format.h>
 #include <syscon.h>
@@ -24,6 +25,8 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "analogix_dp.h"
+
+#define to_dp(nm)	container_of(nm, struct analogix_dp_device, nm)
 
 #define RK3588_GRF_VO1_CON0	0x0000
 #define EDP_MODE		BIT(0)
@@ -1417,11 +1420,26 @@ static int analogix_dp_parse_dt(struct analogix_dp_device *dp)
 	return 0;
 }
 
+static int analogix_dpaux_wait_hpd_asserted(struct drm_dp_aux *aux, unsigned long wait_us)
+{
+	struct analogix_dp_device *dp = to_dp(aux);
+	int val;
+	int ret;
+
+	if (dp->force_hpd)
+		return 0;
+
+	ret = readx_poll_timeout(analogix_dp_get_plug_in_status, dp, val, !val, wait_us);
+
+	return ret;
+}
+
 static int analogix_dp_ddc_init(struct analogix_dp_device *dp)
 {
 	dp->aux.name = "analogix-dp";
 	dp->aux.dev = dp->dev;
 	dp->aux.transfer = analogix_dp_aux_transfer;
+	dp->aux.wait_hpd_asserted = analogix_dpaux_wait_hpd_asserted;
 	dp->aux.ddc.ddc_xfer = drm_dp_i2c_xfer;
 
 	return 0;
