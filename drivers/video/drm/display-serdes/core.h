@@ -46,6 +46,7 @@
 #include "../drivers/video/drm/rockchip_display.h"
 #include "../drivers/video/drm/rockchip_panel.h"
 #include "../drivers/video/drm/rockchip_connector.h"
+#include "../drivers/video/drm/rockchip_crtc.h"
 
 #ifndef __SERDES_DISPLAY_CORE_H__
 #define __SERDES_DISPLAY_CORE_H__
@@ -72,8 +73,12 @@
 #define  SERDES_DBG_CHIP(x...)
 #endif
 
-#define SERDES_UBOOT_DISPLAY_VERSION "serdes-uboot-displaly-v10-230920"
-#define MAX_NUM_SERDES_SPLIT 8
+#define SERDES_UBOOT_DISPLAY_VERSION		"serdes-uboot-displaly-v10-230920"
+#define MAX_NUM_SERDES_SPLIT			8
+
+#define SERDES_CHECK_DEPTH			2
+#define SERDES_ATTACH_DEPTH			4
+
 struct serdes;
 
 enum ser_link_mode {
@@ -349,6 +354,13 @@ struct serdes {
 	struct serdes_chip_data *chip_data;
 };
 
+struct serdes_route_entry {
+	struct list_head list;
+	ofnode prev_node;
+	ofnode node;
+	u32 fbd_mode;
+};
+
 /* Device I/O API */
 int serdes_reg_read(struct serdes *serdes, unsigned int reg, unsigned int *val);
 int serdes_reg_write(struct serdes *serdes, unsigned int reg, unsigned int val);
@@ -371,6 +383,8 @@ int serdes_video_bridge_split_init(void);
 int serdes_display_init(void);
 void serdes_get_split_bridge_or_panel(struct serdes_bridge *serdes_bridge);
 int serdes_set_i2c_address(struct serdes *serdes, u32 reg_use, int link);
+int serdes_route_bind(const struct udevice_id *match);
+int serdes_get_route_mode(ofnode node, u32 *mode);
 
 extern struct serdes_chip_data serdes_bu18tl82_data;
 extern struct serdes_chip_data serdes_bu18rl82_data;
