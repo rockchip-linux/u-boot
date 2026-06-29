@@ -8,6 +8,7 @@
 #include <asm/gpio.h>
 #include <dm.h>
 #include <dm/of_access.h>
+#include <dm/uclass-internal.h>
 #include <i2c.h>
 #include <irq-generic.h>
 #include <linux/bitfield.h>
@@ -1069,6 +1070,38 @@ static int rk_tcpc_init_gpio_irq(struct rk_tcpc_chip *chip)
 	}
 
 	return 0;
+}
+
+int rk_tcpc_quiesce_irq(void)
+{
+	struct udevice *dev;
+	u8 val;
+	int ret;
+
+	for (ret = uclass_find_first_device(UCLASS_PD, &dev);
+	     dev && !ret;
+	     ret = uclass_find_next_device(&dev)) {
+		if (!device_is_compatible(dev, "rockchip,rk809c-tcpc"))
+			continue;
+
+		printf("TCPC: clear and mask PD interrupts\n");
+
+		val = RK_TCPC_INT_STS_MASK; /* clear all interrupts */
+		ret = dm_i2c_write(dev, RK_TCPC_INT_STS, &val, 1);
+		if (ret) {
+			printf("TCPC: failed to clear PD status, ret=%d\n", ret);
+			return ret;
+		}
+
+		val = 0x00; /* mask all interrupts */
+		ret = dm_i2c_write(dev, RK_TCPC_INT, &val, 1);
+		if (ret)
+			printf("TCPC: failed to mask PD interrupts, ret=%d\n", ret);
+
+		return ret;
+	}
+
+	return -ENODEV;
 }
 
 static int rk_tcpc_probe(struct udevice *dev)

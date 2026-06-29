@@ -1014,6 +1014,26 @@ static int rk8xx_probe(struct udevice *dev)
 		rk8xx_write(dev, pwron_key, &value, 1);
 	}
 
+#if CONFIG_IS_ENABLED(TYPEC_PD_ROCKCHIP_PMIC)
+	extern int rk_tcpc_quiesce_irq(void);
+
+	/*
+	 * PD and PMIC share the same GPIO interrupt pin on RK809C,
+	 * and the PD enables the VBUS interrupt by default design.
+	 * If the PD driver is not loaded, plugging or unplugging a USB
+	 * cable triggers a VBUS interrupt that cannot be cleared, leading
+	 * to an interrupt storm. Disable PD interrupts here to fix it.
+	 */
+	if (priv->variant == RK809_ID) {
+		value = 0;
+		rk8xx_read(dev, 0xff, &value, 1);
+
+		/* Current chip is RK809C */
+		if ((value & 0x03) == 0x01)
+			rk_tcpc_quiesce_irq();
+	}
+#endif
+
 	ret = rk8xx_irq_chip_init(dev);
 	if (ret) {
 		printf("IRQ chip initial failed\n");
