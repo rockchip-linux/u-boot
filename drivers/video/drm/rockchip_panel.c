@@ -62,8 +62,6 @@ struct rockchip_panel_plat {
 };
 
 struct rockchip_panel_priv {
-	bool prepared;
-	bool enabled;
 	struct udevice *power_supply;
 	struct udevice *backlight;
 	struct spi_slave *spi_slave;
@@ -300,9 +298,6 @@ static void panel_simple_prepare(struct rockchip_panel *panel)
 	struct mipi_dsi_device *dsi = dev_get_parent_plat(panel->dev);
 	int ret;
 
-	if (priv->prepared)
-		return;
-
 	if (priv->power_supply)
 		regulator_set_enable(priv->power_supply, !plat->power_invert);
 
@@ -336,8 +331,6 @@ static void panel_simple_prepare(struct rockchip_panel *panel)
 		if (ret)
 			printf("failed to send on cmds: %d\n", ret);
 	}
-
-	priv->prepared = true;
 }
 
 static void panel_simple_unprepare(struct rockchip_panel *panel)
@@ -346,9 +339,6 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 	struct mipi_dsi_device *dsi = dev_get_parent_plat(panel->dev);
 	int ret;
-
-	if (!priv->prepared)
-		return;
 
 	if (plat->off_cmds) {
 		if (priv->cmd_type == CMD_TYPE_SPI)
@@ -374,17 +364,12 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 
 	if (plat->delay.unprepare)
 		mdelay(plat->delay.unprepare);
-
-	priv->prepared = false;
 }
 
 static void panel_simple_enable(struct rockchip_panel *panel)
 {
 	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
-
-	if (priv->enabled)
-		return;
 
 	if (plat->delay.enable)
 		mdelay(plat->delay.enable);
@@ -393,8 +378,6 @@ static void panel_simple_enable(struct rockchip_panel *panel)
 		backlight_set_brightness(priv->backlight, BACKLIGHT_DEFAULT);
 		backlight_enable(priv->backlight);
 	}
-
-	priv->enabled = true;
 }
 
 static void panel_simple_disable(struct rockchip_panel *panel)
@@ -402,16 +385,11 @@ static void panel_simple_disable(struct rockchip_panel *panel)
 	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 
-	if (!priv->enabled)
-		return;
-
 	if (priv->backlight)
 		backlight_set_brightness(priv->backlight, BACKLIGHT_OFF);
 
 	if (plat->delay.disable)
 		mdelay(plat->delay.disable);
-
-	priv->enabled = false;
 }
 
 static const struct rockchip_panel_funcs rockchip_panel_funcs = {

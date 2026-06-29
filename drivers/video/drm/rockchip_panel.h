@@ -7,6 +7,8 @@
 #ifndef _ROCKCHIP_PANEL_H_
 #define _ROCKCHIP_PANEL_H_
 
+#include <dm/device_compat.h>
+
 struct display_state;
 struct rockchip_panel;
 struct rockchip_conn;
@@ -29,6 +31,9 @@ struct rockchip_panel {
 
 	struct rockchip_connector *conn;
 	struct display_state *state;
+
+	bool prepared;
+	bool enabled;
 };
 
 static inline void rockchip_panel_init(struct rockchip_panel *panel,
@@ -53,8 +58,15 @@ static inline void rockchip_panel_prepare(struct rockchip_panel *panel)
 	if (!panel)
 		return;
 
+	if (panel->prepared) {
+		dev_dbg(panel->dev, "Skipping prepare of already prepared panel\n");
+		return;
+	}
+
 	if (panel->funcs && panel->funcs->prepare)
 		panel->funcs->prepare(panel);
+
+	panel->prepared = true;
 }
 
 static inline void rockchip_panel_enable(struct rockchip_panel *panel)
@@ -62,8 +74,15 @@ static inline void rockchip_panel_enable(struct rockchip_panel *panel)
 	if (!panel)
 		return;
 
+	if (panel->enabled) {
+		dev_dbg(panel->dev, "Skipping enable of already enabled panel\n");
+		return;
+	}
+
 	if (panel->funcs && panel->funcs->enable)
 		panel->funcs->enable(panel);
+
+	panel->enabled = true;
 }
 
 static inline void rockchip_panel_unprepare(struct rockchip_panel *panel)
@@ -71,8 +90,15 @@ static inline void rockchip_panel_unprepare(struct rockchip_panel *panel)
 	if (!panel)
 		return;
 
+	if (!panel->prepared) {
+		dev_dbg(panel->dev, "Skipping unprepare of already unprepared panel\n");
+		return;
+	}
+
 	if (panel->funcs && panel->funcs->unprepare)
 		panel->funcs->unprepare(panel);
+
+	panel->prepared = false;
 }
 
 static inline void rockchip_panel_disable(struct rockchip_panel *panel)
@@ -80,8 +106,15 @@ static inline void rockchip_panel_disable(struct rockchip_panel *panel)
 	if (!panel)
 		return;
 
+	if (!panel->enabled) {
+		dev_dbg(panel->dev, "Skipping disable of already disabled panel\n");
+		return;
+	}
+
 	if (panel->funcs && panel->funcs->disable)
 		panel->funcs->disable(panel);
+
+	panel->enabled = false;
 }
 
 #endif	/* _ROCKCHIP_PANEL_H_ */
