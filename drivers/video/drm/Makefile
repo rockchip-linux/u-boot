@@ -33,6 +33,7 @@ obj-$(CONFIG_DRM_ROCKCHIP_DW_DP) += dw-dp.o
 obj-$(CONFIG_DRM_ROCKCHIP_LVDS) += rockchip_lvds.o drm_of.o
 obj-$(CONFIG_DRM_ROCKCHIP_RGB) += rockchip_rgb.o
 obj-$(CONFIG_DRM_ROCKCHIP_PANEL) += rockchip_panel.o
+obj-$(CONFIG_DRM_ROCKCHIP_EDP_PANEL) += rockchip_edp_panel.o
 obj-$(CONFIG_DRM_ROHM_BU18XL82) += rohm-bu18tl82.o rohm-bu18rl82.o
 obj-$(CONFIG_DRM_ROCKCHIP_RK618) += rk618.o rk618_lvds.o rk618_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_RK628) += rk628/
