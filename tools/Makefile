@@ -127,6 +127,10 @@ dumpimage-objs := $(dumpimage-mkimage-objs) dumpimage.o
 mkimage-objs   := $(dumpimage-mkimage-objs) mkimage.o
 fit_info-objs   := $(dumpimage-mkimage-objs) fit_info.o
 fit_check_sign-objs   := $(dumpimage-mkimage-objs) fit_check_sign.o
+ifdef CONFIG_TOOLS_STATIC_FIT
+HOSTLDFLAGS_mkimage := -static
+HOSTLDFLAGS_fit_check_sign := -static
+endif
 
 ifneq ($(CONFIG_MX23)$(CONFIG_MX28),)
 # Add CONFIG_MXS into host CFLAGS, so we can check whether or not register
