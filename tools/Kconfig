@@ -77,6 +77,12 @@ config TOOLS_STATIC_DTC
 	help
 	  Enable this to link the host-side dtc tool statically.
 
+config TOOLS_STATIC_FIT
+	bool "Build FIT tools statically"
+	default n
+	help
+	  Enable this to link the host-side FIT tool statically.
+
 config TOOLS_MD5
 	def_bool y
 	help

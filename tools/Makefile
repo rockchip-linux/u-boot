@@ -168,6 +168,11 @@ fit_check_sign-objs   := $(dumpimage-mkimage-objs) fit_check_sign.o
 fdt_add_pubkey-objs   := $(dumpimage-mkimage-objs) fdt_add_pubkey.o
 file2include-objs := file2include.o
 
+ifdef CONFIG_TOOLS_STATIC_FIT
+HOSTLDFLAGS_mkimage := -static
+HOSTLDFLAGS_fit_check_sign := -static
+endif
+
 ifneq ($(CONFIG_MX23)$(CONFIG_MX28)$(CONFIG_TOOLS_LIBCRYPTO),)
 # Add CFG_MXS into host CFLAGS, so we can check whether or not register
 # the mxsimage support within tools/mxsimage.c .
