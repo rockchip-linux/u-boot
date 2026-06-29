@@ -50,6 +50,11 @@ config DRM_PANEL_MAXIM_MAX96752F
 	  Say Y if you want to enable support for panels based on the
 	  Maxim MAX96752F.
 
+config DRM_ROCKCHIP_EDP_PANEL
+	bool "Rockchip Embedded DisplayPort Panel Support"
+	depends on DRM_ROCKCHIP
+	select BACKLIGHT
+
 config DRM_ROCKCHIP_PANEL
 	bool "Rockchip Panel Support"
 	depends on DRM_ROCKCHIP
