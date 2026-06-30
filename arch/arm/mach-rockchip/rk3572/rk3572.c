@@ -56,6 +56,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define PHPPHY_CRU_BASE			0x26098000
 #define PHPPHY_CRU_PPLL_CON1		0x204
+#define PHPPHY_CRU_SOFTRST_CON00	0xA00
 #define PHPPHY_CRU_SOFTRST_CON02	0xA08
 
 #define PMU1_CRU_BASE			0x260B0000
@@ -450,6 +451,7 @@ int rk_board_dm_fdt_fixup(const void *blob)
 	const char *status = NULL;
 	int node = -1;
 
+
 	/*
 	 * 1. Kernel DTS will enable UFS by default.
 	 *
@@ -465,12 +467,24 @@ int rk_board_dm_fdt_fixup(const void *blob)
 	if (desc->uclass_id != UCLASS_SCSI) {
 		node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk3572-ufs");
 		if (node >= 0) {
+			bool ufs_en = false;
+
 			status = fdt_getprop(blob, node, "status", NULL);
 			if (status && strcmp(status, "disabled")) {
 				if (scsi_scan(true)) {
 					fdt_setprop((void *)blob, node, "status", "disabled", 9);
 					printf("FDT: UFS was not detected, disabling UFS.\n");
+				} else {
+					ufs_en = true;
 				}
+			}
+			if (status && !ufs_en) {
+				/*
+				 * When UFS is not detected or disabled, the mphy_init module remains active,
+				 * which may cause power consumption. Assert the reset of mphy_init via
+				 * PHPPHY_CRU_SOFTRST_CON00 when UFS is not enabled.
+				 */
+				writel(0x04000400, PHPPHY_CRU_BASE + PHPPHY_CRU_SOFTRST_CON00);
 			}
 		}
 	}
