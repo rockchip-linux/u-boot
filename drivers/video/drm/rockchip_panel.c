@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <malloc.h>
 #include <video.h>
-#include <backlight.h>
 #include <spi.h>
 #include <asm/gpio.h>
 #include <dm/device.h>
@@ -63,7 +62,6 @@ struct rockchip_panel_plat {
 
 struct rockchip_panel_priv {
 	struct udevice *power_supply;
-	struct udevice *backlight;
 	struct spi_slave *spi_slave;
 	struct gpio_desc enable_gpio;
 	struct gpio_desc reset_gpio;
@@ -369,24 +367,14 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 static void panel_simple_enable(struct rockchip_panel *panel)
 {
 	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
-	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 
 	if (plat->delay.enable)
 		mdelay(plat->delay.enable);
-
-	if (priv->backlight) {
-		backlight_set_brightness(priv->backlight, BACKLIGHT_DEFAULT);
-		backlight_enable(priv->backlight);
-	}
 }
 
 static void panel_simple_disable(struct rockchip_panel *panel)
 {
 	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
-	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
-
-	if (priv->backlight)
-		backlight_set_brightness(priv->backlight, BACKLIGHT_OFF);
 
 	if (plat->delay.disable)
 		mdelay(plat->delay.disable);
@@ -475,13 +463,6 @@ static int rockchip_panel_probe(struct udevice *dev)
 				   &priv->reset_gpio, GPIOD_IS_OUT);
 	if (ret && ret != -ENOENT) {
 		printf("%s: Cannot get reset GPIO: %d\n", __func__, ret);
-		return ret;
-	}
-
-	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
-					   "backlight", &priv->backlight);
-	if (ret && ret != -ENOENT) {
-		printf("%s: Cannot get backlight: %d\n", __func__, ret);
 		return ret;
 	}
 

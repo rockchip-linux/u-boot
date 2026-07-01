@@ -7,7 +7,9 @@
 #ifndef _ROCKCHIP_PANEL_H_
 #define _ROCKCHIP_PANEL_H_
 
+#include <backlight.h>
 #include <dm/device_compat.h>
+#include <dm/uclass.h>
 
 struct display_state;
 struct rockchip_panel;
@@ -24,6 +26,7 @@ struct rockchip_panel_funcs {
 
 struct rockchip_panel {
 	struct udevice *dev;
+	struct udevice *backlight;
 	u32 bus_format;
 	unsigned int bpc;
 	const struct rockchip_panel_funcs *funcs;
@@ -40,6 +43,8 @@ static inline void rockchip_panel_init(struct rockchip_panel *panel,
 				       struct rockchip_connector *conn,
 				       struct display_state *state)
 {
+	int ret;
+
 	if (!panel)
 		return;
 
@@ -51,6 +56,11 @@ static inline void rockchip_panel_init(struct rockchip_panel *panel,
 
 	if (panel->bpc)
 		state->conn_state.bpc = panel->bpc;
+
+	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, panel->dev,
+					   "backlight", &panel->backlight);
+	if (ret && ret != -ENOENT)
+		pr_err("%s: Failed to get backlight: %d\n", __func__, ret);
 }
 
 static inline void rockchip_panel_prepare(struct rockchip_panel *panel)
@@ -83,6 +93,11 @@ static inline void rockchip_panel_enable(struct rockchip_panel *panel)
 		panel->funcs->enable(panel);
 
 	panel->enabled = true;
+
+	if (panel->backlight) {
+		backlight_set_brightness(panel->backlight, BACKLIGHT_DEFAULT);
+		backlight_enable(panel->backlight);
+	}
 }
 
 static inline void rockchip_panel_unprepare(struct rockchip_panel *panel)
@@ -110,6 +125,9 @@ static inline void rockchip_panel_disable(struct rockchip_panel *panel)
 		dev_dbg(panel->dev, "Skipping disable of already disabled panel\n");
 		return;
 	}
+
+	if (panel->backlight)
+		backlight_set_brightness(panel->backlight, BACKLIGHT_OFF);
 
 	if (panel->funcs && panel->funcs->disable)
 		panel->funcs->disable(panel);
