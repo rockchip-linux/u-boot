@@ -11,7 +11,7 @@ usage()
 {
 	cat <<EOF
 Usage:
-  $0 -b <src-branch> <dst-branch> {-c <range-start> [range-end] | -n count} [-f path...] [-a author...] [-n count]
+  $0 -b <src-branch> <dst-branch> {-c <range-start> [range-end] | -n count} [-f path...] [-a author...] [-n count] [-o lineType]
 
 Options:
   -b  branches: source branch and destination branch
@@ -19,6 +19,7 @@ Options:
   -n  max output count after -c/-f/-a filters matched; required when -c is omitted
   -f  source pathspecs, supports multiple paths and !exclude pathspecs
   -a  source authors, supports multiple authors
+  -o  output line type: + only shows "+ ..." lines, - only shows "- ..." lines
 
 Output marks:
   -  same Change-Id exists in <dst-branch>
@@ -37,7 +38,7 @@ EOF
 is_option()
 {
 	case "$1" in
-	-b|-c|-f|-a|-n|-h|--help)
+	-b|-c|-f|-a|-n|-o|-h|--help)
 		return 0
 		;;
 	*)
@@ -77,6 +78,7 @@ dst_branch=
 range_start=
 range_end=
 max_count=
+line_type=
 authors=()
 pathspecs=()
 
@@ -143,6 +145,22 @@ while [ "$#" -gt 0 ]; do
 			exit 2
 		fi
 		max_count=$2
+		shift 2
+		;;
+	-o)
+		if [ "$#" -lt 2 ]; then
+			echo "error: -o requires <lineType>" >&2
+			exit 2
+		fi
+		case "$2" in
+		+|-)
+			line_type=$2
+			;;
+		*)
+			echo "error: invalid -o lineType: $2; expected + or -" >&2
+			exit 2
+			;;
+		esac
 		shift 2
 		;;
 	-h|--help)
@@ -262,6 +280,9 @@ for commit in $commits; do
 	subject=$(git log -1 --format=%s "$commit")
 
 	if [ -z "$change_id" ]; then
+		if [ -n "$line_type" ]; then
+			continue
+		fi
 		printf '? %s no-change-id %s\n' "$short_commit" "$subject"
 		continue
 	fi
@@ -269,9 +290,15 @@ for commit in $commits; do
 
 	match=$(awk -v change_id="$change_id" -F '\t' '$1 == change_id { print $2; exit }' "$tmpdir/upstream-change-ids")
 	if [ -n "$match" ]; then
+		if [ "$line_type" = "+" ]; then
+			continue
+		fi
 		short_match=$(git rev-parse --short=11 "$match")
 		printf -- '- %s | %s -> %s %s\n' "$short_change_id" "$short_commit" "$short_match" "$subject"
 	else
+		if [ "$line_type" = "-" ]; then
+			continue
+		fi
 		printf '%s+ %s | %s %s%s\n' "$color_new" "$short_change_id" "$short_commit" "$subject" "$color_reset"
 	fi
 done
