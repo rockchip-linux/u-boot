@@ -171,6 +171,13 @@ tmpdir=$(mktemp -d)
 
 trap 'rm -rf "$tmpdir"' EXIT
 
+color_new=
+color_reset=
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+	color_new=$'\033[32m'
+	color_reset=$'\033[m'
+fi
+
 git rev-parse --verify --quiet "${src_branch}^{commit}" >/dev/null || {
 	echo "error: invalid source branch or commit: ${src_branch}" >&2
 	exit 1
@@ -191,12 +198,27 @@ if [ -n "$range_start" ]; then
 		exit 1
 	}
 
+	git merge-base --is-ancestor "$range_start" "$src_branch" || {
+		echo "error: start commit ${range_start} is not reachable from ${src_branch}." >&2
+		exit 1
+	}
+
 	if [ -z "$range_end" ]; then
 		range_end=$src_branch
 	fi
 
 	git rev-parse --verify --quiet "${range_end}^{commit}" >/dev/null || {
 		echo "error: invalid range end commit: ${range_end}" >&2
+		exit 1
+	}
+
+	git merge-base --is-ancestor "$range_end" "$src_branch" || {
+		echo "error: end commit ${range_end} is not reachable from ${src_branch}." >&2
+		exit 1
+	}
+
+	git merge-base --is-ancestor "$range_start" "$range_end" || {
+		echo "error: start commit ${range_start} is not an ancestor of end commit ${range_end}." >&2
 		exit 1
 	}
 
@@ -250,6 +272,6 @@ for commit in $commits; do
 		short_match=$(git rev-parse --short=11 "$match")
 		printf -- '- %s | %s -> %s %s\n' "$short_change_id" "$short_commit" "$short_match" "$subject"
 	else
-		printf '+ %s | %s %s\n' "$short_change_id" "$short_commit" "$subject"
+		printf '%s+ %s | %s %s%s\n' "$color_new" "$short_change_id" "$short_commit" "$subject" "$color_reset"
 	fi
 done
