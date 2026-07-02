@@ -511,46 +511,100 @@ static int avb_image_distribute_prepare(AvbSlotVerifyData *slot_data,
 					AvbOps *ops, char *slot_suffix)
 {
 	struct AvbOpsData *data = (struct AvbOpsData *)(ops->user_data);
+	bool gbl_bootflow = false;
+	size_t total_size;
 	size_t dtbo_size;
 	size_t vendor_boot_size;
 	size_t init_boot_size;
 	size_t resource_size;
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	size_t esp_size;
+#endif
 	size_t boot_size;
 	void *image_buf;
 
-	boot_size = max(get_partition_size(ops, ANDROID_PARTITION_BOOT, slot_suffix),
-		get_partition_size(ops, ANDROID_PARTITION_RECOVERY, slot_suffix));
-	init_boot_size = get_partition_size(ops,
-				ANDROID_PARTITION_INIT_BOOT, slot_suffix);
-	vendor_boot_size = get_partition_size(ops,
-				ANDROID_PARTITION_VENDOR_BOOT, slot_suffix);
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	struct blk_desc *dev_desc = plat_bootdev();
+
+	if (dev_desc)
+		gbl_bootflow = is_gbl_bootflow(dev_desc);
+#endif
+
+	if (gbl_bootflow) {
+		boot_size = 0;
+		init_boot_size = 0;
+		vendor_boot_size = 0;
+	} else {
+		boot_size = max(get_partition_size(ops, ANDROID_PARTITION_BOOT, slot_suffix),
+			get_partition_size(ops, ANDROID_PARTITION_RECOVERY, slot_suffix));
+		init_boot_size = get_partition_size(ops,
+					ANDROID_PARTITION_INIT_BOOT, slot_suffix);
+		vendor_boot_size = get_partition_size(ops,
+					ANDROID_PARTITION_VENDOR_BOOT, slot_suffix);
+	}
 	resource_size = get_partition_size(ops,
 				ANDROID_PARTITION_RESOURCE, slot_suffix);
 	dtbo_size = get_partition_size(ops,
 				ANDROID_PARTITION_DTBO, slot_suffix);
-	image_buf = sysmem_alloc(MEM_AVB_ANDROID,
-				 boot_size + init_boot_size +
-				 vendor_boot_size + resource_size +
-				 dtbo_size);
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	esp_size = gbl_bootflow ? get_partition_size(ops,
+				ANDROID_PARTITION_ESP, slot_suffix) : 0;
+#endif
+	total_size = resource_size + dtbo_size;
+	if (!gbl_bootflow)
+		total_size += boot_size + init_boot_size + vendor_boot_size;
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	total_size += esp_size;
+#endif
+	image_buf = sysmem_alloc(MEM_AVB_ANDROID, total_size);
 	if (!image_buf) {
 		printf("avb: sysmem alloc failed\n");
 		return -ENOMEM;
 	}
 
-	/* layout: | boot/recovery | vendor_boot | init_boot | resource | dtbo | */
+	/*
+	 *	Partition buffer layout
+	 *
+	 * !gbl_bootflow:
+	 *	| boot/recovery | vendor_boot | init_boot | resource | dtbo |
+	 *
+	 *  gbl_bootflow:
+	 *	| resource | dtbo | android_esp |
+	 */
 	data->slot_suffix = slot_suffix;
-	data->boot.addr = image_buf;
-	data->boot.size = 0;
-	data->vendor_boot.addr = data->boot.addr + boot_size;
-	data->vendor_boot.size = 0;
-	data->init_boot.addr = data->vendor_boot.addr + vendor_boot_size;
-	data->init_boot.size = 0;
-	data->resource.addr = data->init_boot.addr + init_boot_size;
-	data->resource.size = 0;
+	if (gbl_bootflow) {
+		data->resource.addr = image_buf;
+	} else {
+		data->boot.addr = image_buf;
+		data->vendor_boot.addr = data->boot.addr + boot_size;
+		data->init_boot.addr = data->vendor_boot.addr + vendor_boot_size;
+		data->resource.addr = data->init_boot.addr + init_boot_size;
+	}
 	data->dtbo.addr = data->resource.addr + resource_size;
 	data->dtbo.size = 0;
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	if (gbl_bootflow)
+		data->esp.addr = data->dtbo.addr + dtbo_size;
+	data->esp.size = 0;
+#endif
+	data->boot.size = 0;
+	data->vendor_boot.size = 0;
+	data->init_boot.size = 0;
+	data->resource.size = 0;
 
 	return 0;
+}
+
+static void avb_image_distribute_release(struct AvbOpsData *data)
+{
+	void *image_buf = data->boot.addr;
+
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	if (!image_buf)
+		image_buf = data->resource.addr;
+#endif
+	if (image_buf)
+		sysmem_free((ulong)image_buf);
 }
 
 static int avb_image_distribute_finish(AvbSlotVerifyData *slot_data,
@@ -705,8 +759,8 @@ out:
 	if (slot_data)
 		avb_slot_verify_data_free(slot_data);
 	if (ops) {
-		if (*data_ret && prepare_distribute && (*data_ret)->boot.addr)
-			sysmem_free((ulong)(*data_ret)->boot.addr);
+		if (*data_ret && prepare_distribute)
+			avb_image_distribute_release(*data_ret);
 		avb_ops_user_free(ops);
 	}
 
@@ -788,6 +842,55 @@ out:
 
 	return ret;
 }
+
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+int android_image_verify_esp(void)
+{
+	const char *requested_partitions[] = {
+		ANDROID_PARTITION_ESP,
+		NULL,
+	};
+	struct AvbOpsData *data = NULL;
+	uint8_t unlocked = true;
+	AvbOps *ops = NULL;
+	AvbSlotVerifyData *slot_data = NULL;
+	AvbSlotVerifyResult ret;
+	char slot_suffix[3] = {0};
+	char *part_name;
+	void *image_buf = NULL;
+	int i;
+
+	ret = android_image_verify_partitions(requested_partitions,
+					      ANDROID_PARTITION_ESP,
+					      true,
+					      &ops, &data, &slot_data,
+					      slot_suffix, &unlocked);
+	if (ret)
+		return ret;
+
+	if (unlocked & LOCK_MASK) {
+		avb_ops_user_free(ops);
+		return 0;
+	}
+
+	for (i = 0; i < slot_data->num_loaded_partitions; i++) {
+		part_name = slot_data->loaded_partitions[i].partition_name;
+		if (!strncmp(ANDROID_PARTITION_ESP, part_name, 11)) {
+			image_buf = slot_data->loaded_partitions[i].data;
+			break;
+		}
+	}
+
+	if (!image_buf)
+		ret = AVB_SLOT_VERIFY_RESULT_ERROR_IO;
+
+	avb_slot_verify_data_free(slot_data);
+	avb_image_distribute_release(data);
+	avb_ops_user_free(ops);
+
+	return ret;
+}
+#endif
 
 #if defined(CONFIG_AVB_VERIFY) && defined(CONFIG_OF_LIBFDT_OVERLAY)
 static int android_image_verify_dtbo(ulong *dtbo_buf)
@@ -974,6 +1077,9 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 		data->init_boot = preload_user_data.init_boot;
 		data->dtbo = preload_user_data.dtbo;
 		data->resource = preload_user_data.resource;
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+		data->esp = preload_user_data.esp;
+#endif
 	} else {
 		ret = avb_image_distribute_prepare(slot_data, ops, slot_suffix);
 		if (ret < 0) {

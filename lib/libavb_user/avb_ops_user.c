@@ -27,6 +27,7 @@
  * Don't add unnecessary functions to this file.
  */
 #include <common.h>
+#include <android_bootloader.h>
 #include <image.h>
 #include <android_image.h>
 #include <malloc.h>
@@ -520,6 +521,11 @@ static AvbIOResult get_preloaded_partition(AvbOps* ops,
 			preload_info = &data->dtbo;
 		else if (!strncmp(partition, ANDROID_PARTITION_RESOURCE, 8))
 			preload_info = &data->resource;
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+		else if (is_gbl_bootflow(dev_desc) &&
+			 !strncmp(partition, ANDROID_PARTITION_ESP, 11))
+			preload_info = &data->esp;
+#endif
 
 		if (!preload_info) {
 			printf("Error: unknown full load partition '%s'\n", partition);
@@ -533,6 +539,9 @@ static AvbIOResult get_preloaded_partition(AvbOps* ops,
 
 		/* If the partition hasn't yet been preloaded, do it now.*/
 		if (preload_info->size == 0) {
+			if (!preload_info->addr)
+				return AVB_IO_RESULT_ERROR_OOM;
+
 			ret = ops->read_from_partition(ops, partition,
 						       0, num_bytes,
 						       preload_info->addr,
@@ -548,7 +557,12 @@ static AvbIOResult get_preloaded_partition(AvbOps* ops,
 		    !strncmp(partition, ANDROID_PARTITION_VENDOR_BOOT, 11) ||
 		    !strncmp(partition, ANDROID_PARTITION_BOOT, 4) ||
 		    !strncmp(partition, ANDROID_PARTITION_RECOVERY, 8) ||
-		    !strncmp(partition, ANDROID_PARTITION_RESOURCE, 8)) {
+		    !strncmp(partition, ANDROID_PARTITION_RESOURCE, 8)
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+		    || (is_gbl_bootflow(dev_desc) &&
+			!strncmp(partition, ANDROID_PARTITION_ESP, 11))
+#endif
+		    ) {
 			/* If already full preloaded, just use it */
 			if (!strncmp(partition, ANDROID_PARTITION_BOOT, 4) ||
 			    !strncmp(partition, ANDROID_PARTITION_RECOVERY, 8)) {
@@ -572,7 +586,12 @@ static AvbIOResult get_preloaded_partition(AvbOps* ops,
 		 */
 		if (!strncmp(partition, ANDROID_PARTITION_INIT_BOOT, 9) ||
 		    !strncmp(partition, ANDROID_PARTITION_VENDOR_BOOT, 11) ||
-		    !strncmp(partition, ANDROID_PARTITION_RESOURCE, 8)) {
+		    !strncmp(partition, ANDROID_PARTITION_RESOURCE, 8)
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+		    || (is_gbl_bootflow(dev_desc) &&
+			!strncmp(partition, ANDROID_PARTITION_ESP, 11))
+#endif
+		    ) {
 			*out_pointer = (u8 *)avb_malloc(ARCH_DMA_MINALIGN);
 			*out_num_bytes_preloaded = num_bytes; /* return what it expects */
 			return AVB_IO_RESULT_OK;

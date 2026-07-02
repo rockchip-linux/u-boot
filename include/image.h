@@ -2234,6 +2234,9 @@ int android_image_load_by_partname(struct blk_desc *dev_desc,
 				   unsigned long *load_address);
 
 int android_image_verify_resource(const char *boot_part, ulong *resc_buf);
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+int android_image_verify_esp(void);
+#endif
 
 bool is_android_boot_image_header(const void *hdr);
 bool android_image_get_dtb_by_index(ulong hdr_addr, ulong vendor_boot_img,

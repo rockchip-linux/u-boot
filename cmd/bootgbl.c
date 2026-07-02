@@ -7,6 +7,9 @@
 #include <common.h>
 #include <android_bootloader.h>
 #include <command.h>
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+#include <image.h>
+#endif
 #include <part.h>
 
 /*
@@ -17,6 +20,9 @@
 static int do_boot_gbl(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	struct blk_desc *dev_desc;
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	int ret;
+#endif
 
 	dev_desc = plat_bootdev();
 	if (!dev_desc) {
@@ -28,6 +34,14 @@ static int do_boot_gbl(struct cmd_tbl *cmdtp, int flag, int argc, char *const ar
 		printf("android_esp partition not found\n");
 		return CMD_RET_FAILURE;
 	}
+
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	ret = android_image_verify_esp();
+	if (ret) {
+		printf("android_esp avb verify fail: %d\n", ret);
+		return CMD_RET_FAILURE;
+	}
+#endif
 
 	printf("## Booting GBL\n");
 

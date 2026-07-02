@@ -7,6 +7,15 @@ config GBL
 	  Enable support for GBL-specific EFI protocols and configuration.
 
 if GBL
+config GBL_VERIFY_BY_VBMETA
+	bool "Verify GBL ESP by vbmeta"
+	depends on ANDROID_BOOT_IMAGE
+	depends on AVB_VERIFY
+	depends on LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE
+	default y
+	help
+	  Verify the android_esp partition through vbmeta before entering GBL.
+
 config GBL_EFI_BOOT_CONTROL_PROTOCOL
 	bool "Include GBL Boot Control protocol"
 	select CRC32

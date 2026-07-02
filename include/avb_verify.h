@@ -50,6 +50,9 @@ struct AvbOpsData {
 	struct preloaded_partition init_boot;
 	struct preloaded_partition dtbo;
 	struct preloaded_partition resource;
+#ifdef CONFIG_GBL_VERIFY_BY_VBMETA
+	struct preloaded_partition esp;
+#endif
 };
 
 struct mmc_part {
