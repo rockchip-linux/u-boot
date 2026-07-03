@@ -446,12 +446,14 @@ static int rockchip_mcu_panel_init(struct rockchip_mcu_panel *mcu_panel, ofnode 
 					 &mcu_panel->reset_gpio, GPIOD_IS_OUT);
 	if (ret && ret != -ENOENT) {
 		printf("%s: Cannot get mcu panel reset GPIO: %d\n", __func__, ret);
-		return ret;
+		goto free_enable_gpio;
 	}
 
 	mcu_panel->desc = calloc(1, sizeof(struct rockchip_mcu_panel_desc));
-	if (!mcu_panel->desc)
-		return -ENOMEM;
+	if (!mcu_panel->desc) {
+		ret = -ENOMEM;
+		goto free_reset_gpio;
+	}
 
 	mcu_panel->desc->power_invert = ofnode_read_bool(mcu_panel_node, "power-invert");
 
@@ -469,13 +471,15 @@ static int rockchip_mcu_panel_init(struct rockchip_mcu_panel *mcu_panel, ofnode 
 	data = ofnode_get_property(mcu_panel_node, "panel-init-sequence", &len);
 	if (data) {
 		mcu_panel->desc->init_seq = calloc(1, sizeof(*mcu_panel->desc->init_seq));
-		if (!mcu_panel->desc->init_seq)
-			return -ENOMEM;
+		if (!mcu_panel->desc->init_seq) {
+			ret = -ENOMEM;
+			goto free_desc;
+		}
 
 		ret = rockchip_mcu_panel_parse_cmds(data, len, mcu_panel->desc->init_seq);
 		if (ret) {
 			printf("failed to parse panel init sequence\n");
-			goto free_on_cmds;
+			goto free_init_seq;
 		}
 	}
 
@@ -484,29 +488,58 @@ static int rockchip_mcu_panel_init(struct rockchip_mcu_panel *mcu_panel, ofnode 
 		mcu_panel->desc->exit_seq = calloc(1, sizeof(*mcu_panel->desc->exit_seq));
 		if (!mcu_panel->desc->exit_seq) {
 			ret = -ENOMEM;
-			goto free_on_cmds;
+			goto free_init_cmds;
 		}
 
 		ret = rockchip_mcu_panel_parse_cmds(data, len, mcu_panel->desc->exit_seq);
 		if (ret) {
 			printf("failed to parse panel exit sequence\n");
-			goto free_cmds;
+			goto free_exit_seq;
 		}
 	}
 
 	return 0;
 
-free_cmds:
+free_exit_seq:
 	free(mcu_panel->desc->exit_seq);
-free_on_cmds:
+free_init_cmds:
+	if (mcu_panel->desc->init_seq)
+		free(mcu_panel->desc->init_seq->cmds);
+free_init_seq:
 	free(mcu_panel->desc->init_seq);
+free_desc:
+	free(mcu_panel->desc);
+free_reset_gpio:
+	if (dm_gpio_is_valid(&mcu_panel->reset_gpio))
+		gpio_free_list_nodev(&mcu_panel->reset_gpio, 1);
+free_enable_gpio:
+	if (dm_gpio_is_valid(&mcu_panel->enable_gpio))
+		gpio_free_list_nodev(&mcu_panel->enable_gpio, 1);
 	return ret;
+}
+
+static void rockchip_mcu_panel_deinit(struct rockchip_mcu_panel *mcu_panel)
+{
+	if (mcu_panel->desc) {
+		if (mcu_panel->desc->exit_seq)
+			free(mcu_panel->desc->exit_seq->cmds);
+		free(mcu_panel->desc->exit_seq);
+		if (mcu_panel->desc->init_seq)
+			free(mcu_panel->desc->init_seq->cmds);
+		free(mcu_panel->desc->init_seq);
+	}
+	free(mcu_panel->desc);
+	if (dm_gpio_is_valid(&mcu_panel->reset_gpio))
+		gpio_free_list_nodev(&mcu_panel->reset_gpio, 1);
+	if (dm_gpio_is_valid(&mcu_panel->enable_gpio))
+		gpio_free_list_nodev(&mcu_panel->enable_gpio, 1);
 }
 
 static int rockchip_rgb_probe(struct udevice *dev)
 {
 	struct rockchip_rgb *rgb = dev_get_priv(dev);
 	const struct rockchip_rgb_data *rgb_data;
+	struct rockchip_mcu_panel *mcu_panel;
 	ofnode mcu_panel_node;
 	int phandle;
 	int ret;
@@ -530,8 +563,6 @@ static int rockchip_rgb_probe(struct udevice *dev)
 
 	mcu_panel_node = dev_read_subnode(dev, "mcu-panel");
 	if (ofnode_valid(mcu_panel_node) && ofnode_is_available(mcu_panel_node)) {
-		struct rockchip_mcu_panel *mcu_panel;
-
 		mcu_panel = calloc(1, sizeof(struct rockchip_mcu_panel));
 		if (!mcu_panel) {
 			printf("failed to alloc mcu_panel data\n");
@@ -541,20 +572,21 @@ static int rockchip_rgb_probe(struct udevice *dev)
 		ret = rockchip_mcu_panel_init(mcu_panel, mcu_panel_node);
 		if (ret < 0) {
 			printf("failed to init mcu_panel: %d\n", ret);
-			return ret;
+			goto free_mcu_panel;
 		}
 
 		phandle = ofnode_read_u32_default(mcu_panel_node, "backlight", -1);
 		if (phandle < 0) {
 			printf("failed to find backlight phandle\n");
-			return -EINVAL;
+			ret = -EINVAL;
+			goto deinit_mcu_panel;
 		}
 
 		ret = uclass_get_device_by_phandle_id(UCLASS_PANEL_BACKLIGHT, phandle,
 						      &mcu_panel->backlight);
 		if (ret && ret != -ENOENT) {
 			printf("%s: failed to get backlight device: %d\n", __func__, ret);
-			return ret;
+			goto deinit_mcu_panel;
 		}
 
 		mcu_panel->base.dev = dev;
@@ -571,6 +603,12 @@ static int rockchip_rgb_probe(struct udevice *dev)
 				NULL, DRM_MODE_CONNECTOR_LVDS);
 
 	return 0;
+
+deinit_mcu_panel:
+	rockchip_mcu_panel_deinit(mcu_panel);
+free_mcu_panel:
+	free(mcu_panel);
+	return ret;
 }
 
 static void rv1106_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
