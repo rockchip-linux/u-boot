@@ -737,7 +737,7 @@ int rsa_burn_key_hash(struct image_sign_info *info)
 	struct udevice *dev;
 	struct key_prop prop;
 	char name[100] = {0};
-	uint8_t otp_write;
+	uint8_t otp_write[2] = {0}; /* write max 2 bytes once */
 	const void *blob = info->fdt_blob;
 	uint8_t digest_write[FIT_MAX_HASH_LEN];
 	int sig_node, node, digest_len;
@@ -845,15 +845,12 @@ int rsa_burn_key_hash(struct image_sign_info *info)
 		printf("RSA: Write RSA key hash successfully.\n");
 	}
 #endif
-/*
- * For some chips, rsa4096 flag and secureboot flag should be burned together
- * because of ecc enable. OTP_RSA4096_ENABLE_ADDR won't defined for burning
- * these two flags only once.
- */
+
+	/* Some chips need writing specific flag to enable rsa4096 support. */
 #if defined(CONFIG_FIT_ENABLE_RSA4096_SUPPORT) && defined(OTP_RSA4096_ENABLE_ADDR)
 	/* Burn rsa4096 flag here */
-	otp_write = OTP_RSA4096_ENABLE_VALUE;
-	if (misc_otp_write_verify(dev, OTP_RSA4096_ENABLE_ADDR, &otp_write,
+	otp_write[0] = OTP_RSA4096_ENABLE_VALUE;
+	if (misc_otp_write_verify(dev, OTP_RSA4096_ENABLE_ADDR, otp_write,
 				  OTP_RSA4096_ENABLE_SIZE)) {
 		printf("RSA: Write rsa4096 flag fail.\n");
 		ret = -EIO;
@@ -865,8 +862,8 @@ int rsa_burn_key_hash(struct image_sign_info *info)
 
 #if defined(CONFIG_SPL_REVOKE_PUB_KEY)
 	/* Burn revoke key config here */
-	otp_write = OTP_RSA_HASH_REVOKE_VAL;
-	if (misc_otp_write_verify(dev, OTP_RSA_HASH_REVOKE_ADDR, &otp_write,
+	otp_write[0] = OTP_RSA_HASH_REVOKE_VAL;
+	if (misc_otp_write_verify(dev, OTP_RSA_HASH_REVOKE_ADDR, otp_write,
 				  OTP_RSA_HASH_REVOKE_SIZE)) {
 		printf("RSA: Write revoke key config fail.\n");
 		ret = -EIO;
@@ -876,8 +873,17 @@ int rsa_burn_key_hash(struct image_sign_info *info)
 	}
 #else
 	/* Burn secure flag here */
-	otp_write = OTP_SECURE_BOOT_ENABLE_VALUE;
-	if (misc_otp_write_verify(dev, OTP_SECURE_BOOT_ENABLE_ADDR, &otp_write,
+	otp_write[0] = OTP_SECURE_BOOT_ENABLE_VALUE;
+	/*
+	 * For chips need rsa4096 flag, rsa4096 flag and secureboot flag should be burned
+	 * together when this region enable ecc. OTP_RSA4096_ENABLE_ADDR won't defined for burning
+	 * these two flags only once.
+	 */
+#if defined(CONFIG_FIT_ENABLE_RSA4096_SUPPORT) && \
+    (defined(CONFIG_ROCKCHIP_RK3568) || defined(CONFIG_ROCKCHIP_RV1106))
+	otp_write[1] = OTP_RSA4096_ENABLE_VALUE;
+#endif
+	if (misc_otp_write_verify(dev, OTP_SECURE_BOOT_ENABLE_ADDR, otp_write,
 				  OTP_SECURE_BOOT_ENABLE_SIZE)) {
 		printf("RSA: Write secure flag fail.\n");
 		ret = -EIO;
