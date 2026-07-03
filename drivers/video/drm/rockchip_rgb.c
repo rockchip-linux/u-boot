@@ -16,7 +16,6 @@
 #include <dm/pinctrl.h>
 #include <linux/media-bus-format.h>
 #include <asm/gpio.h>
-#include <backlight.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -147,7 +146,6 @@ struct rockchip_mcu_panel {
 	struct rockchip_panel base;
 	struct rockchip_mcu_panel_desc *desc;
 	struct udevice *power_supply;
-	struct udevice *backlight;
 
 	struct gpio_desc enable_gpio;
 	struct gpio_desc reset_gpio;
@@ -368,17 +366,11 @@ static void rockchip_mcu_panel_enable(struct rockchip_panel *panel)
 
 	if (mcu_panel->desc->delay.enable)
 		mdelay(mcu_panel->desc->delay.enable);
-
-	if (mcu_panel->backlight)
-		backlight_enable(mcu_panel->backlight);
 }
 
 static void rockchip_mcu_panel_disable(struct rockchip_panel *panel)
 {
 	struct rockchip_mcu_panel *mcu_panel = to_rockchip_mcu_panel(panel);
-
-	if (mcu_panel->backlight)
-		backlight_set_brightness(mcu_panel->backlight, BACKLIGHT_OFF);
 
 	if (mcu_panel->desc->delay.disable)
 		mdelay(mcu_panel->desc->delay.disable);
@@ -552,13 +544,6 @@ static int rockchip_mcu_panel_probe(struct udevice *dev)
 		return ret;
 	}
 
-	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
-					   "backlight", &mcu_panel->backlight);
-	if (ret && ret != -ENOENT) {
-		printf("%s: failed to get backlight device: %d\n", __func__, ret);
-		goto deinit_mcu_panel;
-	}
-
 	mcu_panel->base.dev = dev;
 	mcu_panel->base.bus_format = mcu_panel->desc->bus_format;
 	mcu_panel->base.bpc = mcu_panel->desc->bpc;
@@ -566,10 +551,6 @@ static int rockchip_mcu_panel_probe(struct udevice *dev)
 	dev->driver_data = (ulong)&mcu_panel->base;
 
 	return 0;
-
-deinit_mcu_panel:
-	rockchip_mcu_panel_deinit(mcu_panel);
-	return ret;
 }
 
 static int rockchip_mcu_panel_remove(struct udevice *dev)
