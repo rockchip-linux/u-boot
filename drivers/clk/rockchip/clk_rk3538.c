@@ -1048,6 +1048,42 @@ static ulong rk3538_mac_set_rate(struct rk3538_clk_priv *priv,
 	return rk3538_mac_get_rate(priv, clk_id);
 }
 
+static ulong rk3538_vo_get_rate(struct rk3538_clk_priv *priv,
+				 ulong clk_id)
+{
+	struct rk3538_cru *cru = priv->cru;
+	u32 sel, div, con;
+	ulong rate = 0, p_rate;
+
+	switch (clk_id) {
+	case ACLK_VO_ROOT_SRC:
+		con = readl(&cru->clksel_con[20]);
+		sel = (con & ACLK_VO_ROOT_SEL_MASK) >> ACLK_VO_ROOT_SEL_SHIFT;
+		div = (con & ACLK_VO_ROOT_DIV_MASK) >> ACLK_VO_ROOT_DIV_SHIFT;
+		if (sel == ACLK_VO_ROOT_SEL_CPLL)
+			rate = DIV_TO_RATE(priv->cpll_hz, div);
+		else
+			rate = DIV_TO_RATE(priv->gpll_hz, div);
+		break;
+	case CLK_IREFCLK_HDMITX:
+		con = readl(&cru->voclksel_con[1]);
+		sel = (con & CLK_IREFCLK_HDMITX_SEL_MASK) >> CLK_IREFCLK_HDMITX_SEL_SHIFT;
+		div = (con & CLK_HDMITX_EARC_HIGH_FOR_IREFCLK_DIV_MASK) >> CLK_HDMITX_EARC_HIGH_FOR_IREFCLK_DIV_SHIFT;
+		if (sel == CLK_IREFCLK_HDMITX_SEL_HIGH) {
+			p_rate = DIV_TO_RATE(priv->gpll_hz, div);
+			con = readl(&cru->clksel_con[20]);
+			div = (con & CLK_HDMITX_EARC_HIGH_SRC_DIV_MASK) >> CLK_HDMITX_EARC_HIGH_SRC_DIV_SHIFT;
+			rate = DIV_TO_RATE(p_rate, div);
+		} else {
+			rate = rk3538_vo_get_rate(priv, ACLK_VO_ROOT_SRC);
+		}
+		break;
+	default:
+		return -ENOENT;
+	}
+	return rate;
+}
+
 static ulong rk3538_clk_get_rate(struct clk *clk)
 {
 	struct rk3538_clk_priv *priv = dev_get_priv(clk->dev);
@@ -1139,6 +1175,10 @@ static ulong rk3538_clk_get_rate(struct clk *clk)
 	case CLK_MAC_PTP_REF:
 	case ETH0_CLK_25M_OUT:
 		rate = rk3538_mac_get_rate(priv, clk->id);
+		break;
+	case ACLK_VO_ROOT_SRC:
+	case CLK_IREFCLK_HDMITX:
+		rate = rk3538_vo_get_rate(priv, clk->id);
 		break;
 	default:
 		return -ENOENT;
