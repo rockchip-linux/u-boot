@@ -150,9 +150,6 @@ struct rockchip_mcu_panel {
 
 	struct gpio_desc enable_gpio;
 	struct gpio_desc reset_gpio;
-
-	bool prepared;
-	bool enabled;
 };
 
 static inline struct rockchip_mcu_panel *to_rockchip_mcu_panel(struct rockchip_panel *panel)
@@ -318,9 +315,6 @@ static void rockchip_mcu_panel_prepare(struct rockchip_panel *panel)
 	struct rockchip_mcu_panel *mcu_panel = to_rockchip_mcu_panel(panel);
 	int ret;
 
-	if (mcu_panel->prepared)
-		return;
-
 	if (dm_gpio_is_valid(&mcu_panel->enable_gpio))
 		dm_gpio_set_value(&mcu_panel->enable_gpio, 1);
 
@@ -344,17 +338,12 @@ static void rockchip_mcu_panel_prepare(struct rockchip_panel *panel)
 		if (ret)
 			printf("failed to send mcu panel init cmds: %d\n", ret);
 	}
-
-	mcu_panel->prepared = true;
 }
 
 static void rockchip_mcu_panel_unprepare(struct rockchip_panel *panel)
 {
 	struct rockchip_mcu_panel *mcu_panel = to_rockchip_mcu_panel(panel);
 	int ret;
-
-	if (!mcu_panel->prepared)
-		return;
 
 	if (mcu_panel->desc->exit_seq) {
 		ret = rockchip_mcu_panel_send_cmds(panel->state, mcu_panel->desc->exit_seq);
@@ -370,40 +359,28 @@ static void rockchip_mcu_panel_unprepare(struct rockchip_panel *panel)
 
 	if (mcu_panel->desc->delay.unprepare)
 		mdelay(mcu_panel->desc->delay.unprepare);
-
-	mcu_panel->prepared = false;
 }
 
 static void rockchip_mcu_panel_enable(struct rockchip_panel *panel)
 {
 	struct rockchip_mcu_panel *mcu_panel = to_rockchip_mcu_panel(panel);
 
-	if (mcu_panel->enabled)
-		return;
-
 	if (mcu_panel->desc->delay.enable)
 		mdelay(mcu_panel->desc->delay.enable);
 
 	if (mcu_panel->backlight)
 		backlight_enable(mcu_panel->backlight);
-
-	mcu_panel->enabled = true;
 }
 
 static void rockchip_mcu_panel_disable(struct rockchip_panel *panel)
 {
 	struct rockchip_mcu_panel *mcu_panel = to_rockchip_mcu_panel(panel);
 
-	if (!mcu_panel->enabled)
-		return;
-
 	if (mcu_panel->backlight)
 		backlight_set_brightness(mcu_panel->backlight, BACKLIGHT_OFF);
 
 	if (mcu_panel->desc->delay.disable)
 		mdelay(mcu_panel->desc->delay.disable);
-
-	mcu_panel->enabled = false;
 }
 
 static const struct rockchip_panel_funcs rockchip_mcu_panel_funcs = {
@@ -561,7 +538,7 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	if (ofnode_valid(mcu_panel_node) && ofnode_is_enabled(mcu_panel_node)) {
 		struct rockchip_mcu_panel *mcu_panel;
 
-		mcu_panel = malloc(sizeof(struct rockchip_mcu_panel));
+		mcu_panel = calloc(1, sizeof(struct rockchip_mcu_panel));
 		if (!mcu_panel) {
 			printf("failed to alloc mcu_panel data\n");
 			return -ENOMEM;
@@ -590,8 +567,6 @@ static int rockchip_rgb_probe(struct udevice *dev)
 		mcu_panel->base.bus_format = mcu_panel->desc->bus_format;
 		mcu_panel->base.bpc = mcu_panel->desc->bpc;
 		mcu_panel->base.funcs = &rockchip_mcu_panel_funcs;
-		mcu_panel->enabled = false;
-		mcu_panel->prepared = false;
 
 		rgb->connector.panel = &mcu_panel->base;
 	}
