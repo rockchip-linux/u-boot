@@ -449,7 +449,7 @@ static int rockchip_mcu_panel_init(struct rockchip_mcu_panel *mcu_panel, ofnode 
 		return ret;
 	}
 
-	mcu_panel->desc = malloc(sizeof(struct rockchip_mcu_panel_desc));
+	mcu_panel->desc = calloc(1, sizeof(struct rockchip_mcu_panel_desc));
 	if (!mcu_panel->desc)
 		return -ENOMEM;
 
