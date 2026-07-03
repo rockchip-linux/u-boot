@@ -999,6 +999,7 @@ static ulong rk3572_aclk_vop_get_clk(struct rk3572_clk_priv *priv, ulong clk_id)
 			parent = priv->gpll_hz;
 		return DIV_TO_RATE(parent, div);
 	case ACLK_VO_ROOT:
+	case CLK_HDMITX0_REF:
 		con = readl(&cru->clksel_con[185]);
 		div = (con & ACLK_VO_ROOT_DIV_MASK) >> ACLK_VO_ROOT_DIV_SHIFT;
 		sel = (con & ACLK_VO_ROOT_SEL_MASK) >> ACLK_VO_ROOT_SEL_SHIFT;
@@ -2029,6 +2030,7 @@ static ulong rk3572_clk_get_rate(struct clk *clk)
 	case ACLK_VOP_ROOT:
 	case ACLK_VOP:
 	case ACLK_VO_ROOT:
+	case CLK_HDMITX0_REF:
 	case HCLK_VOP_ROOT:
 	case PCLK_VOP_ROOT:
 		rate = rk3572_aclk_vop_get_clk(priv, clk->id);
