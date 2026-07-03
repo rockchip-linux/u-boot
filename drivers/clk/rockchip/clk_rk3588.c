@@ -1534,6 +1534,33 @@ static ulong rk3588_pciephy_set_rate(struct rk3588_clk_priv *priv,
 
 	return rk3588_pciephy_get_rate(priv, clk_id);
 }
+
+static ulong rk3588_hdcp_get_rate(struct rk3588_clk_priv *priv, ulong clk_id)
+{
+	struct rk3588_cru *cru = priv->cru;
+	u32 con, div, src;
+
+	switch (clk_id) {
+	case ACLK_HDCP1_ROOT:
+	case CLK_HDMIRX_REF:
+	case CLK_HDMITX0_REF:
+	case CLK_HDMITX1_REF:
+		con = readl(&cru->clksel_con[128]);
+		src = (con & ACLK_HDCP1_ROOT_SEL_MASK) >> ACLK_HDCP1_ROOT_SEL_SHIFT;
+		con = readl(&cru->clksel_con[128]);
+		div = (con & ACLK_HDCP1_ROOT_DIV_MASK) >> ACLK_HDCP1_ROOT_DIV_SHIFT;
+		break;
+	default:
+		return -ENOENT;
+	}
+
+	if (src == ACLK_HDCP1_ROOT_SEL_CPLL) {
+		return DIV_TO_RATE(priv->cpll_hz, div);
+	} else {
+		return DIV_TO_RATE(priv->gpll_hz, div);
+	}
+}
+
 #endif
 
 static ulong rk3588_clk_get_rate(struct clk *clk)
@@ -1682,6 +1709,12 @@ static ulong rk3588_clk_get_rate(struct clk *clk)
 	case CLK_REF_PIPE_PHY1:
 	case CLK_REF_PIPE_PHY2:
 		rate = rk3588_pciephy_get_rate(priv, clk->id);
+		break;
+	case ACLK_HDCP1_ROOT:
+	case CLK_HDMIRX_REF:
+	case CLK_HDMITX0_REF:
+	case CLK_HDMITX1_REF:
+		rate = rk3588_hdcp_get_rate(priv, clk->id);
 		break;
 #endif
 	default:
