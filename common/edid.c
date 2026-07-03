@@ -5094,7 +5094,7 @@ static int validate_displayid(u8 *displayid, int length, int idx)
 
 static struct
 drm_display_mode *drm_displayid_detailed(struct displayid_detailed_timings_1
-					      *timings)
+					      *timings, bool type_7)
 {
 	struct drm_display_mode *mode;
 	unsigned pixel_clock = (timings->pixel_clock[0] |
@@ -5118,7 +5118,8 @@ drm_display_mode *drm_displayid_detailed(struct displayid_detailed_timings_1
 	if (!mode)
 		return NULL;
 
-	mode->clock = pixel_clock * 10;
+	/* resolution is kHz for type VII, and 10 kHz for type I */
+	mode->clock = type_7 ? pixel_clock : pixel_clock * 10;
 	mode->hdisplay = hactive;
 	mode->hsync_start = mode->hdisplay + hsync;
 	mode->hsync_end = mode->hsync_start + hsync_width;
@@ -5151,6 +5152,7 @@ static int add_displayid_detailed_1_modes(struct hdmi_edid_data *data,
 	int num_timings;
 	struct drm_display_mode *newmode;
 	int num_modes = 0;
+	bool type_7 = block->tag == DATA_BLOCK_2_TYPE_7_DETAILED_TIMING;
 
 	det = (struct displayid_detailed_timing_block *)block;
 	/* blocks must be multiple of 20 bytes length */
@@ -5162,7 +5164,7 @@ static int add_displayid_detailed_1_modes(struct hdmi_edid_data *data,
 		struct displayid_detailed_timings_1 *timings =
 			&det->timings[i];
 
-		newmode = drm_displayid_detailed(timings);
+		newmode = drm_displayid_detailed(timings, type_7);
 		if (!newmode)
 			continue;
 		drm_add_hdmi_modes(data, newmode);
@@ -5198,6 +5200,7 @@ static int add_displayid_detailed_modes(struct hdmi_edid_data *data,
 		idx += block->num_bytes + sizeof(struct displayid_block);
 		switch (block->tag) {
 		case DATA_BLOCK_TYPE_1_DETAILED_TIMING:
+		case DATA_BLOCK_2_TYPE_7_DETAILED_TIMING:
 			num_modes +=
 				add_displayid_detailed_1_modes(data, block);
 			break;
