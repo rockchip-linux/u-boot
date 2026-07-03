@@ -1470,6 +1470,8 @@ static int dw_dp_connector_init(struct rockchip_connector *conn, struct display_
 	dw_dp_init(dp);
 	ret = generic_phy_power_on(&dp->phy);
 
+	conn->aux = &dp->aux;
+
 	return ret;
 }
 
