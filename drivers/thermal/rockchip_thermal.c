@@ -104,6 +104,12 @@ enum adc_sort_mode {
 #define TSADCV3_DATA_MASK			0x3ff
 #define TSADCV4_DATA_MASK			0x1ff
 #define TSADCV5_DATA_MASK			0x7ff
+#define TSADCV6_DATA_MASK			0x1ffff
+
+#define TSADC_DATA_SIGN_BIT			BIT(16)
+#define TSADC_DATA_NEGATIVE			0xfffe0000
+#define TSADC_TEMP_DEBOUNCE			5000
+#define TSADC_TEMP_CRITICAL			115000
 
 #define TSADCV2_HIGHT_INT_DEBOUNCE_COUNT	4
 #define TSADCV2_HIGHT_TSHUT_DEBOUNCE_COUNT	4
@@ -120,6 +126,8 @@ enum adc_sort_mode {
 #define TSADCV3_Q_MAX_VAL			0x7ff /* 11bit 2047 */
 #define TSADCV12_AUTO_PERIOD_TIME		3000 /* 2.5ms */
 #define TSADCV12_AUTO_PERIOD_HT_TIME		3000 /* 2.5ms */
+#define TSADCV14_AUTO_PERIOD_TIME		60000 /* 2.5ms */
+#define TSADCV14_AUTO_PERIOD_HT_TIME		60000 /* 2.5ms */
 #define TSADCV12_Q_MAX_VAL			0xfff /* 12bit 4095 */
 #define TSADCV9_Q_MAX				0x210
 #define TSADCV9_Q_MAX_VAL			(0xffff0400 << 0)
@@ -1001,6 +1009,26 @@ static void tsadc_init_v12(struct udevice *dev)
 	}
 }
 
+static void tsadc_init_v14(struct udevice *dev)
+{
+	struct rockchip_thermal_priv *priv = dev_get_priv(dev);
+
+	writel(TSADCV14_AUTO_PERIOD_TIME, priv->base + TSADCV3_AUTO_PERIOD);
+	writel(TSADCV14_AUTO_PERIOD_TIME,
+		       priv->base + TSADCV3_AUTO_PERIOD_HT);
+	writel(TSADCV2_HIGHT_INT_DEBOUNCE_COUNT,
+		       priv->base + TSADCV3_HIGHT_INT_DEBOUNCE);
+	writel(TSADCV2_HIGHT_TSHUT_DEBOUNCE_COUNT,
+		       priv->base + TSADCV3_HIGHT_TSHUT_DEBOUNCE);
+	if (priv->tshut_polarity == TSHUT_HIGH_ACTIVE)
+		writel(TSADCV2_AUTO_TSHUT_POLARITY_HIGH |
+			       TSADCV2_AUTO_TSHUT_POLARITY_MASK,
+			       priv->base + TSADCV2_AUTO_CON);
+	else
+		writel(TSADCV2_AUTO_TSHUT_POLARITY_MASK,
+			       priv->base + TSADCV2_AUTO_CON);
+}
+
 static int tsadc_get_temp_v2(struct udevice *dev,
 			     int chn, int *temp)
 {
@@ -1106,6 +1134,53 @@ static int tsadc_get_temp_v4(struct udevice *dev, int chn, int *temp)
 	return tsadc_code_to_temp(&table, val, temp);
 }
 
+static int rk_tsadc_limit_amplitude(int new_temp, bool enable)
+{
+	static int last_temp = INT_MAX;
+
+	/* Reinit last temp when phy init */
+	if (!enable) {
+		last_temp = INT_MAX;
+		return 0;
+	}
+
+	if (last_temp != INT_MAX) {
+		if (abs(new_temp - last_temp) > TSADC_TEMP_DEBOUNCE) {
+			if (new_temp > last_temp)
+				new_temp = last_temp + TSADC_TEMP_DEBOUNCE;
+			else
+				new_temp = last_temp - TSADC_TEMP_DEBOUNCE;
+		}
+	} else {
+		/* Limit the first temperature */
+		if (new_temp >= TSADC_TEMP_CRITICAL)
+			new_temp = TSADC_TEMP_CRITICAL - TSADC_TEMP_DEBOUNCE;
+	}
+	last_temp = new_temp;
+
+	return new_temp;
+}
+
+static int tsadc_get_temp_v5(struct udevice *dev, int chn, int *temp)
+{
+	struct rockchip_thermal_priv *priv = dev_get_priv(dev);
+	u32 val;
+
+	val = readl(priv->base + TSADCV3_DATA(chn));
+	*temp = val & TSADCV6_DATA_MASK;
+	if (val & TSADC_DATA_SIGN_BIT)
+		*temp |= TSADC_DATA_NEGATIVE;
+	*temp *= 10;
+	if (*temp < MIN_TEMP)
+		*temp = MIN_TEMP;
+	else if (*temp > MAX_TEMP)
+		*temp = MAX_TEMP;
+
+	*temp = rk_tsadc_limit_amplitude(*temp, true);
+
+	return 0;
+}
+
 static void tsadc_alarm_temp_v2(struct udevice *dev,
 				int chn, int temp)
 {
@@ -1139,6 +1214,20 @@ static void tsadc_alarm_temp_v3(struct udevice *dev, int chn, int temp)
 	       priv->base + TSADCV3_HT_INT_EN);
 }
 
+static void tsadc_alarm_temp_v4(struct udevice *dev, int chn, int temp)
+{
+	struct rockchip_thermal_priv *priv = dev_get_priv(dev);
+	u32 alarm_value;
+
+	/* Make sure the value is valid */
+	if (temp < MIN_TEMP || temp > MAX_TEMP)
+		return;
+	alarm_value = (temp / 10) & TSADCV6_DATA_MASK;
+	writel(alarm_value, priv->base + TSADCV3_COMP_INT(chn));
+	writel(TSADCV2_INT_SRC_EN(chn) | TSADCV2_INT_SRC_EN_MASK(chn),
+		       priv->base + TSADCV3_HT_INT_EN);
+}
+
 static void tsadc_tshut_temp_v2(struct udevice *dev,
 				int chn, int temp)
 {
@@ -1170,6 +1259,24 @@ static void tsadc_tshut_temp_v3(struct udevice *dev, int chn, int temp)
 	writel(tshut_value, priv->base + TSADCV3_COMP_SHUT(chn));
 	writel(TSADCV3_AUTO_SRC_EN(chn) | TSADCV3_AUTO_SRC_EN_MASK(chn),
 	       priv->base + TSADCV3_AUTO_SRC_CON);
+}
+
+static void tsadc_tshut_temp_v4(struct udevice *dev, int chn, int temp)
+{
+	struct rockchip_thermal_priv *priv = dev_get_priv(dev);
+	u32 tshut_value;
+
+	/* Make sure the value is valid */
+	if (temp < MIN_TEMP || temp > MAX_TEMP)
+		return;
+
+	tshut_value = (temp / 10) & TSADCV6_DATA_MASK;
+
+	writel(tshut_value, priv->base + TSADCV3_COMP_SHUT(chn));
+
+	/* TSHUT will be valid */
+	writel(TSADCV3_AUTO_SRC_EN(chn) | TSADCV3_AUTO_SRC_EN_MASK(chn),
+		       priv->base + TSADCV3_AUTO_SRC_CON);
 }
 
 static void tsadc_tshut_mode_v2(struct udevice *dev, int chn,
@@ -1354,6 +1461,21 @@ static int rockchip_thermal_ofdata_to_platdata(struct udevice *dev)
 
 	return 0;
 }
+
+static const struct rockchip_tsadc_chip rv1126b_tsadc_data = {
+	.chn_id[SENSOR_CPU] = 0, /* cpu sensor is channel 0 */
+	.chn_num = 1, /* one channel for tsadc */
+	.tshut_mode = TSHUT_MODE_CRU, /* default TSHUT via CRU */
+	.tshut_polarity = TSHUT_LOW_ACTIVE, /* default TSHUT LOW ACTIVE */
+	.tshut_temp = 95000,
+	.tsadc_init = tsadc_init_v14,
+	.irq_ack = tsadc_irq_ack_v4,
+	.tsadc_control = tsadc_control_v4,
+	.tsadc_get_temp = tsadc_get_temp_v5,
+	.set_alarm_temp = tsadc_alarm_temp_v4,
+	.set_tshut_temp = tsadc_tshut_temp_v4,
+	.set_tshut_mode = tsadc_tshut_mode_v4,
+};
 
 static const struct rockchip_tsadc_chip rk1808_tsadc_data = {
 	.chn_id[SENSOR_CPU] = 0, /* cpu sensor is channel 0 */
@@ -1705,6 +1827,10 @@ static const struct udevice_id rockchip_thermal_match[] = {
 	{
 		.compatible = "rockchip,px30s-tsadc",
 		.data = (ulong)&px30s_tsadc_data,
+	},
+	{
+		.compatible = "rockchip,rv1126b-tsadc",
+		.data = (ulong)&rv1126b_tsadc_data,
 	},
 	{
 		.compatible = "rockchip,rk1808-tsadc",
