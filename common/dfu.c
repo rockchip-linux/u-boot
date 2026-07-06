@@ -11,6 +11,8 @@
  */
 
 #include <command.h>
+#include <android_ab.h>
+#include <android_avb/ab.h>
 #include <log.h>
 #include <watchdog.h>
 #include <dfu.h>
@@ -25,10 +27,8 @@ int run_usb_dnl_gadget(int usbctrl_index, char *usb_dnl_gadget)
 	bool dfu_reset = false;
 	struct udevice *udc;
 	int ret, i = 0;
-#ifdef CONFIG_ANDROID_AB
 	char select_slot[3] = {0};
 	unsigned int slot_number[2] = {0, 1};
-#endif
 
 	ret = udc_device_get_by_index(usbctrl_index, &udc);
 	if (ret) {
@@ -56,19 +56,19 @@ int run_usb_dnl_gadget(int usbctrl_index, char *usb_dnl_gadget)
 			 */
 			if (dfu_usb_get_reset()) {
 				dfu_reset = true;
-#ifdef CONFIG_ANDROID_AB
-				if (rk_avb_get_current_slot(select_slot))
-					printf("Obtain current slot failed!\n");
-				/*
-				 * After the firmware is successfully upgrade,
-				 * the device changes the slot priority during
-				 * reboot based on the current slot
-				 */
-				if (strcmp(select_slot, "_a") == 0)
-					rk_avb_set_slot_active(&slot_number[1]);
-				else
-					rk_avb_set_slot_active(&slot_number[0]);
-#endif
+				if (ab_is_enabled()) {
+					if (ab_get_current_slot(select_slot))
+						printf("Obtain current slot failed!\n");
+					/*
+					 * After the firmware is successfully upgrade,
+					 * the device changes the slot priority during
+					 * reboot based on the current slot
+					 */
+					if (strcmp(select_slot, "_a") == 0)
+						ab_set_slot_active(&slot_number[1]);
+					else
+						ab_set_slot_active(&slot_number[0]);
+				}
 				goto exit;
 			}
 

@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <android_ab.h>
 #include <avb_verify.h>
 #include <command.h>
 #include <blk.h>
@@ -352,15 +353,15 @@ static int hdr_param_verify(void *fit, struct update_header *hdr,
 #else
 	local->rollback_idx = -1;
 #endif
-#ifdef CONFIG_ANDROID_AB
-	ret = ab_get_current_slot(local->current_slot);
-	if (ret) {
-		TFTPUD_E("Failed to get local current slot, ret=%d\n", ret);
-		return ret;
+	if (ab_is_enabled()) {
+		ret = ab_get_current_slot(local->current_slot);
+		if (ret) {
+			TFTPUD_E("Failed to get local current slot, ret=%d\n", ret);
+			return ret;
+		}
+	} else {
+		strcpy(local->current_slot, "-");
 	}
-#else
-	strcpy(local->current_slot, "-");
-#endif
 
 	print_hdr_local(hdr, local);
 
@@ -451,14 +452,16 @@ static int update_local_info(void *fit, struct update_header *hdr)
 static int update_ignore_image(void *fit, struct update_header *hdr,
 			       struct image_element *e)
 {
-#ifdef CONFIG_ANDROID_AB
 	char *slot_suffix;
 
 	/* Android A/B skip current slot */
-	slot_suffix = (char *)e->part_name + strlen(e->part_name) - 2;
-	if (!strcmp(hdr->current_slot, slot_suffix))
-		return 1;
-#endif
+	if (ab_is_enabled()) {
+		if (strlen(e->part_name) < 2)
+			return 1;
+		slot_suffix = (char *)e->part_name + strlen(e->part_name) - 2;
+		if (!strcmp(hdr->current_slot, slot_suffix))
+			return 1;
+	}
 	/* try to find expected target partition */
 	if (hdr->spec_partition && strcmp(e->part_name, hdr->spec_partition))
 		return 1;
@@ -762,4 +765,3 @@ U_BOOT_CMD(
 	"Update a set of images organized with FIT via network using TFTP protocol",
 	"[[server-dir:][partition]"
 );
-

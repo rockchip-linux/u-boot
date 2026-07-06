@@ -84,9 +84,8 @@ static int android_version_init(void)
 		return -1;
 	}
 
-#ifdef CONFIG_ANDROID_AB
-	part_name = ab_can_find_recovery_part() ? PART_RECOVERY : PART_BOOT;
-#endif
+	if (ab_is_enabled())
+		part_name = ab_can_find_recovery_part() ? PART_RECOVERY : PART_BOOT;
 	if (part_get_info_by_name(desc, part_name, &part) < 0)
 		return -1;
 
@@ -142,10 +141,8 @@ int android_image_init_resource(struct blk_desc *desc,
 	if (!desc)
 		return -ENODEV;
 
-#ifndef CONFIG_ANDROID_AB
-	if (plat_boot_mode() == BOOT_MODE_RECOVERY)
+	if (!ab_is_enabled() && plat_boot_mode() == BOOT_MODE_RECOVERY)
 		part_name = ANDROID_PARTITION_RECOVERY;
-#endif
 	if (part_get_info_by_name(desc, part_name, &part) < 0)
 		return -ENOENT;
 
@@ -1602,4 +1599,3 @@ __weak ulong get_avendor_bootimg_addr(void)
 {
 	return -1;
 }
-

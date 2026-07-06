@@ -218,9 +218,8 @@ out:
 
 static void bootargs_add_android(bool verbose)
 {
-#ifdef CONFIG_ANDROID_AB
-	ab_update_root_partition();
-#endif
+	if (ab_is_enabled())
+		ab_update_root_partition();
 
 	/* Android header v4+ need this handle */
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
@@ -318,11 +317,10 @@ static void bootargs_add_dtb_dtbo(void *fdt, bool verbose)
 		 * high priority system to boot and add its UUID
 		 * to cmdline. The format is "roo=PARTUUID=xxxx...".
 		 */
-#ifdef CONFIG_ANDROID_AB
-		env_update_filter("bootargs", bootargs, "root=");
-#else
-		env_update("bootargs", bootargs);
-#endif
+		if (ab_is_enabled())
+			env_update_filter("bootargs", bootargs, "root=");
+		else
+			env_update("bootargs", bootargs);
 	}
 }
 
@@ -455,4 +453,3 @@ void bootargs_setup(void)
 	bootargs_add_fuse();
 	bootargs_add_misc();
 }
-

@@ -165,7 +165,7 @@ static int android_read_slot_from_bcb(struct bootflow *bflow, bool decrement)
 	char slot_suffix[3];
 	int ret;
 
-	if (!CONFIG_IS_ENABLED(ANDROID_AB)) {
+	if (!ab_is_enabled()) {
 		priv->slot = NULL;
 		return 0;
 	}
@@ -366,7 +366,7 @@ static int read_slotted_partition(struct blk_desc *desc, const char *const name,
 	 * For A/B, it should be <name>_<slot>\0
 	 * For non A/B, it should be <name>\0
 	 */
-	if (CONFIG_IS_ENABLED(ANDROID_AB))
+	if (ab_is_enabled())
 		partname_len = PART_NAME_LEN - 2 - 1;
 	else
 		partname_len = PART_NAME_LEN - 1;

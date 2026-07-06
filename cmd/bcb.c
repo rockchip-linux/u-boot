@@ -454,7 +454,6 @@ U_BOOT_LONGHELP(bcb,
 	"bcb dump  <field>              - dump  BCB <field>\n"
 	"bcb store                      - store BCB back to <interface>\n"
 	"\n"
-#if IS_ENABLED(CONFIG_ANDROID_AB)
 	"bcb ab_select -\n"
 	"    Select the slot used to boot from and register the boot attempt.\n"
 	"    <slot_var_name> <interface> <dev[:part|#part_name]> [--no-dec]\n"
@@ -474,7 +473,6 @@ U_BOOT_LONGHELP(bcb,
 	"    Dump boot_control information from specific partition.\n"
 	"    <interface> <dev[:part|#part_name]>\n"
 	"\n"
-#endif
 	"Legend:\n"
 	"<interface> - storage device interface (virtio, mmc, etc)\n"
 	"<dev>       - storage device index containing the BCB partition\n"
@@ -496,8 +494,6 @@ U_BOOT_CMD_WITH_SUBCMDS(bcb,
 	U_BOOT_SUBCMD_MKENT(test, 4, 1, do_bcb_test),
 	U_BOOT_SUBCMD_MKENT(dump, 2, 1, do_bcb_dump),
 	U_BOOT_SUBCMD_MKENT(store, 1, 1, do_bcb_store),
-#if IS_ENABLED(CONFIG_ANDROID_AB)
 	U_BOOT_SUBCMD_MKENT(ab_select, 5, 1, do_bcb_ab_select),
 	U_BOOT_SUBCMD_MKENT(ab_dump, 3, 1, do_bcb_ab_dump),
-#endif
 );

@@ -93,7 +93,7 @@
 
 #define CONTROL_PARTITION "misc"
 
-#if defined(CONFIG_CMD_BCB) && defined(CONFIG_ANDROID_AB)
+#if defined(CONFIG_CMD_BCB)
 #define AB_SELECT_SLOT \
 	"if part number mmc 1 " CONTROL_PARTITION " control_part_number; " \
 	"then " \

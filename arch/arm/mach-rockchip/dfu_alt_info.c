@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <android_ab.h>
 #include <blk.h>
 #include <env.h>
 #include <memalign.h>
@@ -18,9 +19,7 @@ static char *get_dfu_alt(char *interface, char *devstr)
 {
 	struct blk_desc *dev_desc;
 	char *alt_boot;
-#ifdef CONFIG_ANDROID_AB
 	char current_slot[3] = {0};
-#endif
 
 	dev_desc = plat_bootdev();
 	if (!dev_desc) {
@@ -36,7 +35,11 @@ static char *get_dfu_alt(char *interface, char *devstr)
 #endif
 #ifdef CONFIG_DFU_MTD
 	case UCLASS_MTD:
-#ifdef CONFIG_ANDROID_AB
+		if (!ab_is_enabled()) {
+			alt_boot = DFU_ALT_BOOT_MTD;
+			break;
+		}
+
 		ab_get_current_slot(current_slot);
 
 		if (!strcmp(current_slot, "_a")) {
@@ -48,9 +51,6 @@ static char *get_dfu_alt(char *interface, char *devstr)
 		} else {
 			return NULL;
 		}
-#else
-		alt_boot = DFU_ALT_BOOT_MTD;
-#endif
 		break;
 #endif /* CONFIG_DFU_MTD */
 	default:
@@ -86,5 +86,3 @@ void set_dfu_alt_info(char *interface, char *devstr)
 	env_set("dfu_alt_info", alt_info);
 	puts(status);
 }
-
-

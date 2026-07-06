@@ -510,6 +510,42 @@ int write_misc_virtual_ab_message(struct misc_virtual_ab_message *message)
 	return 0;
 }
 
+bool ab_is_enabled(void)
+{
+	struct blk_desc *dev_desc;
+	struct disk_partition part_info;
+	static enum uclass_id last_uclass_id;
+	static int last_devnum;
+	static bool ab_checked;
+	static bool ab_enabled;
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc)
+		return false;
+
+	if (ab_checked &&
+	    last_uclass_id == dev_desc->uclass_id &&
+	    last_devnum == dev_desc->devnum)
+		return ab_enabled;
+
+	last_uclass_id = dev_desc->uclass_id;
+	last_devnum = dev_desc->devnum;
+	ab_checked = true;
+	ab_enabled = false;
+
+	if (part_get_info_by_name_strict(dev_desc, PART_MISC, &part_info) < 0)
+		return false;
+	if (part_get_info_by_name_strict(dev_desc, PART_BOOT "_a",
+					 &part_info) < 0)
+		return false;
+	if (part_get_info_by_name_strict(dev_desc, PART_BOOT "_b",
+					 &part_info) < 0)
+		return false;
+
+	ab_enabled = true;
+	return ab_enabled;
+}
+
 int ab_is_support_dynamic_partition(struct blk_desc *dev_desc)
 {
 	struct disk_partition super_part_info;

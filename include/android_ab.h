@@ -7,6 +7,7 @@
 #define __ANDROID_AB_H
 
 #include <stdbool.h>
+#include <linux/kconfig.h>
 #include <linux/types.h>
 
 struct blk_desc;
@@ -49,17 +50,73 @@ struct misc_virtual_ab_message {
  *
  * Return: The slot number (>= 0) on success, or a negative on error
  */
+#if IS_ENABLED(CONFIG_ANDROID_AB)
 int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info,
-                   bool dec_tries);
+		   bool dec_tries);
+
 /* Read or write the Virtual A/B message from 32KB offset in /misc.*/
 int read_misc_virtual_ab_message(struct misc_virtual_ab_message *message);
 int write_misc_virtual_ab_message(struct misc_virtual_ab_message *message);
 
 void ab_update_root_partition(void);
+bool ab_is_enabled(void);
 int ab_get_slot_suffix(char *slot_suffix);
 int ab_is_support_dynamic_partition(struct blk_desc *dev_desc);
 int ab_decrease_tries(void);
 bool ab_can_find_recovery_part(void);
+int ab_dump_abc(struct blk_desc *dev_desc, struct disk_partition *part_info);
+#else
+static inline int ab_select_slot(struct blk_desc *dev_desc,
+				 struct disk_partition *part_info, bool dec_tries)
+{
+	return -1;
+}
+
+static inline int read_misc_virtual_ab_message(struct misc_virtual_ab_message *message)
+{
+	return -1;
+}
+
+static inline int write_misc_virtual_ab_message(struct misc_virtual_ab_message *message)
+{
+	return -1;
+}
+
+static inline void ab_update_root_partition(void)
+{
+}
+
+static inline bool ab_is_enabled(void)
+{
+	return false;
+}
+
+static inline int ab_get_slot_suffix(char *slot_suffix)
+{
+	return -1;
+}
+
+static inline int ab_is_support_dynamic_partition(struct blk_desc *dev_desc)
+{
+	return 0;
+}
+
+static inline int ab_decrease_tries(void)
+{
+	return -1;
+}
+
+static inline bool ab_can_find_recovery_part(void)
+{
+	return false;
+}
+
+static inline int ab_dump_abc(struct blk_desc *dev_desc,
+			      struct disk_partition *part_info)
+{
+	return -1;
+}
+#endif
 
 /**
  * ab_dump_abc() - Dump ABC information for specific partition.
@@ -69,6 +126,4 @@ bool ab_can_find_recovery_part(void);
  *
  * Return: 0 on success, or a negative on error
  */
-int ab_dump_abc(struct blk_desc *dev_desc, struct disk_partition *part_info);
-
 #endif /* __ANDROID_AB_H */

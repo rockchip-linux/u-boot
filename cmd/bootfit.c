@@ -91,16 +91,16 @@ static int do_boot_fit(struct cmd_tbl *cmdtp, int flag, int argc, char *const ar
 
 	printf("at 0x%08lx with size 0x%08lx\n", (ulong)fit, size);
 
-#ifdef CONFIG_ANDROID_AB
 	char slot_suffix[3] = {0};
 	char slot_info[21] = "android_slotsufix=";
 
-	if (ab_get_slot_suffix(slot_suffix))
-		goto fail;
+	if (ab_is_enabled()) {
+		if (ab_get_slot_suffix(slot_suffix))
+			goto fail;
 
-	strcat(slot_info, slot_suffix);
-	env_update("bootargs", slot_info);
-#endif
+		strcat(slot_info, slot_suffix);
+		env_update("bootargs", slot_info);
+	}
 
 	/* boot! */
 	snprintf(fit_addr, sizeof(fit_addr), "0x%lx", (ulong)fit);

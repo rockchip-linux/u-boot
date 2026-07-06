@@ -249,10 +249,8 @@ int board_init(void)
 #ifdef CONFIG_DM_DVFS
 	dvfs_init(true);
 #endif
-#ifdef CONFIG_ANDROID_AB
-	if (ab_decrease_tries())
+	if (ab_is_enabled() && ab_decrease_tries())
 		printf("Decrease ab tries count fail!\n");
-#endif
 	soc_id_init();
 
 	return rk_board_init();
@@ -456,12 +454,12 @@ int mmc_get_env_dev(void)
 
 void autoboot_command_fail_handle(void)
 {
-#ifdef CONFIG_ANDROID_AB
-	if (ab_have_bootable_slot() == true)
-		run_command("reset;", 0);
-	else
-		run_command("fastboot usb 0;", 0);
-#endif
+	if (ab_is_enabled()) {
+		if (ab_have_bootable_slot() == true)
+			run_command("reset;", 0);
+		else
+			run_command("fastboot usb 0;", 0);
+	}
 
 #ifdef CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE
 	run_command("download", 0);

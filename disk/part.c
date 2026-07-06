@@ -13,14 +13,13 @@
 #include <log.h>
 #include <malloc.h>
 #include <part.h>
+#include <android_ab.h>
+#include <android_avb/ab.h>
+#include <android_avb/avb_ops_user.h>
 #ifdef CONFIG_SPL_AB
 #include <spl_ab.h>
 #endif
 #include <ubifs_uboot.h>
-#ifdef CONFIG_ANDROID_AB
-#include <android_avb/ab.h>
-#include <android_avb/avb_ops_user.h>
-#endif
 #include <dm/uclass.h>
 //#include <avb_verify.h>
 
@@ -704,6 +703,7 @@ static int part_get_info_by_name_option(struct blk_desc *desc,
 	struct part_driver *part_drv;
 	const char *full_name = name;
 	int none_slot_try = 1;
+	size_t name_len;
 	int ret, i;
 
 	part_drv = part_driver_lookup_type(desc);
@@ -716,17 +716,20 @@ static int part_get_info_by_name_option(struct blk_desc *desc,
 	}
 
 	/* 1. Query partition with A/B slot suffix */
-#if defined(CONFIG_ANDROID_AB) || defined(CONFIG_SPL_AB)
-	char *slot = (char *)name + strlen(name) - 2;
+	name_len = strlen(name);
 
-	if (!strcmp(slot, "_a") || !strcmp(slot, "_b"))
+	if (name_len >= 2 &&
+	    (!strcmp(name + name_len - 2, "_a") ||
+	     !strcmp(name + name_len - 2, "_b")))
 		goto lookup;
-#endif
-#if defined(CONFIG_ANDROID_AB) && !defined(CONFIG_SPL_BUILD)
+
+#ifndef CONFIG_SPL_BUILD
+	if (!ab_is_enabled())
+		goto lookup;
 	if (ab_append_part_slot(name, name_slot))
 		return -1;
 	full_name = name_slot;
-#elif defined(CONFIG_SPL_AB) && defined(CONFIG_SPL_BUILD)
+#elif defined(CONFIG_SPL_AB)
 	if (spl_ab_append_part_slot(desc, name, name_slot))
 		return -1;
 	full_name = name_slot;

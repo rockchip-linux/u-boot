@@ -413,8 +413,7 @@ char *android_assemble_cmdline(const char *slot_suffix,
 	/* The |slot_suffix| needs to be passed to the kernel to know what
 	 * slot to boot from.
 	 */
-#ifdef CONFIG_ANDROID_AB
-	if (slot_suffix) {
+	if (ab_is_enabled() && slot_suffix) {
 		allocated_suffix = malloc(strlen(ANDROID_ARG_SLOT_SUFFIX) +
 					  strlen(slot_suffix) + 1);
 		memset(allocated_suffix, 0, strlen(ANDROID_ARG_SLOT_SUFFIX)
@@ -423,7 +422,6 @@ char *android_assemble_cmdline(const char *slot_suffix,
 		strcat(allocated_suffix, slot_suffix);
 		*(current_chunk++) = allocated_suffix;
 	}
-#endif
 	serialno = env_get("serial#");
 	if (serialno) {
 		allocated_serialno = malloc(strlen(ANDROID_ARG_SERIALNO) +
@@ -705,13 +703,14 @@ static int android_image_verify_partitions(const char *const *requested_partitio
 		return 0;
 	}
 
-#ifdef CONFIG_ANDROID_AB
-	ret = ab_get_current_slot(slot_suffix);
-	if (ret) {
-		printf("Failed to get slot suffix, ret=%d\n", ret);
-		goto out;
+	if (ab_is_enabled()) {
+		ret = ab_get_current_slot(slot_suffix);
+		if (ret) {
+			printf("Failed to get slot suffix, ret=%d\n", ret);
+			goto out;
+		}
 	}
-#endif
+
 	flags = AVB_SLOT_VERIFY_FLAGS_NONE;
 	if (part_name && strcmp(part_name, ANDROID_PARTITION_RECOVERY) == 0)
 		flags |= AVB_SLOT_VERIFY_FLAGS_NO_VBMETA_PARTITION;
@@ -784,13 +783,15 @@ int android_image_verify_resource(const char *boot_part, ulong *resc_buf)
 	void *image_buf = NULL;
 	int i;
 
-#ifdef CONFIG_ANDROID_AB
-	requested_part = strdup(boot_part);
-	*(requested_part + strlen(boot_part) - 2) = '\0';
-	requested_partitions[0] = requested_part;
-#else
-	requested_partitions[0] = boot_part;
-#endif
+	if (ab_is_enabled()) {
+		if (strlen(boot_part) < 2)
+			return -EINVAL;
+		requested_part = strdup(boot_part);
+		*(requested_part + strlen(boot_part) - 2) = '\0';
+		requested_partitions[0] = requested_part;
+	} else {
+		requested_partitions[0] = boot_part;
+	}
 
 	ret = android_image_verify_partitions(requested_partitions, boot_part,
 					      true,
@@ -1387,16 +1388,16 @@ int android_fdt_overlay_apply(void *fdt_addr)
 	int ret;
 
 	if (plat_boot_mode() == BOOT_MODE_RECOVERY) {
-#ifdef CONFIG_ANDROID_AB
 		bool can_find_recovery;
 
-		can_find_recovery = ab_can_find_recovery_part();
-		part_boot = can_find_recovery ? PART_RECOVERY : PART_BOOT;
-		part_dtbo = can_find_recovery ? PART_RECOVERY : PART_DTBO;
-#else
-		part_boot = PART_RECOVERY;
-		part_dtbo = PART_RECOVERY;
-#endif
+		if (ab_is_enabled()) {
+			can_find_recovery = ab_can_find_recovery_part();
+			part_boot = can_find_recovery ? PART_RECOVERY : PART_BOOT;
+			part_dtbo = can_find_recovery ? PART_RECOVERY : PART_DTBO;
+		} else {
+			part_boot = PART_RECOVERY;
+			part_dtbo = PART_RECOVERY;
+		}
 	}
 
 	dev_desc = plat_bootdev();
@@ -1536,18 +1537,15 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	}
 
 	printf("ANDROID: reboot reason: \"%s\"\n", android_boot_mode_str(mode));
-#ifdef CONFIG_ANDROID_AB
 	/* Get current slot_suffix */
-	if (ab_get_slot_suffix(slot_suffix))
+	if (ab_is_enabled() && ab_get_slot_suffix(slot_suffix))
 		return -1;
-#endif
 	switch (mode) {
 	case ANDROID_BOOT_MODE_NORMAL:
 		/* In normal mode, we load the kernel from "boot" but append
 		 * "skip_initramfs" to the cmdline to make it ignore the
 		 * recovery initramfs in the boot partition.
 		 */
-#ifdef CONFIG_ANDROID_AB
 		/*  In A/B, the recovery image is built as boot.img, containing the
 		* recovery's ramdisk. Previously, bootloader used the skip_initramfs
 		* kernel command line parameter to decide which mode to boot into.
@@ -1557,12 +1555,12 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		* and then Android's first-stage init in ramdisk
 		* will skip recovery and boot normal Android.
 		*/
-		if (ab_is_support_dynamic_partition(dev_desc)) {
-			mode_cmdline = "androidboot.force_normal_boot=1";
-		} else {
-			mode_cmdline = "skip_initramfs";
+		if (ab_is_enabled()) {
+			if (ab_is_support_dynamic_partition(dev_desc))
+				mode_cmdline = "androidboot.force_normal_boot=1";
+			else
+				mode_cmdline = "skip_initramfs";
 		}
-#endif
 		break;
 	case ANDROID_BOOT_MODE_RECOVERY:
 		/*
@@ -1570,12 +1568,11 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		 * kernel from "recovery". If not, don't skip the initramfs so it
 		 * boots to recovery from image in partition "boot".
 		 */
-#ifdef CONFIG_ANDROID_AB
-		boot_partname = ab_can_find_recovery_part() ?
-			ANDROID_PARTITION_RECOVERY : ANDROID_PARTITION_BOOT;
-#else
-		boot_partname = ANDROID_PARTITION_RECOVERY;
-#endif
+		if (ab_is_enabled())
+			boot_partname = ab_can_find_recovery_part() ?
+				ANDROID_PARTITION_RECOVERY : ANDROID_PARTITION_BOOT;
+		else
+			boot_partname = ANDROID_PARTITION_RECOVERY;
 		break;
 	case ANDROID_BOOT_MODE_BOOTLOADER:
 		/* Bootloader mode enters fastboot. If this operation fails we

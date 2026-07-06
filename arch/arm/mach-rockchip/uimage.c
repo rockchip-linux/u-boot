@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <android_ab.h>
 #include <blk.h>
 #include <image.h>
 #include <malloc.h>
@@ -200,10 +201,8 @@ int uimage_init_resource(struct blk_desc *dev_desc)
 	if (!dev_desc)
 		return -ENODEV;
 
-#ifndef CONFIG_ANDROID_AB
-	if (plat_boot_mode() == BOOT_MODE_RECOVERY)
+	if (!ab_is_enabled() && plat_boot_mode() == BOOT_MODE_RECOVERY)
 		part_name = PART_RECOVERY;
-#endif
 	if (part_get_info_by_name(dev_desc, part_name, &part) < 0) {
 		UIMG_I("No %s partition\n", part_name);
 		return -ENODEV;

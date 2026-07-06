@@ -630,10 +630,12 @@ void tx_handler_ul(struct usb_ep *ep, struct usb_request *req)
 			  xfer_size);
 }
 
-#ifdef CONFIG_ANDROID_AB
 int get_virtual_ab_merge_status(void)
 {
 	struct misc_virtual_ab_message state;
+
+	if (!ab_is_enabled())
+		return ENUM_MERGE_STATUS_NONE;
 
 	memset(&state, 0x0, sizeof(state));
 	if (read_misc_virtual_ab_message(&state) != 0) {
@@ -654,6 +656,9 @@ int should_prevent_userdata_wipe(void)
 	struct misc_virtual_ab_message state;
 	char cmd[8] = {0};
 	unsigned int slot_number = -1;
+
+	if (!ab_is_enabled())
+		return 0;
 
 	memset(&state, 0x0, sizeof(state));
 	if (read_misc_virtual_ab_message(&state) != 0) {
@@ -685,4 +690,3 @@ int should_prevent_userdata_wipe(void)
 
 	return 0;
 }
-#endif

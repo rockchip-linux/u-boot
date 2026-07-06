@@ -153,12 +153,8 @@ static void *fit_get_blob(struct blk_desc *dev_desc,
 	int blk_num;
 
 	if (plat_boot_mode() == BOOT_MODE_RECOVERY) {
-#ifdef CONFIG_ANDROID_AB
-		if (ab_can_find_recovery_part())
+		if (!ab_is_enabled() || ab_can_find_recovery_part())
 			part_name = PART_RECOVERY;
-#else
-		part_name = PART_RECOVERY;
-#endif
 	}
 
 	if (part_get_info_by_name(dev_desc, part_name, &part) < 0) {

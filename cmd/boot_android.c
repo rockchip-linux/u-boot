@@ -89,7 +89,7 @@ U_BOOT_CMD(
 	"      the partition table. This is commonly the \"misc\" partition.\n"
 );
 
-#ifdef CONFIG_ANDROID_AB
+#ifdef CONFIG_LIBAVB_AB
 int do_avb_init_ab_metadata(struct cmd_tbl *cmdtp, int flag,
 			    int argc, char * const argv[])
 {
@@ -581,7 +581,7 @@ int do_avb_verify_partition(struct cmd_tbl *cmdtp, int flag,
 #endif
 
 static struct cmd_tbl cmd_avb[] = {
-#ifdef CONFIG_ANDROID_AB
+#ifdef CONFIG_LIBAVB_AB
 	U_BOOT_CMD_MKENT(init, 1, 1, do_avb_init_ab_metadata, "", ""),
 	U_BOOT_CMD_MKENT(slot_active, 2, 1,
 			 do_avb_ab_mark_slot_active, "", ""),

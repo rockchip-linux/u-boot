@@ -13,11 +13,9 @@
 #define _FASTBOOT_H_
 
 #include <android_avb/ab.h>
+#include <android_ab.h>
 #include <linux/types.h>
 #include <linux/usb/composite.h>
-#ifdef CONFIG_ANDROID_AB
-#include <android_ab.h>
-#endif
 
 #define FASTBOOT_VERSION	"0.4"
 

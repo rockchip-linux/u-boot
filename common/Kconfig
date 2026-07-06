@@ -997,6 +997,7 @@ config UPDATE_FIT
 
 config ANDROID_AB
 	bool "Android A/B updates"
+	default y
 	help
 	  If enabled, adds support for the new Android A/B update model. This
 	  allows the bootloader to select which slot to boot from based on the

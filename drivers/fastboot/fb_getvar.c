@@ -33,14 +33,12 @@ static void getvar_erase_blocksize(char *var_parameter, char *response);
 static void getvar_vboot_state(char *var_parameter, char *response);
 static void getvar_unlocked(char *var_parameter, char *response);
 static void getvar_flash_unlocked(char *var_parameter, char *response);
-#ifdef CONFIG_ANDROID_AB
 static void getvar_slot_count(char *var_parameter, char *response);
 static void getvar_slot_suffixes(char *var_parameter, char *response);
 static void getvar_slot_successful(char *var_parameter, char *response);
 static void getvar_slot_unbootable(char *var_parameter, char *response);
 static void getvar_slot_retry_count(char *var_parameter, char *response);
 static void getvar_snapshot_update_status(char *var_parameter, char *response);
-#endif
 static void getvar_avb_state(char *var_parameter, char *response);
 
 static const struct {
@@ -127,7 +125,6 @@ static const struct {
 		.dispatch = getvar_flash_unlocked,
 		.list = true
 	}, {
-#ifdef CONFIG_ANDROID_AB
 		.variable = "slot-count",
 		.dispatch = getvar_slot_count,
 		.list = true
@@ -152,7 +149,6 @@ static const struct {
 		.dispatch = getvar_snapshot_update_status,
 		.list = true
 	}, {
-#endif
 		.variable = "avb-state",
 		.dispatch = getvar_avb_state,
 		.list = true
@@ -409,10 +405,9 @@ static void __maybe_unused getvar_flash_unlocked(char *var_parameter, char *resp
 #endif
 }
 
-#ifdef CONFIG_ANDROID_AB
 static void getvar_slot_count(char *var_parameter, char *response)
 {
-	fastboot_response("OKAY", response, "%s", "2\0");
+	fastboot_response("OKAY", response, "%d", ab_is_enabled() ? 2 : 0);
 }
 
 static void getvar_slot_suffixes(char *var_parameter, char *response)
@@ -420,6 +415,11 @@ static void getvar_slot_suffixes(char *var_parameter, char *response)
 	char slot_suffixes_temp[4] = {0};
 	char slot_suffixes[9] = {0};
 	int slot_cnt = 0;
+
+	if (!ab_is_enabled()) {
+		fastboot_okay("", response);
+		return;
+	}
 
 	memcpy(slot_suffixes_temp, CURR_SYSTEM_SLOT_SUFFIX,
 	       strlen(CURR_SYSTEM_SLOT_SUFFIX));
@@ -438,6 +438,11 @@ static void getvar_slot_successful(char *var_parameter, char *response)
 {
 	char *slot_name = var_parameter;
 	AvbABData ab_info;
+
+	if (!ab_is_enabled()) {
+		fastboot_fail("A/B is not enabled", response);
+		return;
+	}
 
 	if (!var_parameter || !slot_name) {
 		fastboot_fail("Argument Invalid", response);
@@ -468,6 +473,11 @@ static void getvar_slot_unbootable(char *var_parameter, char *response)
 {
 	char *slot_name = var_parameter;
 	AvbABData ab_info;
+
+	if (!ab_is_enabled()) {
+		fastboot_fail("A/B is not enabled", response);
+		return;
+	}
 
 	if (!var_parameter || !slot_name) {
 		fastboot_fail("Argument Invalid", response);
@@ -503,6 +513,11 @@ static void getvar_slot_retry_count(char *var_parameter, char *response)
 	char *slot_name = var_parameter;
 	AvbABData ab_info;
 
+	if (!ab_is_enabled()) {
+		fastboot_fail("A/B is not enabled", response);
+		return;
+	}
+
 	if (!var_parameter || !slot_name) {
 		fastboot_fail("Argument Invalid", response);
 		return;
@@ -525,6 +540,11 @@ static void getvar_snapshot_update_status(char *var_parameter, char *response)
 {
 	struct misc_virtual_ab_message state;
 
+	if (!ab_is_enabled()) {
+		fastboot_okay("None", response);
+		return;
+	}
+
 	memset(&state, 0x0, sizeof(state));
 	if (read_misc_virtual_ab_message(&state) != 0) {
 		fastboot_fail("Get virtual A/B system info failed", response);
@@ -543,7 +563,6 @@ static void getvar_snapshot_update_status(char *var_parameter, char *response)
 	else
 		fastboot_okay("None", response);
 }
-#endif
 
 static void __maybe_unused getvar_avb_state(char *var_parameter, char *response)
 {

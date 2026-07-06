@@ -374,15 +374,13 @@ static void __maybe_unused flash(char *cmd_parameter, char *response)
 		pr_err("Missing partition name");
 		return;
 	}
-#ifdef CONFIG_ANDROID_AB
 	if ((strcmp(cmd_parameter, PART_USERDATA) == 0) || (strcmp(cmd_parameter, PART_METADATA) == 0)) {
-		if (should_prevent_userdata_wipe()) {
+		if (ab_is_enabled() && should_prevent_userdata_wipe()) {
 			fastboot_fail("Virtual A/B merging,abort flash", response);
 			pr_err("FAILThe virtual A/B merging, can not flash userdata or metadata!\n");
 			return;
 		}
 	}
-#endif
 	fastboot_fail("no flash device defined", response);
 	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_MMC))
 		fastboot_mmc_flash_write(cmd_parameter, fastboot_buf_addr,
@@ -410,15 +408,13 @@ static void __maybe_unused erase(char *cmd_parameter, char *response)
 		pr_err("Missing partition name");
 		return;
 	}
-#ifdef CONFIG_ANDROID_AB
 	if ((strcmp(cmd_parameter, PART_USERDATA) == 0) || (strcmp(cmd_parameter, PART_METADATA) == 0)) {
-		if (should_prevent_userdata_wipe()) {
+		if (ab_is_enabled() && should_prevent_userdata_wipe()) {
 			fastboot_fail("Virtual A/B merging, abort erase!", response);
 			pr_err("Virtual A/B merging, can not erase userdata or metadata!");
 			return;
 		}
 	}
-#endif
 	fastboot_fail("no flash device defined", response);
 	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_MMC))
 		fastboot_mmc_erase(cmd_parameter, response);
@@ -533,7 +529,7 @@ static void __maybe_unused oem_format(char *cmd_parameter, char *response)
 	const int mmc_dev = config_opt_enabled(CONFIG_FASTBOOT_FLASH_MMC,
 					       CONFIG_FASTBOOT_FLASH_MMC_DEV, -1);
 
-	if (should_prevent_userdata_wipe()) {
+	if (ab_is_enabled() && should_prevent_userdata_wipe()) {
 		printf("FAILThe virtual A/B merging, can not format!\n");
 		fastboot_fail("Virtual A/B merging, abort format!", response);
 		return;
@@ -681,13 +677,11 @@ static void __maybe_unused set_active(char *cmd_parameter, char *response)
 		pr_err("Missing slot name");
 		return;
 	}
-#ifdef CONFIG_ANDROID_AB
-	if (get_virtual_ab_merge_status() == ENUM_MERGE_STATUS_MERGING) {
+	if (ab_is_enabled() && get_virtual_ab_merge_status() == ENUM_MERGE_STATUS_MERGING) {
 		fastboot_fail("Virtual A/B is merging, abort", response);
 		pr_err("Virtual A/B is merging, abort the operation");
 		return;
 	}
-#endif
 #ifdef CONFIG_LIBAVB_USER
 	unsigned int slot_number;
 	if (strncmp("a", cmd_parameter, 1) == 0) {
