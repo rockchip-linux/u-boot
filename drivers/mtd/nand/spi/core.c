@@ -977,6 +977,9 @@ static const struct spinand_manufacturer *spinand_manufacturers[] = {
 #ifdef CONFIG_SPI_NAND_ICTHINK
 	&icthink_spinand_manufacturer,
 #endif
+#ifdef CONFIG_SPI_NAND_UNILC
+	&unilc_spinand_manufacturer,
+#endif
 };
 
 static int spinand_manufacturer_match(struct spinand_device *spinand,
