@@ -71,19 +71,25 @@ AvbIOResult avb_read_flash_lock_state(uint8_t *flash_lock_state)
 	ret = optee_read_flash_lock_state(flash_lock_state);
 	switch (ret) {
 	case TEE_SUCCESS:
+		ret = AVB_IO_RESULT_OK;
 		break;
 	case TEE_ERROR_GENERIC:
 	case TEE_ERROR_NO_DATA:
 	case TEE_ERROR_ITEM_NOT_FOUND:
 		*flash_lock_state = 1;
-		if (optee_write_flash_lock_state(*flash_lock_state)) {
-			printf("optee_write_flash_lock_state error!");
+		if (avb_write_flash_lock_state(*flash_lock_state)) {
+			printf("avb_write_flash_lock_state error!");
 			ret = AVB_IO_RESULT_ERROR_IO;
 		} else {
 			ret = optee_read_flash_lock_state(flash_lock_state);
+			if (ret == 0)
+				ret = AVB_IO_RESULT_OK;
+			else
+				ret = AVB_IO_RESULT_ERROR_IO;
 		}
 		break;
 	default:
+		ret = AVB_IO_RESULT_ERROR_IO;
 		printf("%s: optee_read_flash_lock_state failed\n", __FILE__);
 	}
 
@@ -132,6 +138,7 @@ AvbIOResult avb_read_lock_state(uint8_t *lock_state)
 	ret = optee_read_lock_state(lock_state);
 	switch (ret) {
 	case TEE_SUCCESS:
+		ret = AVB_IO_RESULT_OK;
 		break;
 	case TEE_ERROR_GENERIC:
 	case TEE_ERROR_NO_DATA:
@@ -151,9 +158,14 @@ AvbIOResult avb_read_lock_state(uint8_t *lock_state)
 			ret = AVB_IO_RESULT_ERROR_IO;
 		} else {
 			ret = optee_read_lock_state(lock_state);
+			if (ret == 0)
+				ret = AVB_IO_RESULT_OK;
+			else
+				ret = AVB_IO_RESULT_ERROR_IO;
 		}
 		break;
 	default:
+		ret = AVB_IO_RESULT_ERROR_IO;
 		printf("%s: optee_read_lock_state failed\n", __FILE__);
 	}
 
@@ -185,6 +197,7 @@ AvbIOResult avb_read_permanent_attributes_flag(uint8_t *flag)
 	ret = optee_read_permanent_attributes_flag(flag);
 	switch (ret) {
 	case TEE_SUCCESS:
+		ret = AVB_IO_RESULT_OK;
 		break;
 	case TEE_ERROR_GENERIC:
 	case TEE_ERROR_NO_DATA:
@@ -195,9 +208,14 @@ AvbIOResult avb_read_permanent_attributes_flag(uint8_t *flag)
 			ret = AVB_IO_RESULT_ERROR_IO;
 		} else {
 			ret = optee_read_permanent_attributes_flag(flag);
+			if (ret == 0)
+				ret = AVB_IO_RESULT_OK;
+			else
+				ret = AVB_IO_RESULT_ERROR_IO;
 		}
 		break;
 	default:
+		ret = AVB_IO_RESULT_ERROR_IO;
 		printf("%s: optee_read_permanent_attributes_flag failed",
 		       __FILE__);
 	}

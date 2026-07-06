@@ -47,6 +47,7 @@
 #include <android_avb/libavb_ab.h>
 #include <android_avb/libavb_atx.h>
 #include <android_avb/libavb_user.h>
+#include <android_avb/avb.h>
 #include <avb_verify.h>
 
 /* Refer from avb_ops_user.cpp */
@@ -284,47 +285,9 @@ static AvbIOResult read_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
 {
 	if (out_is_unlocked) {
 #ifdef CONFIG_OPTEE
-		uint8_t vboot_flag = 0;
-		int ret;
-
-		ret = optee_read_lock_state((uint8_t *)out_is_unlocked);
-		switch (ret) {
-		case TEE_SUCCESS:
-			ret = AVB_IO_RESULT_OK;
-			break;
-		case TEE_ERROR_GENERIC:
-		case TEE_ERROR_NO_DATA:
-		case TEE_ERROR_ITEM_NOT_FOUND:
-			if (optee_read_vbootkey_enable_flag(&vboot_flag)) {
-				printf("Can't read vboot flag\n");
-				return AVB_IO_RESULT_ERROR_IO;
-			}
-
-			if (vboot_flag)
-				*out_is_unlocked = 0;
-			else
-				*out_is_unlocked = 1;
-
-			if (optee_write_lock_state(*out_is_unlocked)) {
-				printf("%s: init lock state error\n", __FILE__);
-				ret = AVB_IO_RESULT_ERROR_IO;
-			} else {
-				ret =
-				optee_read_lock_state((uint8_t *)out_is_unlocked);
-				if (ret == 0)
-					ret = AVB_IO_RESULT_OK;
-				else
-					ret = AVB_IO_RESULT_ERROR_IO;
-			}
-			break;
-		default:
-			ret = AVB_IO_RESULT_ERROR_IO;
-			printf("%s: optee_read_lock_state failed\n", __FILE__);
-		}
-		return ret;
+		return avb_read_lock_state((uint8_t *)out_is_unlocked);
 #else
 		*out_is_unlocked = 1;
-
 		return AVB_IO_RESULT_OK;
 #endif
 	}
@@ -335,11 +298,7 @@ AvbIOResult write_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
 {
 	if (out_is_unlocked) {
 #ifdef CONFIG_OPTEE
-		if (optee_write_lock_state(*out_is_unlocked)) {
-			printf("%s: Fail to write lock state\n", __FILE__);
-			return AVB_IO_RESULT_ERROR_IO;
-		}
-		return AVB_IO_RESULT_OK;
+		return avb_write_lock_state(*out_is_unlocked);
 #endif
 	}
 	return AVB_IO_RESULT_ERROR_IO;
