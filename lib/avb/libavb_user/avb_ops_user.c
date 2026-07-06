@@ -41,6 +41,7 @@
 #include <optee_include/tee_api_defines.h>
 #include <android_avb/avb_vbmeta_image.h>
 #include <android_avb/avb_atx_validate.h>
+#include <android_avb/rk_avb_ops_user.h>
 #include <boot_rkimg.h>
 
 static void byte_to_block(int64_t *offset,
@@ -280,44 +281,7 @@ static AvbIOResult read_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
 {
 	if (out_is_unlocked) {
 #ifdef CONFIG_OPTEE_CLIENT
-		uint8_t vboot_flag = 0;
-		int ret;
-
-		ret = trusty_read_lock_state((uint8_t *)out_is_unlocked);
-		switch (ret) {
-		case TEE_SUCCESS:
-			ret = AVB_IO_RESULT_OK;
-			break;
-		case TEE_ERROR_GENERIC:
-		case TEE_ERROR_NO_DATA:
-		case TEE_ERROR_ITEM_NOT_FOUND:
-			if (trusty_read_vbootkey_enable_flag(&vboot_flag)) {
-				printf("Can't read vboot flag\n");
-				return AVB_IO_RESULT_ERROR_IO;
-			}
-
-			if (vboot_flag)
-				*out_is_unlocked = 0;
-			else
-				*out_is_unlocked = 1;
-
-			if (trusty_write_lock_state(*out_is_unlocked)) {
-				printf("%s: init lock state error\n", __FILE__);
-				ret = AVB_IO_RESULT_ERROR_IO;
-			} else {
-				ret =
-				trusty_read_lock_state((uint8_t *)out_is_unlocked);
-				if (ret == 0)
-					ret = AVB_IO_RESULT_OK;
-				else
-					ret = AVB_IO_RESULT_ERROR_IO;
-			}
-			break;
-		default:
-			ret = AVB_IO_RESULT_ERROR_IO;
-			printf("%s: trusty_read_lock_state failed\n", __FILE__);
-		}
-		return ret;
+		return rk_avb_read_lock_state((uint8_t *)out_is_unlocked);
 #else
 		*out_is_unlocked = 1;
 
@@ -331,11 +295,7 @@ static AvbIOResult write_is_device_unlocked(AvbOps *ops, bool *out_is_unlocked)
 {
 	if (out_is_unlocked) {
 #ifdef CONFIG_OPTEE_CLIENT
-		if (trusty_write_lock_state(*out_is_unlocked)) {
-			printf("%s: Fail to write lock state\n", __FILE__);
-			return AVB_IO_RESULT_ERROR_IO;
-		}
-		return AVB_IO_RESULT_OK;
+		return rk_avb_write_lock_state(*out_is_unlocked);
 #endif
 	}
 	return AVB_IO_RESULT_ERROR_IO;

@@ -95,7 +95,7 @@ int rk_avb_write_permanent_attributes(uint8_t *attributes, uint32_t size)
 #endif
 }
 
-int rk_avb_read_flash_lock_state(uint8_t *flash_lock_state)
+AvbIOResult rk_avb_read_flash_lock_state(uint8_t *flash_lock_state)
 {
 #ifdef CONFIG_OPTEE_CLIENT
 	int ret;
@@ -103,19 +103,25 @@ int rk_avb_read_flash_lock_state(uint8_t *flash_lock_state)
 	ret = trusty_read_flash_lock_state(flash_lock_state);
 	switch (ret) {
 	case TEE_SUCCESS:
+		ret = AVB_IO_RESULT_OK;
 		break;
 	case TEE_ERROR_GENERIC:
 	case TEE_ERROR_NO_DATA:
 	case TEE_ERROR_ITEM_NOT_FOUND:
 		*flash_lock_state = 1;
-		if (trusty_write_flash_lock_state(*flash_lock_state)) {
-			printf("trusty_write_flash_lock_state error!");
-			ret = -1;
+		if (rk_avb_write_flash_lock_state(*flash_lock_state)) {
+			printf("rk_avb_write_flash_lock_state error!");
+			ret = AVB_IO_RESULT_ERROR_IO;
 		} else {
 			ret = trusty_read_flash_lock_state(flash_lock_state);
+			if (ret == 0)
+				ret = AVB_IO_RESULT_OK;
+			else
+				ret = AVB_IO_RESULT_ERROR_IO;
 		}
 		break;
 	default:
+		ret = AVB_IO_RESULT_ERROR_IO;
 		printf("%s: trusty_read_flash_lock_state failed\n", __FILE__);
 	}
 
@@ -123,39 +129,39 @@ int rk_avb_read_flash_lock_state(uint8_t *flash_lock_state)
 #else
 	*flash_lock_state = 1;
 
-	return 0;
+	return AVB_IO_RESULT_OK;
 #endif
 }
 
-int rk_avb_write_flash_lock_state(uint8_t flash_lock_state)
+AvbIOResult rk_avb_write_flash_lock_state(uint8_t flash_lock_state)
 {
 #ifdef CONFIG_OPTEE_CLIENT
 	if (trusty_write_flash_lock_state(flash_lock_state)) {
 		printf("trusty_write_flash_lock_state error!\n");
-		return -1;
+		return AVB_IO_RESULT_ERROR_IO;
 	}
 
-	return 0;
+	return AVB_IO_RESULT_OK;
 #else
-	return -1;
+	return AVB_IO_RESULT_ERROR_IO;
 #endif
 }
 
-int rk_avb_write_lock_state(uint8_t lock_state)
+AvbIOResult rk_avb_write_lock_state(uint8_t lock_state)
 {
 #ifdef CONFIG_OPTEE_CLIENT
 	if (trusty_write_lock_state(lock_state)) {
 		printf("trusty_write_lock_state error!\n");
-		return -1;
+		return AVB_IO_RESULT_ERROR_IO;
 	}
 
-	return 0;
+	return AVB_IO_RESULT_OK;
 #else
-	return -1;
+	return AVB_IO_RESULT_ERROR_IO;
 #endif
 }
 
-int rk_avb_read_lock_state(uint8_t *lock_state)
+AvbIOResult rk_avb_read_lock_state(uint8_t *lock_state)
 {
 #ifdef CONFIG_OPTEE_CLIENT
 	uint8_t vboot_flag = 0;
@@ -164,13 +170,14 @@ int rk_avb_read_lock_state(uint8_t *lock_state)
 	ret = trusty_read_lock_state(lock_state);
 	switch (ret) {
 	case TEE_SUCCESS:
+		ret = AVB_IO_RESULT_OK;
 		break;
 	case TEE_ERROR_GENERIC:
 	case TEE_ERROR_NO_DATA:
 	case TEE_ERROR_ITEM_NOT_FOUND:
 		if (trusty_read_vbootkey_enable_flag(&vboot_flag)) {
 			printf("Can't read vboot flag\n");
-			return -1;
+			return AVB_IO_RESULT_ERROR_IO;
 		}
 
 		if (vboot_flag)
@@ -180,36 +187,41 @@ int rk_avb_read_lock_state(uint8_t *lock_state)
 
 		if (rk_avb_write_lock_state(*lock_state)) {
 			printf("avb_write_lock_state error!");
-			ret = -1;
+			ret = AVB_IO_RESULT_ERROR_IO;
 		} else {
 			ret = trusty_read_lock_state(lock_state);
+			if (ret == 0)
+				ret = AVB_IO_RESULT_OK;
+			else
+				ret = AVB_IO_RESULT_ERROR_IO;
 		}
 		break;
 	default:
+		ret = AVB_IO_RESULT_ERROR_IO;
 		printf("%s: trusty_read_lock_state failed\n", __FILE__);
 	}
 
 	return ret;
 #else
-	return -1;
+	return AVB_IO_RESULT_ERROR_IO;
 #endif
 }
 
-int rk_avb_write_perm_attr_flag(uint8_t flag)
+AvbIOResult rk_avb_write_perm_attr_flag(uint8_t flag)
 {
 #ifdef CONFIG_OPTEE_CLIENT
 	if (trusty_write_permanent_attributes_flag(flag)) {
 		printf("trusty_write_permanent_attributes_flag error!\n");
-		return -1;
+		return AVB_IO_RESULT_ERROR_IO;
 	}
 
-	return 0;
+	return AVB_IO_RESULT_OK;
 #else
-	return -1;
+	return AVB_IO_RESULT_ERROR_IO;
 #endif
 }
 
-int rk_avb_read_perm_attr_flag(uint8_t *flag)
+AvbIOResult rk_avb_read_perm_attr_flag(uint8_t *flag)
 {
 #ifdef CONFIG_OPTEE_CLIENT
 	int ret;
@@ -217,6 +229,7 @@ int rk_avb_read_perm_attr_flag(uint8_t *flag)
 	ret = trusty_read_permanent_attributes_flag(flag);
 	switch (ret) {
 	case TEE_SUCCESS:
+		ret = AVB_IO_RESULT_OK;
 		break;
 	case TEE_ERROR_GENERIC:
 	case TEE_ERROR_NO_DATA:
@@ -224,19 +237,24 @@ int rk_avb_read_perm_attr_flag(uint8_t *flag)
 		*flag = 0;
 		if (rk_avb_write_perm_attr_flag(*flag)) {
 			printf("avb_write_perm_attr_flag error!");
-			ret = -1;
+			ret = AVB_IO_RESULT_ERROR_IO;
 		} else {
 			ret = trusty_read_permanent_attributes_flag(flag);
+			if (ret == 0)
+				ret = AVB_IO_RESULT_OK;
+			else
+				ret = AVB_IO_RESULT_ERROR_IO;
 		}
 		break;
 	default:
+		ret = AVB_IO_RESULT_ERROR_IO;
 		printf("%s: trusty_read_permanent_attributes_flag failed",
 		       __FILE__);
 	}
 
 	return ret;
 #else
-	return -1;
+	return AVB_IO_RESULT_ERROR_IO;
 #endif
 }
 

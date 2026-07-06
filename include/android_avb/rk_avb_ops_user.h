@@ -132,18 +132,18 @@ int rk_avb_write_permanent_attributes(uint8_t *attributes, uint32_t size);
  *
  * @param flash_lock_state  A flag indicate the device flash state.
  *
- * @return 0 if the command succeeded, -1 if it failed
+ * @return AVB_IO_RESULT_OK if the command succeeded, error code otherwise
  */
-int rk_avb_read_flash_lock_state(uint8_t *flash_lock_state);
+AvbIOResult rk_avb_read_flash_lock_state(uint8_t *flash_lock_state);
 
 /**
  * The function is provided to write device flash state.
  *
  * @param flash_lock_state   A flag indicate the device flash state.
  *
- * @return 0 if the command succeeded, -1 if it failed
+ * @return AVB_IO_RESULT_OK if the command succeeded, error code otherwise
  */
-int rk_avb_write_flash_lock_state(uint8_t flash_lock_state);
+AvbIOResult rk_avb_write_flash_lock_state(uint8_t flash_lock_state);
 
 /**
  * The android things use the flag of lock state to indicate
@@ -151,9 +151,9 @@ int rk_avb_write_flash_lock_state(uint8_t flash_lock_state);
  *
  * @param lock_state  A flag indicate the device lock state.
  *
- * @return 0 if the command succeeded, -1 if it failed
+ * @return AVB_IO_RESULT_OK if the command succeeded, error code otherwise
  */
-int rk_avb_read_lock_state(uint8_t *lock_state);
+AvbIOResult rk_avb_read_lock_state(uint8_t *lock_state);
 
 /**
  * The android things use the flag of lock state to indicate
@@ -161,9 +161,9 @@ int rk_avb_read_lock_state(uint8_t *lock_state);
  *
  * @param lock_state   A flag indicate the device lock state.
  *
- * @return 0 if the command succeeded, -1 if it failed
+ * @return AVB_IO_RESULT_OK if the command succeeded, error code otherwise
  */
-int rk_avb_write_lock_state(uint8_t lock_state);
+AvbIOResult rk_avb_write_lock_state(uint8_t lock_state);
 
 /**
  * The android things uses fastboot to flash the permanent attributes.
@@ -172,9 +172,9 @@ int rk_avb_write_lock_state(uint8_t lock_state);
  * @param flag   indicate the permanent attributes have been written
  *               or not.
  *
- * @return 0 if the command succeeded, -1 if it failed
+ * @return AVB_IO_RESULT_OK if the command succeeded, error code otherwise
  */
-int rk_avb_read_perm_attr_flag(uint8_t *flag);
+AvbIOResult rk_avb_read_perm_attr_flag(uint8_t *flag);
 
 /**
  * The android things uses fastboot to flash the permanent attributes.
@@ -184,9 +184,9 @@ int rk_avb_read_perm_attr_flag(uint8_t *flag);
  *               to indicate the permanent attributes has been
  *               written.
  *
- * @return 0 if the command succeeded, -1 if it failed
+ * @return AVB_IO_RESULT_OK if the command succeeded, error code otherwise
  */
-int rk_avb_write_perm_attr_flag(uint8_t flag);
+AvbIOResult rk_avb_write_perm_attr_flag(uint8_t flag);
 
 /**
  * The android things require the soc-v key hash to be flashed
