@@ -493,7 +493,7 @@ void rk_avb_get_at_vboot_state(char *buf)
 		unlock_dis_val = "";
 	} else {
 		lock_val = (temp_flag & LOCK_MASK) ? "0" : "1";
-		unlock_dis_val = (temp_flag & UNLOCK_DISABLE_MASK) ? "1" : "0";
+		unlock_dis_val = (temp_flag & DISABLE_UNLOCK_MASK) ? "1" : "0";
 	}
 
 	temp_flag = 0;

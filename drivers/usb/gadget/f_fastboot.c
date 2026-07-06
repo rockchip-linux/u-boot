@@ -2230,28 +2230,30 @@ static void cb_oem(struct usb_ep *ep, struct usb_request *req)
 		uint8_t lock_state;
 		char out_is_trusted = true;
 
-		if (rk_avb_read_lock_state(&lock_state))
-			fastboot_tx_write_str("FAILlock sate read failure");
-		if (lock_state >> 1 == 1) {
-			fastboot_tx_write_str("FAILThe vboot is disable!");
-		} else {
-			lock_state = 1;
+		if (rk_avb_read_lock_state(&lock_state)) {
+			fastboot_tx_write_str("FAILlock state read failure");
+			return;
+		}
+		if (lock_state & DISABLE_UNLOCK_MASK) {
+			fastboot_tx_write_str("FAILThe AVB unlock is disable!");
+			return;
+		}
+		lock_state = 1;
 #ifdef CONFIG_RK_AVB_LIBAVB_ENABLE_ATH_UNLOCK
-			if (rk_auth_unlock((void *)CONFIG_FASTBOOT_BUF_ADDR,
-					   &out_is_trusted)) {
-				printf("rk_auth_unlock ops error!\n");
-				fastboot_tx_write_str("FAILrk_auth_unlock ops error!");
-				return;
-			}
+		if (rk_auth_unlock((void *)CONFIG_FASTBOOT_BUF_ADDR,
+				   &out_is_trusted)) {
+			printf("rk_auth_unlock ops error!\n");
+			fastboot_tx_write_str("FAILrk_auth_unlock ops error!");
+			return;
+		}
 #endif
-			if (out_is_trusted == true) {
-				if (rk_avb_write_lock_state(lock_state))
-					fastboot_tx_write_str("FAILwrite lock state failed");
-				else
-					fastboot_tx_write_str("OKAY");
-			} else {
-				fastboot_tx_write_str("FAILauthenticated unlock fail");
-			}
+		if (out_is_trusted == true) {
+			if (rk_avb_write_lock_state(lock_state))
+				fastboot_tx_write_str("FAILwrite lock state failed");
+			else
+				fastboot_tx_write_str("OKAY");
+		} else {
+			fastboot_tx_write_str("FAILauthenticated unlock fail");
 		}
 #else
 		fastboot_tx_write_str("FAILnot implemented");
