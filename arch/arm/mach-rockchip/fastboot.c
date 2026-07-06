@@ -179,28 +179,30 @@ void fastboot_oem_board(char *cmd_parameter, void *data, u32 size, char *respons
 		uint8_t lock_state;
 		char out_is_trusted = true;
 
-		if (avb_read_lock_state(&lock_state))
+		if (avb_read_lock_state(&lock_state)) {
 			fastboot_fail("Lock state read failure", response);
-		if (lock_state >> 1 == 1) {
-			fastboot_fail("Wrong lock state", response);
-		} else {
-			lock_state = 1;
+			return;
+		}
+		if (lock_state & DISABLE_UNLOCK_MASK) {
+			fastboot_fail("The AVB unlock is disabled", response);
+			return;
+		}
+		lock_state = 1;
 #ifdef CONFIG_LIBAVB_ATH_UNLOCK_SUPPORT
-			if (avb_auth_unlock((void *)CONFIG_FASTBOOT_BUF_ADDR,
-					    &out_is_trusted)) {
-				printf("avb_auth_unlock ops error!\n");
-				fastboot_fail("avb_auth_unlock ops error!", response);
-				return;
-			}
+		if (avb_auth_unlock((void *)CONFIG_FASTBOOT_BUF_ADDR,
+				    &out_is_trusted)) {
+			printf("avb_auth_unlock ops error!\n");
+			fastboot_fail("avb_auth_unlock ops error!", response);
+			return;
+		}
 #endif
-			if (out_is_trusted == true) {
-				if (avb_write_lock_state(lock_state))
-					fastboot_fail("Write lock state failed", response);
-				else
-					fastboot_okay(NULL, response);
-			} else {
-				fastboot_fail("authenticated unlock fail", response);
-			}
+		if (out_is_trusted == true) {
+			if (avb_write_lock_state(lock_state))
+				fastboot_fail("Write lock state failed", response);
+			else
+				fastboot_okay(NULL, response);
+		} else {
+			fastboot_fail("authenticated unlock fail", response);
 		}
 #else
 		fastboot_fail("Not implemented", response);
