@@ -16,9 +16,7 @@
 #include <android_ab.h>
 #include <android_avb/ab.h>
 #include <android_avb/avb_ops_user.h>
-#ifdef CONFIG_SPL_AB
 #include <spl_ab.h>
-#endif
 #include <ubifs_uboot.h>
 #include <dm/uclass.h>
 //#include <avb_verify.h>
@@ -729,7 +727,9 @@ static int part_get_info_by_name_option(struct blk_desc *desc,
 	if (ab_append_part_slot(name, name_slot))
 		return -1;
 	full_name = name_slot;
-#elif defined(CONFIG_SPL_AB)
+#else
+	if (!spl_ab_is_enabled(desc))
+		goto lookup;
 	if (spl_ab_append_part_slot(desc, name, name_slot))
 		return -1;
 	full_name = name_slot;

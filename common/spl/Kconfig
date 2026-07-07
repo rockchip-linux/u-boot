@@ -1686,6 +1686,7 @@ config SPL_AB
 	depends on SPL && SPL_LIBDISK_SUPPORT
 	select SPL_MTD_WRITE if SPL_MTD
 	select SPL_MMC_WRITE if SPL_MMC
+	default y
 	help
 	  Enable this config to support AB system boot.
 

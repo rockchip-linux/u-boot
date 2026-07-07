@@ -1347,18 +1347,17 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 			break;
 		}
 	}
-#ifdef CONFIG_SPL_AB
 	/* If boot fail in spl, spl must decrease 1 and do_reset. */
-	if (ret)
+	if (spl_ab_is_enabled(info->priv) && ret)
 		return spl_ab_decrease_reset(info->priv);
 	/*
 	 * If boot successfully, it is no need to do decrease
 	 * and U-boot will always decrease 1.
 	 * If in thunderboot process, always need to decrease 1.
 	 */
-	if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)
+	if (spl_ab_is_enabled(info->priv) &&
+	    spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)
 		spl_ab_decrease_tries(info->priv);
-#endif
 
 	return ret;
 }

@@ -585,13 +585,11 @@ int spl_fdt_chosen_bootargs(struct spl_load_info *info, void *fdt)
 	__maybe_unused struct blk_desc *desc = info->priv;
 	__maybe_unused char *env = NULL;
 	__maybe_unused int ret = 0;
-
-#ifdef CONFIG_SPL_AB
 	char slot_suffix[3] = {0};
 
-	if (!spl_get_current_slot(desc, "misc", slot_suffix))
+	if (spl_ab_is_enabled(desc) &&
+	    !spl_ab_get_current_slot(desc, "misc", slot_suffix))
 		spl_ab_bootargs_append_slot(fdt, slot_suffix);
-#endif
 
 #ifdef CONFIG_SPL_ENVF
 	char *part_type[] = { "mtdparts", "blkdevparts" };

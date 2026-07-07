@@ -6,22 +6,23 @@
 #ifndef _SPL_AB_H_
 #define _SPL_AB_H_
 
-#include <spl.h>
-#include <android_avb/libavb_ab.h>
+#include <stdbool.h>
+#include <linux/kconfig.h>
+
+struct blk_desc;
 
 #define AB_METADATA_OFFSET 4
 
-/*
- * spl_get_current_slot
- *
+#if IS_ENABLED(CONFIG_SPL_AB)
+
+/* spl_ab_get_current_slot
  * @dev_desc: block description
  * @partition: partition name
  * @slot: A/B slot
- *
  * return: 0 success, others fail.
  */
-int spl_get_current_slot(struct blk_desc *dev_desc, char *partition,
-			 char *slot);
+int spl_ab_get_current_slot(struct blk_desc *dev_desc, char *partition,
+				char *slot);
 
 /*
  * spl_ab_append_part_slot
@@ -35,6 +36,15 @@ int spl_get_current_slot(struct blk_desc *dev_desc, char *partition,
 int spl_ab_append_part_slot(struct blk_desc *dev_desc,
 			    const char *part_name,
 			    char *new_name);
+
+/*
+ * spl_ab_is_enabled
+ *
+ * @dev_desc: block description
+ *
+ * return: true if the boot device has A/B boot partitions.
+ */
+bool spl_ab_is_enabled(struct blk_desc *dev_desc);
 
 /*
  * spl_ab_decrease_tries
@@ -63,4 +73,40 @@ int spl_ab_decrease_reset(struct blk_desc *dev_desc);
  */
 int spl_ab_bootargs_append_slot(void *fdt, char *slot);
 
- #endif
+#else
+
+static inline int spl_ab_get_current_slot(struct blk_desc *dev_desc,
+					  char *partition, char *slot)
+{
+	return -1;
+}
+
+static inline int spl_ab_append_part_slot(struct blk_desc *dev_desc,
+					  const char *part_name, char *new_name)
+{
+	return -1;
+}
+
+static inline bool spl_ab_is_enabled(struct blk_desc *dev_desc)
+{
+	return false;
+}
+
+static inline int spl_ab_decrease_tries(struct blk_desc *dev_desc)
+{
+	return -1;
+}
+
+static inline int spl_ab_decrease_reset(struct blk_desc *dev_desc)
+{
+	return -1;
+}
+
+static inline int spl_ab_bootargs_append_slot(void *fdt, char *slot)
+{
+	return 0;
+}
+
+#endif
+
+#endif

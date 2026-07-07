@@ -4,10 +4,13 @@
  */
 
 #include <common.h>
+#include <android_avb/libavb_ab.h>
 #include <android_image.h>
+#include <command.h>
 #include <fdt_support.h>
 #include <blk.h>
 #include <malloc.h>
+#include <part.h>
 #include <spl_ab.h>
 #include <u-boot/crc.h>
 
@@ -204,7 +207,7 @@ static int spl_get_lastboot(AvbABData *ab_data)
 	return ab_data->last_boot;
 }
 
-int spl_get_current_slot(struct blk_desc *dev_desc, char *partition, char *slot)
+int spl_ab_get_current_slot(struct blk_desc *dev_desc, char *partition, char *slot)
 {
 	static int last_slot_index = -1;
 	size_t slot_index_to_boot;
@@ -292,16 +295,50 @@ int spl_ab_append_part_slot(struct blk_desc *dev_desc,
 		return 0;
 	}
 
-	if (spl_get_current_slot(dev_desc, "misc", slot_suffix)) {
+	if (spl_ab_get_current_slot(dev_desc, "misc", slot_suffix)) {
 		printf("No misc partition\n");
 		strcat(new_name, part_name);
-		return 0;
+		return -ENODEV;
 	}
 
 	strcpy(new_name, part_name);
 	strcat(new_name, slot_suffix);
 
 	return 0;
+}
+
+bool spl_ab_is_enabled(struct blk_desc *dev_desc)
+{
+	struct disk_partition part_info;
+	static enum uclass_id last_uclass_id;
+	static int last_devnum;
+	static bool ab_checked;
+	static bool ab_enabled;
+
+	if (!dev_desc)
+		return false;
+
+	if (ab_checked &&
+	    last_uclass_id == dev_desc->uclass_id &&
+	    last_devnum == dev_desc->devnum)
+		return ab_enabled;
+
+	last_uclass_id = dev_desc->uclass_id;
+	last_devnum = dev_desc->devnum;
+	ab_checked = true;
+	ab_enabled = false;
+
+	if (part_get_info_by_name_strict(dev_desc, PART_MISC, &part_info) < 0)
+		return false;
+	if (part_get_info_by_name_strict(dev_desc, PART_BOOT "_a",
+					 &part_info) < 0)
+		return false;
+	if (part_get_info_by_name_strict(dev_desc, PART_BOOT "_b",
+					 &part_info) < 0)
+		return false;
+
+	ab_enabled = true;
+	return ab_enabled;
 }
 
 static int spl_save_metadata_if_changed(struct blk_desc *dev_desc,
@@ -351,7 +388,7 @@ int spl_ab_decrease_tries(struct blk_desc *dev_desc)
 	char slot_suffix[3] = {0};
 	int ret = -1;
 
-	ret = spl_get_current_slot(dev_desc, "misc", slot_suffix);
+	ret = spl_ab_get_current_slot(dev_desc, "misc", slot_suffix);
 	if (ret)
 		goto out;
 
