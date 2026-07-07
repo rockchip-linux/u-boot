@@ -11,6 +11,7 @@
 #include <syscon.h>
 #include <regmap.h>
 #include <dm/device.h>
+#include <dm/lists.h>
 #include <dm/read.h>
 #include <dm/pinctrl.h>
 #include <linux/media-bus-format.h>
@@ -535,14 +536,77 @@ static void rockchip_mcu_panel_deinit(struct rockchip_mcu_panel *mcu_panel)
 		gpio_free_list_nodev(&mcu_panel->enable_gpio, 1);
 }
 
+static int rockchip_mcu_panel_probe(struct udevice *dev)
+{
+	struct rockchip_mcu_panel *mcu_panel = dev_get_priv(dev);
+	int ret;
+
+	ret = rockchip_mcu_panel_init(mcu_panel, dev_ofnode(dev));
+	if (ret < 0) {
+		printf("failed to init mcu_panel: %d\n", ret);
+		return ret;
+	}
+
+	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
+					   "backlight", &mcu_panel->backlight);
+	if (ret && ret != -ENOENT) {
+		printf("%s: failed to get backlight device: %d\n", __func__, ret);
+		goto deinit_mcu_panel;
+	}
+
+	mcu_panel->base.dev = dev;
+	mcu_panel->base.bus_format = mcu_panel->desc->bus_format;
+	mcu_panel->base.bpc = mcu_panel->desc->bpc;
+	mcu_panel->base.funcs = &rockchip_mcu_panel_funcs;
+	dev->driver_data = (ulong)&mcu_panel->base;
+
+	return 0;
+
+deinit_mcu_panel:
+	rockchip_mcu_panel_deinit(mcu_panel);
+	return ret;
+}
+
+static int rockchip_mcu_panel_remove(struct udevice *dev)
+{
+	struct rockchip_mcu_panel *mcu_panel = dev_get_priv(dev);
+
+	rockchip_mcu_panel_deinit(mcu_panel);
+
+	return 0;
+}
+
+U_BOOT_DRIVER(rockchip_mcu_panel) = {
+	.name = "rockchip_mcu_panel",
+	.id = UCLASS_PANEL,
+	.probe = rockchip_mcu_panel_probe,
+	.remove = rockchip_mcu_panel_remove,
+	.priv_auto_alloc_size = sizeof(struct rockchip_mcu_panel),
+};
+
+static int rockchip_rgb_bind(struct udevice *parent)
+{
+	ofnode mcu_panel_ofnode;
+	int ret;
+
+	mcu_panel_ofnode = dev_read_subnode(parent, "mcu-panel");
+	if (ofnode_valid(mcu_panel_ofnode)) {
+		ret = device_bind_driver_to_node(parent, "rockchip_mcu_panel",
+						 ofnode_get_name(mcu_panel_ofnode),
+						 mcu_panel_ofnode, NULL);
+		if (ret) {
+			dev_err(parent, "Failed to bind rockchip_mcu_panel driver\n");
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 static int rockchip_rgb_probe(struct udevice *dev)
 {
 	struct rockchip_rgb *rgb = dev_get_priv(dev);
 	const struct rockchip_rgb_data *rgb_data;
-	struct rockchip_mcu_panel *mcu_panel;
-	ofnode mcu_panel_node;
-	int phandle;
-	int ret;
 
 	rgb->data_map_mode = dev_read_s32_default(dev, "rockchip,data-map-mode", -1);
 	rgb->delayline_num = dev_read_s32_default(dev, "rockchip,delayline-num", -1);
@@ -561,54 +625,12 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	if (rgb->id < 0)
 		rgb->id = 0;
 
-	mcu_panel_node = dev_read_subnode(dev, "mcu-panel");
-	if (ofnode_valid(mcu_panel_node) && ofnode_is_available(mcu_panel_node)) {
-		mcu_panel = calloc(1, sizeof(struct rockchip_mcu_panel));
-		if (!mcu_panel) {
-			printf("failed to alloc mcu_panel data\n");
-			return -ENOMEM;
-		}
-
-		ret = rockchip_mcu_panel_init(mcu_panel, mcu_panel_node);
-		if (ret < 0) {
-			printf("failed to init mcu_panel: %d\n", ret);
-			goto free_mcu_panel;
-		}
-
-		phandle = ofnode_read_u32_default(mcu_panel_node, "backlight", -1);
-		if (phandle < 0) {
-			printf("failed to find backlight phandle\n");
-			ret = -EINVAL;
-			goto deinit_mcu_panel;
-		}
-
-		ret = uclass_get_device_by_phandle_id(UCLASS_PANEL_BACKLIGHT, phandle,
-						      &mcu_panel->backlight);
-		if (ret && ret != -ENOENT) {
-			printf("%s: failed to get backlight device: %d\n", __func__, ret);
-			goto deinit_mcu_panel;
-		}
-
-		mcu_panel->base.dev = dev;
-		mcu_panel->base.bus_format = mcu_panel->desc->bus_format;
-		mcu_panel->base.bpc = mcu_panel->desc->bpc;
-		mcu_panel->base.funcs = &rockchip_mcu_panel_funcs;
-
-		rgb->connector.panel = &mcu_panel->base;
-	}
-
 	generic_phy_get_by_name(dev, "phy", &rgb->phy);
 
 	rockchip_connector_bind(&rgb->connector, dev, rgb->id, &rockchip_rgb_connector_funcs,
 				NULL, DRM_MODE_CONNECTOR_LVDS);
 
 	return 0;
-
-deinit_mcu_panel:
-	rockchip_mcu_panel_deinit(mcu_panel);
-free_mcu_panel:
-	free(mcu_panel);
-	return ret;
 }
 
 static void rv1106_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
@@ -883,6 +905,7 @@ U_BOOT_DRIVER(rockchip_rgb) = {
 	.name = "rockchip_rgb",
 	.id = UCLASS_DISPLAY,
 	.of_match = rockchip_rgb_ids,
+	.bind = rockchip_rgb_bind,
 	.probe = rockchip_rgb_probe,
 	.priv_auto_alloc_size = sizeof(struct rockchip_rgb),
 };
