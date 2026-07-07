@@ -1726,7 +1726,7 @@ rockchip_of_graph_get_remote_node(ofnode node, int port, int endpoint)
 static int rockchip_of_find_panel(struct udevice *dev, struct rockchip_panel **panel)
 {
 	struct device_node *ep_node, *panel_node;
-	ofnode panel_ofnode, port;
+	ofnode panel_ofnode, port, mcu_panel_ofnode;
 	struct udevice *panel_dev;
 	int ret = 0;
 
@@ -1734,6 +1734,14 @@ static int rockchip_of_find_panel(struct udevice *dev, struct rockchip_panel **p
 	panel_ofnode = dev_read_subnode(dev, "panel");
 	if (ofnode_valid(panel_ofnode) && ofnode_is_enabled(panel_ofnode)) {
 		ret = uclass_get_device_by_ofnode(UCLASS_PANEL, panel_ofnode,
+						  &panel_dev);
+		if (!ret)
+			goto found;
+	}
+
+	mcu_panel_ofnode = dev_read_subnode(dev, "mcu-panel");
+	if (ofnode_valid(mcu_panel_ofnode)) {
+		ret = uclass_get_device_by_ofnode(UCLASS_PANEL, mcu_panel_ofnode,
 						  &panel_dev);
 		if (!ret)
 			goto found;
