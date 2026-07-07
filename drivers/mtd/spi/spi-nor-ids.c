@@ -544,6 +544,8 @@ const struct flash_info spi_nor_ids[] = {
 	{ INFO("xt25q128d", 0x0b6018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ INFO("xt25q256", 0x0b6019, 0, 64 * 1024, 512,
 	       SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES) },
+	{ INFO("xt25q512f", 0x0b601a, 0, 64 * 1024, 1024,
+	       SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES) },
 #endif
 #ifdef CONFIG_SPI_FLASH_PUYA
 	/* PUYA Semiconductor (Shanghai) Co., Ltd. */
