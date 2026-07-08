@@ -25,16 +25,6 @@
 #include "rk628.h"
 #include "panel.h"
 
-void *kmemdup(const void *src, size_t len, gfp_t gfp)
-{
-	void *p;
-
-	p = kmalloc(len, gfp);
-	if (p)
-		memcpy(p, src, len);
-	return p;
-}
-
 static int
 dsi_panel_parse_cmds(const u8 *data, int blen, struct panel_cmds *pcmds)
 {
@@ -251,8 +241,10 @@ void rk628_panel_enable(struct rk628 *rk628)
 		mdelay(p->delay.enable);
 
 
-	if (p->backlight)
+	if (p->backlight) {
+		backlight_set_brightness(p->backlight, BACKLIGHT_DEFAULT);
 		backlight_enable(p->backlight);
+	}
 }
 
 void rk628_panel_unprepare(struct rk628 *rk628)
@@ -283,7 +275,7 @@ void rk628_panel_disable(struct rk628 *rk628)
 		return;
 
 	if (p->backlight)
-		backlight_disable(p->backlight);
+		backlight_set_brightness(p->backlight, BACKLIGHT_OFF);
 
 	if (p->delay.disable)
 		mdelay(p->delay.disable);

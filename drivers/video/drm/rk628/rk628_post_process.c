@@ -4,7 +4,6 @@
  */
 
 #include <common.h>
-#include <dm.h>
 #include <errno.h>
 #include <i2c.h>
 #include <linux/iopoll.h>

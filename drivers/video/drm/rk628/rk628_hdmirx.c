@@ -529,7 +529,7 @@ int rk628_hdmirx_enable(struct rk628 *rk628)
 	rk628_hdmirx_ctrl_enable(&rk628->hdmirx);
 	ret = rk628_hdmirx_phy_setup(&rk628->hdmirx);
 	if (ret < 0) {
-		dev_err(hdmirx->dev, "hdmirx channel can't lock!\n");
+		dev_err(rk628->dev, "hdmirx channel can't lock!\n");
 		return -EINVAL;
 	}
 

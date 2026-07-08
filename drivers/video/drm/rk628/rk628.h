@@ -9,16 +9,18 @@
 #include <asm-generic/gpio.h>
 #include <errno.h>
 #include <common.h>
-#include <dm.h>
 #include <i2c.h>
+#include <dm/device.h>
+#include <dm/device_compat.h>
+#include <dm/devres.h>
+#include <dm/read.h>
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
 #include <power/regulator.h>
 #include <linux/bitfield.h>
+#include <linux/delay.h>
 #include <linux/math64.h>
 #include <drm_modes.h>
-
-#include "../rockchip_phy.h"
 
 #define DRIVER_VERSION				"0.1.0"
 #define UPDATE(x, h, l)		(((x) << (l)) & GENMASK((h), (l)))
@@ -611,7 +613,7 @@ static inline enum bus_format rk628_get_output_bus_format(struct rk628 *rk628)
 
 static inline int rk628_i2c_write(struct rk628 *rk628, u32 reg, u32 val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk628->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk628->dev);
 	struct i2c_msg msg;
 	u8 buf[] = {
 		(reg >> 0) & 0xff, (reg >> 8) & 0xff,
@@ -637,7 +639,7 @@ static inline int rk628_i2c_write(struct rk628 *rk628, u32 reg, u32 val)
 
 static inline int rk628_i2c_read(struct rk628 *rk628, u32 reg, u32 *val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk628->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk628->dev);
 	u32 data;
 	struct i2c_msg msg[] = {
 		{

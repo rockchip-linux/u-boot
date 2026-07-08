@@ -172,12 +172,6 @@ static bool rk628_display_route_check(struct rk628 *rk628)
 	return true;
 }
 
-static inline size_t strlcat(char *dest, const char *src, size_t n)
-{
-	strcat(dest, src);
-	return strlen(dest) + strlen(src);
-}
-
 static void rk628_current_display_route(struct rk628 *rk628, char *input_s,
 					int input_s_len, char *output_s,
 					int output_s_len)
@@ -472,7 +466,7 @@ static int rk628_probe(struct udevice *dev)
 	 * Process 'assigned-{clocks/clock-parents/clock-rates}'
 	 * properties for ref clock from soc
 	 */
-	ret = clk_set_defaults(dev);
+	ret = clk_set_defaults(dev, CLK_DEFAULTS_PRE);
 	if (ret)
 		dev_err(dev, "%s clk_set_defaults failed %d\n", __func__, ret);
 
@@ -504,5 +498,5 @@ U_BOOT_DRIVER(rk628) = {
 	.of_match = rk628_of_match,
 	.bind = dm_scan_fdt_dev,
 	.probe = rk628_probe,
-	.priv_auto_alloc_size = sizeof(struct rk628),
+	.priv_auto = sizeof(struct rk628),
 };
