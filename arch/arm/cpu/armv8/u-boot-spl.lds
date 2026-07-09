@@ -56,19 +56,12 @@ SECTIONS
 #ifndef CONFIG_SPL_SKIP_RELOCATE
 	. = ALIGN(8);
 
-	.rel_dyn_start :
-	{
-		*(.__rel_dyn_start)
-	} >.sram
-
 	.rela.dyn : {
+		__rel_dyn_start = .;
 		*(.rela*)
+		__rel_dyn_end = .;
 	} >.sram
 
-	.rel_dyn_end :
-	{
-		*(.__rel_dyn_end)
-	} >.sram
 #endif
 	. = ALIGN(8);
 	__image_copy_end = .;

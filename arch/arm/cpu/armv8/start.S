@@ -35,7 +35,11 @@ _start:
 
 .globl	_TEXT_BASE
 _TEXT_BASE:
+#if defined(CONFIG_SPL_BUILD)
+	.quad	CONFIG_SPL_TEXT_BASE
+#else
 	.quad	CONFIG_TEXT_BASE
+#endif
 
 /*
  * These are defined in the linker script.

@@ -279,9 +279,12 @@ void board_init_f(ulong dummy)
 	gd->ram_top = board_get_usable_ram_top(gd->ram_size);
 
 	if (IS_ENABLED(CONFIG_ARM64) && !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)) {
+		ulong spl_relocaddr = gd->relocaddr;
+
 		gd->relocaddr = gd->ram_top;
 		arch_reserve_mmu();
 		enable_caches();
+		gd->relocaddr = spl_relocaddr;
 	}
 #endif
 	preloader_console_init();
