@@ -501,8 +501,28 @@ static struct AvbOpsData preload_user_data;
 bool is_gbl_bootflow(struct blk_desc *dev_desc)
 {
 	struct disk_partition part;
+	static enum uclass_id last_uclass_id;
+	static int last_devnum;
+	static bool gbl_checked;
+	static bool gbl_bootflow;
 
-	return part_get_info_by_name(dev_desc, PART_ANDROID_ESP, &part) > 0;
+	if (!dev_desc)
+		return false;
+
+	if (gbl_checked &&
+	    last_uclass_id == dev_desc->uclass_id &&
+	    last_devnum == dev_desc->devnum)
+		return gbl_bootflow;
+
+	last_uclass_id = dev_desc->uclass_id;
+	last_devnum = dev_desc->devnum;
+	gbl_checked = true;
+	gbl_bootflow = false;
+
+	if (part_get_info_by_name(dev_desc, PART_ANDROID_ESP, &part) > 0)
+		gbl_bootflow = true;
+
+	return gbl_bootflow;
 }
 
 static int avb_image_distribute_prepare(AvbSlotVerifyData *slot_data,
