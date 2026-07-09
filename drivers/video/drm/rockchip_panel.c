@@ -404,7 +404,7 @@ static int rockchip_panel_ofdata_to_platdata(struct udevice *dev)
 	plat->delay.reset = dev_read_u32_default(dev, "reset-delay-ms", 0);
 
 	plat->bus_format = dev_read_u32_default(dev, "bus-format",
-						MEDIA_BUS_FMT_RBG888_1X24);
+						MEDIA_BUS_FMT_RGB888_1X24);
 	plat->bpc = dev_read_u32_default(dev, "bpc", 8);
 
 	data = dev_read_prop(dev, "panel-init-sequence", &len);
