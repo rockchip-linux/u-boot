@@ -288,7 +288,6 @@ struct crtc_state {
 	u8 dsc_enable;
 	u8 dsc_slice_num;
 	u8 dsc_pixel_num;
-	bool reserved_plane_en;
 	struct rockchip_mcu_timing mcu_timing;
 	u32 dual_channel_swap;
 	u32 feature;
