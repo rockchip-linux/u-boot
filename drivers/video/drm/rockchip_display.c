@@ -2565,10 +2565,8 @@ static int rockchip_display_probe(struct udevice *dev)
 					if (s->crtc_state.crtc->vps[vp_id].enable)
 						s->crtc_state.crtc->vps[vp_id].active_layers++;
 
-					if (s->crtc_state.crtc->vps[vp_id].reserved_plane_id != (u8)(-1)) {
-						s->crtc_state.reserved_plane_en |= true;
+					if (s->crtc_state.crtc->vps[vp_id].reserved_plane_id != (u8)(-1))
 						s->crtc_state.crtc->vps[vp_id].active_layers++;
-					}
 				}
 				get_plane_mask_from_dts = true;
 			}
