@@ -12,6 +12,8 @@
 #include <generic-phy-mipi-dphy.h>
 #include <generic-phy-pcie.h>
 
+struct ofnode_phandle_args;
+
 enum phy_mode {
 	PHY_MODE_INVALID,
 	PHY_MODE_DP,
