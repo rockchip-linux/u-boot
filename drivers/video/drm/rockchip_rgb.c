@@ -496,7 +496,7 @@ static int rockchip_mcu_panel_init(struct rockchip_mcu_panel *mcu_panel, ofnode 
 	mcu_panel->desc->delay.reset = ofnode_read_u32_default(mcu_panel_node, "reset-delay-ms", 0);
 
 	mcu_panel->desc->bus_format = ofnode_read_u32_default(mcu_panel_node, "bus-format",
-							      MEDIA_BUS_FMT_RBG888_1X24);
+							      MEDIA_BUS_FMT_RGB888_1X24);
 	mcu_panel->desc->bpc = ofnode_read_u32_default(mcu_panel_node, "bpc", 8);
 
 	data = ofnode_get_property(mcu_panel_node, "panel-init-sequence", &len);
