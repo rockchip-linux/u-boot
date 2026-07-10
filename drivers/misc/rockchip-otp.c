@@ -72,17 +72,27 @@
 
 #define KEY_READER_CFG   		0x0
 
-#define RK3588_OTPC_AUTO_CTRL		0x0004
+/* OTPC auto-read controller protocol */
+#define OTPC_AUTO_BURST_NUM		1
+#define OTPC_AUTO_ADDR_SHIFT		16
+#define OTPC_AUTO_BURST_SHIFT		8
+#define OTPC_AUTO_ADDR(n)		((n) << OTPC_AUTO_ADDR_SHIFT)
+#define OTPC_AUTO_BURST(n)		((n) << OTPC_AUTO_BURST_SHIFT)
+#define OTPC_AUTO_RD_DONE		BIT(1)
 
-#define RK3588_ADDR_SHIFT		16
-#define RK3588_ADDR(n)			((n) << RK3588_ADDR_SHIFT)
-#define RK3588_BURST_SHIFT		8
-#define RK3588_BURST(n)			((n) << RK3588_BURST_SHIFT)
+/* RK3572 Register */
+#define RK3572_OTPC_AUTO_CTRL		0x18
+#define RK3572_OTPC_AUTO_EN		0x2c
+#define RK3572_OTPC_INT_ST		0x94
+#define RK3572_OTPC_DOUT0		0xa0
+#define RK3572_AUTO_EN			0xffff
+
+/* RK3588 Register */
+#define RK3588_OTPC_AUTO_CTRL		0x0004
 #define RK3588_OTPC_AUTO_EN		0x0008
-#define RK3588_AUTO_EN			BIT(0)
 #define RK3588_OTPC_DOUT0		0x0020
 #define RK3588_OTPC_INT_ST		0x0084
-#define RK3588_RD_DONE			BIT(1)
+#define RK3588_AUTO_EN			BIT(0)
 
 #define RV1126_OTP_NVM_CEB		0x00
 #define RV1126_OTP_NVM_RSTB		0x04
@@ -324,6 +334,30 @@ read_end:
 	return ret;
 }
 
+static int rockchip_rk3572_otp_read(struct udevice *dev, int offset,
+				    void *buf, int size)
+{
+	struct rockchip_otp_plat *otp = dev_get_plat(dev);
+	u32 *buffer = buf;
+	int ret;
+
+	while (size--) {
+		writel(OTPC_AUTO_ADDR(offset++) |
+		       OTPC_AUTO_BURST(OTPC_AUTO_BURST_NUM),
+		       otp->base + RK3572_OTPC_AUTO_CTRL);
+		writel(RK3572_AUTO_EN, otp->base + RK3572_OTPC_AUTO_EN);
+
+		ret = rockchip_otp_poll_timeout(otp, OTPC_AUTO_RD_DONE,
+						RK3572_OTPC_INT_ST);
+		if (ret)
+			return ret;
+
+		*buffer++ = readl(otp->base + RK3572_OTPC_DOUT0);
+	}
+
+	return 0;
+}
+
 static int rockchip_rk3588_otp_read(struct udevice *dev, int offset,
 				    void *buf, int size)
 {
@@ -332,11 +366,12 @@ static int rockchip_rk3588_otp_read(struct udevice *dev, int offset,
 	int ret;
 
 	while (size--) {
-		writel(RK3588_ADDR(offset++) | RK3588_BURST(1),
+		writel(OTPC_AUTO_ADDR(offset++) |
+		       OTPC_AUTO_BURST(OTPC_AUTO_BURST_NUM),
 		       otp->base + RK3588_OTPC_AUTO_CTRL);
 		writel(RK3588_AUTO_EN, otp->base + RK3588_OTPC_AUTO_EN);
 
-		ret = rockchip_otp_poll_timeout(otp, RK3588_RD_DONE,
+		ret = rockchip_otp_poll_timeout(otp, OTPC_AUTO_RD_DONE,
 						RK3588_OTPC_INT_ST);
 		if (ret)
 			return ret;
@@ -473,6 +508,13 @@ static const struct rockchip_otp_data rk3568_data = {
 	.block_size = 2,
 };
 
+static const struct rockchip_otp_data rk3572_data = {
+	.read = rockchip_rk3572_otp_read,
+	.offset = 0x700,
+	.size = 0x100,
+	.block_size = 4,
+};
+
 static const struct rockchip_otp_data rk3576_data = {
 	.read = rockchip_rk3588_otp_read,
 	.offset = 0x700,
@@ -509,6 +551,10 @@ static const struct udevice_id rockchip_otp_ids[] = {
 	{
 		.compatible = "rockchip,rk3568-otp",
 		.data = (ulong)&rk3568_data,
+	},
+	{
+		.compatible = "rockchip,rk3572-otp",
+		.data = (ulong)&rk3572_data,
 	},
 	{
 		.compatible = "rockchip,rk3576-otp",
