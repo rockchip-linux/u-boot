@@ -61,6 +61,7 @@ function help()
 	echo "    --rollback-index-recovery  <decimal integer>"
 	echo "    --rollback-index-boot      <decimal integer>"
 	echo "    --rollback-index-uboot     <decimal integer>"
+	echo "    --rollback-index-loader    <decimal integer>"
 	echo "    --version-recovery         <decimal integer>"
 	echo "    --version-boot             <decimal integer>"
 	echo "    --version-uboot            <decimal integer>"
@@ -135,7 +136,7 @@ function validate_arg()
 		--no-check|--no-sign|--spl-new|--burn-key-hash)
 			shift=1
 			;;
-		--ini-trust|--ini-loader|--rollback-index-boot|--rollback-index-recovery|--rollback-index-uboot|--boot_img|--recovery_img|--version-uboot|--version-boot|--version-recovery|--chip)
+		--ini-trust|--ini-loader|--rollback-index-boot|--rollback-index-recovery|--rollback-index-uboot|--rollback-index-loader|--boot_img|--recovery_img|--version-uboot|--version-boot|--version-recovery|--chip)
 			shift=2
 			;;
 		*)
@@ -217,6 +218,15 @@ function fit_process_args()
 			--rollback-index-uboot)
 				ARG_ROLLBACK_IDX_UBOOT=$2
 				arg_check_decimal $2
+				shift 2
+				;;
+			--rollback-index-loader)
+				ARG_ROLLBACK_IDX_LOADER=$2
+				arg_check_decimal $2
+				if [ "$2" -gt 65535 ]; then
+					echo "Error: --rollback-index-loader ($2) exceeds 16-bit maximum (65535)" >&2
+					exit 1
+				fi
 				shift 2
 				;;
 			--version-uboot)
@@ -624,11 +634,21 @@ function fit_gen_loader()
 {
 	if [ "${ARG_SIGN}" == "y" ]; then
 		${RK_SIGN_TOOL} cc --chip ${ARG_CHIP: 2: 6}
+		if [ -n "${ARG_ROLLBACK_IDX_LOADER}" ]; then
+			RK_LOADER_VER_VALUE=`printf '0x%04x%04x' "${ARG_ROLLBACK_IDX_LOADER}" "${ARG_ROLLBACK_IDX_LOADER}"`
+		fi
 		if grep -q '^CONFIG_SPL_REVOKE_PUB_KEY=y' .config ; then
 			${RK_SIGN_TOOL} lk --key ${LEGACY_RSA_PRI_KEY} --pubkey ${LEGACY_RSA_PUB_KEY}
-			${RK_SIGN_TOOL} ss --flag=0x80
+			if [ -n "${ARG_ROLLBACK_IDX_LOADER}" ]; then
+				${RK_SIGN_TOOL} ss --flag=0x80 --version "${RK_LOADER_VER_VALUE}"
+			else
+				${RK_SIGN_TOOL} ss --flag=0x80
+			fi
 		else
 			${RK_SIGN_TOOL} lk --key ${RSA_PRI_KEY} --pubkey ${RSA_PUB_KEY}
+			if [ -n "${ARG_ROLLBACK_IDX_LOADER}" ]; then
+				${RK_SIGN_TOOL} ss --version "${RK_LOADER_VER_VALUE}"
+			fi
 		fi
 		if ls *loader*.bin >/dev/null 2>&1 ; then
 			${RK_SIGN_TOOL} sl --loader *loader*.bin
@@ -728,7 +748,11 @@ function fit_msg_loader()
 	fi
 
 	if [ "${ARG_SIGN}" == "y" ]; then
-		echo "Image(signed): ${LOADER} (with spl, ddr...) is ready"
+		if [ -n "${ARG_ROLLBACK_IDX_LOADER}" ]; then
+			echo "Image(signed, rollback-index=${ARG_ROLLBACK_IDX_LOADER}): ${LOADER} (with spl, ddr...) is ready"
+		else
+			echo "Image(signed): ${LOADER} (with spl, ddr...) is ready"
+		fi
 	else
 		echo "Image(no-signed): ${LOADER} (with spl, ddr...) is ready"
 	fi
