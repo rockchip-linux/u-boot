@@ -9,10 +9,9 @@
 #include <common.h>
 #include <errno.h>
 #include <dm.h>
+#include <generic-phy.h>
 #include <asm/io.h>
 #include <linux/iopoll.h>
-
-#include "rockchip_phy.h"
 
 /* Register: 0x0030 */
 #define DISABLE_PLL	BIT(3)
@@ -24,7 +23,6 @@
 struct inno_video_phy {
 	void __iomem *base;
 	enum phy_mode mode;
-	bool dual_channel;
 };
 
 struct reg_sequence {
@@ -115,7 +113,7 @@ static void phy_multi_write(struct inno_video_phy *inno,
 	}
 }
 
-static int inno_video_phy_power_on(struct rockchip_phy *phy)
+static int inno_video_phy_power_on(struct phy *phy)
 {
 	struct inno_video_phy *inno = dev_get_priv(phy->dev);
 	const struct reg_sequence *wseq;
@@ -124,8 +122,8 @@ static int inno_video_phy_power_on(struct rockchip_phy *phy)
 	int ret;
 
 	switch (inno->mode) {
-	case PHY_MODE_VIDEO_LVDS:
-		if (inno->dual_channel) {
+	case PHY_MODE_LVDS:
+		if (generic_phy_get_bus_width(phy) == 2) {
 			wseq = lvds_mode_dual_channel;
 			nregs = ARRAY_SIZE(lvds_mode_dual_channel);
 		} else {
@@ -133,12 +131,10 @@ static int inno_video_phy_power_on(struct rockchip_phy *phy)
 			nregs = ARRAY_SIZE(lvds_mode_single_channel);
 		}
 		break;
-	case PHY_MODE_VIDEO_TTL:
+	default:
 		wseq = ttl_mode;
 		nregs = ARRAY_SIZE(ttl_mode);
 		break;
-	default:
-		return -EINVAL;
 	}
 
 	phy_multi_write(inno, wseq, nregs);
@@ -156,7 +152,7 @@ static int inno_video_phy_power_on(struct rockchip_phy *phy)
 	return 0;
 }
 
-static int inno_video_phy_power_off(struct rockchip_phy *phy)
+static int inno_video_phy_power_off(struct phy *phy)
 {
 	struct inno_video_phy *inno = dev_get_priv(phy->dev);
 
@@ -166,60 +162,39 @@ static int inno_video_phy_power_off(struct rockchip_phy *phy)
 	return 0;
 }
 
-static int inno_video_phy_set_mode(struct rockchip_phy *phy,
-				   enum phy_mode mode)
+static int inno_video_phy_set_mode(struct phy *phy, enum phy_mode mode, int submode)
 {
 	struct inno_video_phy *inno = dev_get_priv(phy->dev);
 
 	switch (mode) {
-	case PHY_MODE_VIDEO_LVDS:
-	case PHY_MODE_VIDEO_TTL:
+	case PHY_MODE_LVDS:
 		inno->mode = mode;
 		break;
 	default:
-		return -EINVAL;
+		break;
 	}
 
 	return 0;
 }
 
-static int
-inno_video_phy_set_bus_width(struct rockchip_phy *phy, u32 bus_width)
-{
-	struct inno_video_phy *inno = dev_get_priv(phy->dev);
-
-	inno->dual_channel = (bus_width == 2) ? true : false;
-
-	return 0;
-}
-
-static const struct rockchip_phy_funcs inno_video_phy_funcs = {
+static const struct phy_ops inno_video_phy_ops = {
 	.power_on = inno_video_phy_power_on,
 	.power_off = inno_video_phy_power_off,
 	.set_mode = inno_video_phy_set_mode,
-	.set_bus_width = inno_video_phy_set_bus_width,
 };
 
 static int inno_video_phy_probe(struct udevice *dev)
 {
 	struct inno_video_phy *inno = dev_get_priv(dev);
-	struct rockchip_phy *phy =
-		(struct rockchip_phy *)dev_get_driver_data(dev);
 
 	inno->base = dev_read_addr_ptr(dev);
-	phy->dev = dev;
 
 	return 0;
 }
 
-static struct rockchip_phy inno_video_phy_driver_data = {
-	 .funcs = &inno_video_phy_funcs,
-};
-
 static const struct udevice_id inno_video_phy_ids[] = {
 	{
 		.compatible = "rockchip,rk3288-video-phy",
-		.data = (ulong)&inno_video_phy_driver_data,
 	},
 	{}
 };
@@ -227,6 +202,7 @@ static const struct udevice_id inno_video_phy_ids[] = {
 U_BOOT_DRIVER(inno_video_phy) = {
 	.name = "inno_video_phy",
 	.id = UCLASS_PHY,
+	.ops = &inno_video_phy_ops,
 	.of_match = inno_video_phy_ids,
 	.probe = inno_video_phy_probe,
 	.priv_auto_alloc_size = sizeof(struct inno_video_phy),
