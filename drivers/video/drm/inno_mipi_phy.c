@@ -7,7 +7,9 @@
 #include <config.h>
 #include <common.h>
 #include <errno.h>
+#include <generic-phy.h>
 #include <malloc.h>
+#include <phy-mipi-dphy.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <linux/list.h>
@@ -16,8 +18,6 @@
 #include <dm/read.h>
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
-
-#include "rockchip_phy.h"
 
 #define NSEC_PER_USEC		1000L
 #define USEC_PER_SEC		1000000L
@@ -210,6 +210,7 @@ struct inno_mipi_dphy_timing {
 
 struct inno_mipi_dphy {
 	struct udevice *dev;
+	enum soc_type soc_type;
 	void __iomem *regs;
 	unsigned int lane_mbps;
 	int lanes;
@@ -431,8 +432,6 @@ static void inno_mipi_dphy_get_fixed_param(struct inno_mipi_dphy_timing *t,
 static void inno_mipi_dphy_lane_timing_init(struct inno_mipi_dphy *inno,
 					    enum lane_type lane_type)
 {
-	struct rockchip_phy *phy =
-		(struct rockchip_phy *)dev_get_driver_data(inno->dev);
 	struct mipi_dphy_timing timing;
 	struct inno_mipi_dphy_timing data;
 	unsigned long txbyteclk, txclkesc, UI;
@@ -451,7 +450,7 @@ static void inno_mipi_dphy_lane_timing_init(struct inno_mipi_dphy *inno,
 
 	mipi_dphy_timing_get_default(&timing, UI);
 	inno_mipi_dphy_get_fixed_param(&data, inno->lane_mbps,
-				       phy->soc_type, lane_type);
+				       inno->soc_type, lane_type);
 
 	/*
 	 * Ttxbyteclk * val >= Ths-exit
@@ -465,7 +464,7 @@ static void inno_mipi_dphy_lane_timing_init(struct inno_mipi_dphy *inno,
 	data.wakup_h = 0x3;
 	data.wakup_l = 0xff;
 
-	if (phy->soc_type == RV1108_MIPI_DPHY) {
+	if (inno->soc_type == RV1108_MIPI_DPHY) {
 		data.lpx = DIV_ROUND_UP(txbyteclk * timing.lpx, NSEC_PER_SEC);
 		if (data.lpx > 2)
 			data.lpx -= 2;
@@ -635,7 +634,7 @@ static inline void inno_mipi_dphy_bgpd_disable(struct inno_mipi_dphy *inno)
 	inno_update_bits(inno, INNO_PHY_LVDS_CTRL, LVDS_BGPD, LVDS_BGPD);
 }
 
-static int inno_mipi_dphy_power_on(struct rockchip_phy *phy)
+static int inno_mipi_dphy_power_on(struct phy *phy)
 {
 	struct inno_mipi_dphy *inno = dev_get_priv(phy->dev);
 
@@ -655,7 +654,7 @@ static inline void inno_mipi_dphy_lane_disable(struct inno_mipi_dphy *inno)
 	inno_update_bits(inno, INNO_PHY_LANE_CTRL, 0x7c, 0x00);
 }
 
-static int inno_mipi_dphy_power_off(struct rockchip_phy *phy)
+static int inno_mipi_dphy_power_off(struct phy *phy)
 {
 	struct inno_mipi_dphy *inno = dev_get_priv(phy->dev);
 
@@ -667,17 +666,17 @@ static int inno_mipi_dphy_power_off(struct rockchip_phy *phy)
 	return 0;
 }
 
-static unsigned long inno_mipi_dphy_set_pll(struct rockchip_phy *phy,
-					    unsigned long rate)
+static int inno_mipi_dphy_configure(struct phy *phy, union phy_configure_opts *phy_opts)
 {
 	struct inno_mipi_dphy *inno = dev_get_priv(phy->dev);
+	struct phy_configure_opts_mipi_dphy *opts = &phy_opts->mipi_dphy;
 	unsigned long fin, fout;
 	u16 fbdiv = 0;
 	u8 prediv = 0;
 	u32 m, v;
 
 	fin = 24000000;
-	fout = inno_mipi_dphy_pll_round_rate(fin, rate, &prediv, &fbdiv);
+	fout = inno_mipi_dphy_pll_round_rate(fin, opts->hs_clk_rate, &prediv, &fbdiv);
 
 	debug("%s: fin=%lu, fout=%lu, prediv=%u, fbdiv=%u\n",
 	       __func__, fin, fout, prediv, fbdiv);
@@ -690,7 +689,7 @@ static unsigned long inno_mipi_dphy_set_pll(struct rockchip_phy *phy,
 	v = FBDIV_LO(fbdiv);
 	inno_update_bits(inno, INNO_PHY_PLL_CTRL_1, m, v);
 
-	if (phy->soc_type == RK1808_MIPI_DPHY) {
+	if (inno->soc_type == RK1808_MIPI_DPHY) {
 		inno_update_bits(inno, ANALOG_REG_08,
 				 PLL_POST_DIV_ENABLE_MASK, PLL_POST_DIV_ENABLE);
 		inno_update_bits(inno, ANALOG_REG_0B,
@@ -698,7 +697,7 @@ static unsigned long inno_mipi_dphy_set_pll(struct rockchip_phy *phy,
 				 CLOCK_LANE_VOD_RANGE_SET(VOD_MAX_RANGE));
 	}
 
-	if (phy->soc_type == RK3506_MIPI_DPHY) {
+	if (inno->soc_type == RK3506_MIPI_DPHY) {
 		inno_update_bits(inno, RK3506_PRE_EMPHASIS,
 				LANE0_PRE_EMPHASIS_ENABLE_MASK, LANE0_PRE_EMPHASIS_ENABLE);
 		inno_update_bits(inno, RK3506_PRE_EMPHASIS,
@@ -718,8 +717,9 @@ static unsigned long inno_mipi_dphy_set_pll(struct rockchip_phy *phy,
 	}
 
 	inno->lane_mbps = fout / USEC_PER_SEC;
+	opts->hs_clk_rate = fout;
 
-	return fout;
+	return 0;
 }
 
 static int inno_mipi_dphy_parse_dt(struct inno_mipi_dphy *inno)
@@ -735,7 +735,7 @@ static int inno_mipi_dphy_parse_dt(struct inno_mipi_dphy *inno)
 	return 0;
 }
 
-static int inno_mipi_dphy_init(struct rockchip_phy *phy)
+static int inno_mipi_dphy_init(struct phy *phy)
 {
 	struct inno_mipi_dphy *inno = dev_get_priv(phy->dev);
 	int ret;
@@ -756,11 +756,11 @@ static int inno_mipi_dphy_init(struct rockchip_phy *phy)
 	return 0;
 }
 
-static const struct rockchip_phy_funcs inno_mipi_dphy_funcs = {
+static const struct phy_ops inno_mipi_dphy_ops = {
 	.init = inno_mipi_dphy_init,
 	.power_on = inno_mipi_dphy_power_on,
 	.power_off = inno_mipi_dphy_power_off,
-	.set_pll = inno_mipi_dphy_set_pll,
+	.configure = inno_mipi_dphy_configure,
 };
 
 static const struct udevice_id inno_mipi_dphy_ids[] = {
@@ -782,23 +782,15 @@ static const struct udevice_id inno_mipi_dphy_ids[] = {
 static int inno_mipi_dphy_probe(struct udevice *dev)
 {
 	struct inno_mipi_dphy *inno = dev_get_priv(dev);
-	struct rockchip_phy *phy;
 
-	phy = calloc(1, sizeof(*phy));
-	if (!phy)
-		return -ENOMEM;
-
-	dev->driver_data = (ulong)phy;
 	inno->dev = dev;
-	phy->dev = dev;
-	phy->funcs = &inno_mipi_dphy_funcs;
 
 #if defined(CONFIG_ROCKCHIP_RV1108)
-	phy->soc_type = RV1108_MIPI_DPHY;
+	inno->soc_type = RV1108_MIPI_DPHY;
 #elif defined(CONFIG_ROCKCHIP_RK3506)
-	phy->soc_type = RK3506_MIPI_DPHY;
+	inno->soc_type = RK3506_MIPI_DPHY;
 #else
-	phy->soc_type = RK1808_MIPI_DPHY;
+	inno->soc_type = RK1808_MIPI_DPHY;
 #endif
 
 	return 0;
@@ -807,6 +799,7 @@ static int inno_mipi_dphy_probe(struct udevice *dev)
 U_BOOT_DRIVER(inno_mipi_dphy) = {
 	.name = "inno_mipi_dphy",
 	.id = UCLASS_PHY,
+	.ops = &inno_mipi_dphy_ops,
 	.of_match = inno_mipi_dphy_ids,
 	.probe = inno_mipi_dphy_probe,
 	.priv_auto_alloc_size = sizeof(struct inno_mipi_dphy),
