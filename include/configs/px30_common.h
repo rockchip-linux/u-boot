@@ -68,7 +68,8 @@
 	"scriptaddr=0x00000000\0" \
 	"pxefile_addr_r=0x00100000\0" \
 	"fdt_addr_r=0x08300000\0" \
-	"kernel_addr_r=0x02008000\0" \
+	"kernel_addr_r=0x00208000\0" \
+	"kernel_addr_c=0x02008000\0" \
 	"ramdisk_addr_r=0x0a200000\0"
 #endif
 
