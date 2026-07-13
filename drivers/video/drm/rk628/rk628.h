@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <common.h>
 #include <dm.h>
+#include <generic-phy.h>
 #include <i2c.h>
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
@@ -17,8 +18,6 @@
 #include <linux/bitfield.h>
 #include <linux/math64.h>
 #include <drm_modes.h>
-
-#include "../rockchip_phy.h"
 
 #define DRIVER_VERSION				"0.1.0"
 #define UPDATE(x, h, l)		(((x) << (l)) & GENMASK((h), (l)))

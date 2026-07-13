@@ -114,7 +114,7 @@ void rk628_lvds_enable(struct rk628 *rk628)
 
 	bus_width |= (mode->clock / 1000) << 8;
 	rk628_combtxphy_set_bus_width(rk628, bus_width);
-	rk628_combtxphy_set_mode(rk628, PHY_MODE_VIDEO_LVDS);
+	rk628_combtxphy_set_mode(rk628, RK628_PHY_MODE_VIDEO_LVDS);
 	rk628_combtxphy_power_on(rk628);
 	rk628_panel_prepare(rk628);
 	rk628_panel_enable(rk628);
