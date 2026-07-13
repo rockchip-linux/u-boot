@@ -2381,6 +2381,7 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	hdmi->io_width = ofnode_read_s32_default(hdmi_node, "reg-io-width", -1);
 
 	generic_phy_get_by_name(conn->dev, "hdmi", &hdmi->phy);
+	generic_phy_init(&hdmi->phy);
 	if (ofnode_read_bool(hdmi_node, "scramble-low-rates"))
 		hdmi->scramble_low_rates = true;
 
