@@ -108,10 +108,12 @@ endif
 # needed for relocation
 LDFLAGS_u-boot += -pie
 
-ifndef CONFIG_SPL_SKIP_RELOCATE
-LDFLAGS_u-boot-spl = -pie
+ifeq ($(CONFIG_POSITION_INDEPENDENT),y)
+LDFLAGS_u-boot-spl += -pie
 else
-LDFLAGS_u-boot-spl =
+ifndef CONFIG_SPL_SKIP_RELOCATE
+LDFLAGS_u-boot-spl += -pie
+endif
 endif
 
 #

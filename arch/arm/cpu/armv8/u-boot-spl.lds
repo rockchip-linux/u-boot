@@ -59,7 +59,7 @@ SECTIONS
 		KEEP(*(SORT(__u_boot_list*)));
 	} >.sram
 
-#ifndef CONFIG_SPL_SKIP_RELOCATE
+#if !defined(CONFIG_SPL_SKIP_RELOCATE) || defined(CONFIG_POSITION_INDEPENDENT)
 	. = ALIGN(8);
 
 	.rela.dyn : {
