@@ -92,6 +92,18 @@ ENTRY(_main)
 	mov	x18, x0
 	bl	board_init_f_init_reserve
 
+	/* Init dynamic_sys_sdram_base */
+#if defined(CONFIG_DYNAMIC_SDRAM_BASE)
+	adr	x0, _start			/* x0 <- Runtime value of _start */
+	ldr	x1, _TEXT_BASE		/* x1 <- Linked value of _start */
+	sub	x0, x0, x1			/* x0 <- Runtime SDRAM base */
+	ldr	x2, =CONFIG_DYNAMIC_SDRAM_BASE_DEFAULT
+	add	x0, x0, x2
+	adrp	x1, dynamic_sys_sdram_base
+	add	x1, x1, #:lo12:dynamic_sys_sdram_base
+	str	x0, [x1]
+#endif
+
 	mov	x0, #0
 	bl	board_init_f_init_misc
 	bl	board_init_f

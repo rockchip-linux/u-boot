@@ -37,7 +37,10 @@ function help()
 	echo
 }
 
-DRAM_BASE=`sed -n "/CFG_SYS_SDRAM_BASE/p" ${srctree}/u-boot.cfg | awk '{ print $3 }'`
+DRAM_BASE=`sed -n "s/^CONFIG_DYNAMIC_SDRAM_BASE_DEFAULT=//p" ${srctree}/include/config/auto.conf`
+if [ -z "${DRAM_BASE}" ]; then
+	DRAM_BASE=`sed -n "/define CFG_SYS_SDRAM_BASE /p" ${srctree}/u-boot.cfg | awk '{ print $3 }'`
+fi
 
 if [ $# -eq 1 ]; then
 	# default

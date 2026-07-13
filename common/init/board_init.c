@@ -10,8 +10,23 @@
 #include <bootstage.h>
 #include <init.h>
 #include <asm/global_data.h>
+#include <linux/compiler.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+// Sample:
+//
+// #if defined(CONFIG_DYNAMIC_SDRAM_BASE) && !defined(__ASSEMBLY__)
+// extern unsigned long dynamic_sys_sdram_base;
+// #define CFG_SYS_SDRAM_BASE	     dynamic_sys_sdram_base
+// #else
+// #define CFG_SYS_SDRAM_BASE	     CONFIG_DYNAMIC_SDRAM_BASE_DEFAULT
+// #endif
+
+#if defined(CONFIG_DYNAMIC_SDRAM_BASE)
+unsigned long dynamic_sys_sdram_base __section(".data") =
+			CONFIG_DYNAMIC_SDRAM_BASE_DEFAULT;
+#endif
 
 /* Unfortunately x86 or ARM can't compile this code as gd cannot be assigned */
 #if !defined(CONFIG_X86) && !defined(CONFIG_ARM)

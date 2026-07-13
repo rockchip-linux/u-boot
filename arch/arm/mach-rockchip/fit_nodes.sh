@@ -21,7 +21,10 @@ MAX_ADDR_VAL=$((0xf0000000))
 fi
 
 # dram base
-DRAM_BASE_VAL=`sed -n "/CFG_SYS_SDRAM_BASE/p" ${srctree}/u-boot.cfg | awk '{ print $3 }'`
+DRAM_BASE_VAL=`sed -n "s/^CONFIG_DYNAMIC_SDRAM_BASE_DEFAULT=//p" ${srctree}/include/config/auto.conf`
+if [ -z "${DRAM_BASE_VAL}" ]; then
+	DRAM_BASE_VAL=`sed -n "/define CFG_SYS_SDRAM_BASE /p" ${srctree}/u-boot.cfg | awk '{ print $3 }'`
+fi
 
 # compression
 if [ "${COMPRESSION}" == "gzip" ]; then
@@ -454,4 +457,3 @@ echo "	};
 };
 "
 }
-

@@ -51,6 +51,22 @@ config POSITION_INDEPENDENT
 	  information that is embedded in the binary to support U-Boot
 	  relocating itself to the top-of-RAM later during execution.
 
+config DYNAMIC_SDRAM_BASE
+	bool "Use runtime-detected SYS SDRAM base"
+	depends on POSITION_INDEPENDENT
+	help
+	  Calculate CFG_SYS_SDRAM_BASE from the difference between the runtime
+	  and linked text base during early startup. This is useful for systems
+	  where U-Boot can be loaded at different SDRAM base addresses.
+
+config DYNAMIC_SDRAM_BASE_DEFAULT
+	hex "Default SYS SDRAM base"
+	depends on DYNAMIC_SDRAM_BASE
+	default 0x0
+	help
+	  Default SDRAM base used by SPL, assembly contexts, image packaging
+	  scripts, and as the fallback before runtime SDRAM base detection.
+
 config INIT_SP_RELATIVE
 	bool "Specify the early stack pointer relative to the .bss section"
 	depends on ARM64

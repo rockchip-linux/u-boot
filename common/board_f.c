@@ -364,18 +364,6 @@ __weak int mach_cpu_init(void)
 /* Get the top of usable RAM */
 __weak phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 {
-#if defined(CFG_SYS_SDRAM_BASE) && CFG_SYS_SDRAM_BASE > 0
-	/*
-	 * Detect whether we have so much RAM that it goes past the end of our
-	 * 32-bit address space. If so, clip the usable RAM so it doesn't.
-	 */
-	if (gd->ram_top < CFG_SYS_SDRAM_BASE)
-		/*
-		 * Will wrap back to top of 32-bit space when reservations
-		 * are made.
-		 */
-		return 0;
-#endif
 	return gd->ram_top;
 }
 
