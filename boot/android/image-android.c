@@ -172,6 +172,16 @@ int android_image_init_resource(struct blk_desc *desc,
 
 static ulong android_image_get_kernel_addr(const struct andr_img_hdr *hdr)
 {
+#ifdef CONFIG_ARCH_ROCKCHIP
+	/*
+	 * If kernel is compressed, kernel_addr_r is the decompressed address
+	 * after compressed image being loaded to ram, so use it first.
+	 */
+	if (android_kernel_comp_type != IH_COMP_NONE &&
+	    android_kernel_comp_type != IH_COMP_ZIMAGE)
+		return env_get_ulong("kernel_addr_r", 16, 0);
+#endif
+
 	/*
 	 * All the Android tools that generate a boot.img use this
 	 * address as the default.
@@ -187,14 +197,6 @@ static ulong android_image_get_kernel_addr(const struct andr_img_hdr *hdr)
 		return (ulong)hdr + hdr->page_size;
 
 #ifdef CONFIG_ARCH_ROCKCHIP
-	/*
-	 * If kernel is compressed, kernel_addr is set as decompressed address
-	 * after compressed being loaded to ram, so let's use it.
-	 */
-	if (android_kernel_comp_type != IH_COMP_NONE &&
-	    android_kernel_comp_type != IH_COMP_ZIMAGE)
-		return hdr->kernel_addr;
-
 	/*
 	 * Compatble with rockchip legacy packing with kernel/ramdisk/second
 	 * address base from 0x60000000(SDK versiont < 8.1), these are invalid
