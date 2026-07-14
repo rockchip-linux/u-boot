@@ -94,11 +94,13 @@ static int android_version_init(void)
 		return -1;
 
 	os_version = hdr->os_version;
-	if (os_version)
+	if (os_version) {
+		gd->bd->bi_andr_version = (os_version >> 25) & 0x7f;
 		printf("Android %u.%u, Build %u.%u, v%d\n",
 		       (os_version >> 25) & 0x7f, (os_version >> 18) & 0x7F,
 		       ((os_version >> 4) & 0x7f) + 2000, os_version & 0x0F,
 		       hdr->header_version);
+	}
 	free(hdr);
 
 	return (os_version >> 25) & 0x7f;

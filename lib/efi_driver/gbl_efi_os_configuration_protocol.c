@@ -2,7 +2,6 @@
  * Copyright (C) 2024 The Android Open Source Project
  */
 
-#include <bidram.h>
 #include <efi.h>
 #include <efi_api.h>
 #include <efi_loader.h>
@@ -53,8 +52,6 @@ static efi_status_t EFIAPI fixup_bootconfig(
 {
 	char *andr_bootargs;
 	size_t required_size;
-	ulong ddr_size;
-	char buf[64];
 
 	EFI_ENTRY("%p, %zu, %p, %p, %p", self, bootconfig_size, bootconfig,
 		  fixup_buffer_size, fixup);
@@ -66,11 +63,6 @@ static efi_status_t EFIAPI fixup_bootconfig(
 	debug("GBL OS config: input bootconfig begin\n");
 	debug("%.*s\n", (int)bootconfig_size, bootconfig);
 	debug("GBL OS config: input bootconfig end\n");
-
-	/* Add: required by Android >= 17 */
-	ddr_size = gd->ram_size + bidram_append_size();
-	snprintf(buf, sizeof(buf), "androidboot.ddr_size=0x%08lx", ddr_size);
-	env_update("bootargs", buf);
 
 	/* extract */
 	if (env_update_extract_subset("bootargs", "andr_bootargs", "androidboot.")) {

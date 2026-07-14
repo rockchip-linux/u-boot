@@ -59,6 +59,7 @@ struct bd_info {
 #endif
 	ulong	        bi_arch_number;	/* unique id for this board */
 	ulong	        bi_boot_params;	/* where this board expects params */
+	ulong	        bi_andr_version;/* Android os version */
 	struct {			/* RAM configuration */
 		u64 start;
 		u64 size;

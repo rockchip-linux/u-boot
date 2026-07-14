@@ -3,6 +3,7 @@
  * (C) Copyright 2023 Rockchip Electronics Co., Ltd.
  */
 #include <common.h>
+#include <bidram.h>
 #include <blk.h>
 #include <env.h>
 #include <fdt_support.h>
@@ -221,11 +222,11 @@ static void bootargs_add_android(bool verbose)
 	if (ab_is_enabled())
 		ab_update_root_partition();
 
-	/* Android header v4+ need this handle */
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	struct andr_img_hdr *hdr;
 	char *fwver;
 
+	/* Android header v4+ need this handle */
 	hdr = (void *)env_get_ulong("android_addr_r", 16, 0);
 	if (hdr && !android_image_check_header(hdr) && hdr->header_version >= 4) {
 		if (env_update_extract_subset("bootargs", "andr_bootargs", "androidboot."))
@@ -239,6 +240,16 @@ static void bootargs_add_android(bool verbose)
 			env_update("bootargs", fwver);
 			env_set("fwver", NULL);
 		}
+	}
+
+	/* Android >= 17 */
+	if (gd->bd->bi_andr_version >= 17) {
+		ulong ddr_size;
+		char buf[64];
+
+		ddr_size = gd->ram_size + bidram_append_size();
+		snprintf(buf, sizeof(buf), "androidboot.ddr_size=0x%08lx", ddr_size);
+		env_update("bootargs", buf);
 	}
 #endif
 }
