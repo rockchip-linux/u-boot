@@ -1117,8 +1117,9 @@ static struct boot_img_hdr_v34 *
 extract_boot_image_v34_header(struct blk_desc *dev_desc,
 			      const struct disk_partition *boot_img)
 {
+	struct boot_img_hdr_v34 *init_boot_hdr;
 	struct boot_img_hdr_v34 *boot_hdr;
-	struct disk_partition part;
+	struct disk_partition init_boot_part;
 	long blk_cnt, blks_read;
 
 	blk_cnt = BLK_CNT(sizeof(struct boot_img_hdr_v34), dev_desc->blksz);
@@ -1150,15 +1151,38 @@ extract_boot_image_v34_header(struct blk_desc *dev_desc,
 	 *
 	 * Android_12 or later are header_version >= 4.
 	 * Android_13(GKI) introduce a new partition named "init_boot" and
-	 * doesn't assign 'os_version' any more(ie. default 0).
+	 * boot.img doesn't assign 'os_version' any more(ie. default 0).
 	 *
 	 * We only assign 'os_version' depend on whether there is
 	 * init_boot partition or not.
 	 */
 	if (boot_hdr->header_version >= 4 && boot_hdr->os_version == 0) {
 		if (part_get_info_by_name(dev_desc,
-				ANDROID_PARTITION_INIT_BOOT, &part) > 0)
-			boot_hdr->os_version = 13 << 25;
+				ANDROID_PARTITION_INIT_BOOT, &init_boot_part) > 0) {
+			init_boot_hdr =
+				(struct boot_img_hdr_v34 *)malloc(blk_cnt * dev_desc->blksz);
+			if (!init_boot_hdr)
+				return NULL;
+
+			blks_read = blk_dread(dev_desc, init_boot_part.start,
+					      blk_cnt, init_boot_hdr);
+			if (blks_read != blk_cnt) {
+				debug("init boot img header blk cnt is %ld and blks read is %ld\n",
+				      blk_cnt, blks_read);
+				return NULL;
+			}
+			if (android_image_check_header((void *)init_boot_hdr)) {
+				printf("boot header magic is invalid.\n");
+				return NULL;
+			}
+
+			if (init_boot_hdr->os_version)
+				boot_hdr->os_version = init_boot_hdr->os_version;
+			else
+				boot_hdr->os_version = 13 << 25;
+
+			free(init_boot_hdr);
+		}
 	}
 
 	return boot_hdr;
