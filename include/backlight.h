@@ -8,6 +8,8 @@
 #ifndef _BACKLIGHT_H
 #define _BACKLIGHT_H
 
+struct udevice;
+
 struct backlight_ops {
 	/**
 	 * enable() - Enable a backlight
