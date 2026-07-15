@@ -298,7 +298,7 @@ int android_bootloader_boot_kernel(unsigned long kernel_address)
 	char *kernel_addr_r = env_get("kernel_addr_r");
 	char *kernel_addr_c = env_get("kernel_addr_c");
 	char *fdt_addr = env_get("fdt_addr_r");
-	char kernel_addr_str[12];
+	char kernel_addr_str[32];
 	char comp_str[32] = {0};
 	ulong comp_type;
 	const char *comp_name[] = {
