@@ -790,8 +790,11 @@ static int fb_read_var(char *cmd, char *response,
 #ifdef CONFIG_RK_AVB_LIBAVB_USER
 		uint8_t lock_state = 0;
 
-		if (!rk_avb_read_lock_state(&lock_state))
+		if (rk_avb_read_lock_state(&lock_state)) {
 			fb_add_string(response, chars_left, "read lock_state failed", NULL);
+			ret = -1;
+			break;
+		}
 		if (lock_state)
 			fb_add_string(response, chars_left, "avb unlock", NULL);
 		else
@@ -806,8 +809,11 @@ static int fb_read_var(char *cmd, char *response,
 #ifdef CONFIG_RK_AVB_LIBAVB_USER
 		uint8_t flash_lock_state = 0;
 
-		if (!rk_avb_read_flash_lock_state(&flash_lock_state))
+		if (rk_avb_read_flash_lock_state(&flash_lock_state)) {
 			fb_add_string(response, chars_left, "read flash_lock_state failed", NULL);
+			ret = -1;
+			break;
+		}
 		if (flash_lock_state)
 			fb_add_string(response, chars_left, "flash unlock", NULL);
 		else
