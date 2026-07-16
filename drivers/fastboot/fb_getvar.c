@@ -399,7 +399,7 @@ static void __maybe_unused getvar_flash_unlocked(char *var_parameter, char *resp
 	if (flash_lock_state)
 		fastboot_okay("flash unlock", response);
 	else
-		fastboot_okay("flash unlock", response);
+		fastboot_okay("flash lock", response);
 #else
 	fastboot_fail("Not implemented, please enable CONFIG_LIBAVB_USER", response);
 #endif
