@@ -1218,7 +1218,7 @@ void autoboot_command_fail_handle(void)
 
 #define FIT_ROLLBACK_INDEX_LOCATION	0x66697472	/* "fitr" */
 
-int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
+int fit_read_dev_rollback_index(uint32_t fit_index, uint32_t *dev_index)
 {
 #ifdef CONFIG_OPTEE_CLIENT
 	u64 index;
@@ -1237,12 +1237,12 @@ int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
 			return ret;
 
 		index = 0;
-		printf("Initial otp index as %d\n", fit_index);
+		printf("Initial device index as %d\n", fit_index);
 	}
 
-	*otp_index = (uint32_t)index;
+	*dev_index = (uint32_t)index;
 #else
-	*otp_index = 0;
+	*dev_index = 0;
 #endif
 
 	return 0;

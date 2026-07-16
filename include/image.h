@@ -1090,8 +1090,8 @@ int fit_conf_get_node(const void *fit, const char *conf_uname);
 
 /* __weak function */
 int fit_rollback_index_verify(const void *fit, uint32_t rollback_fd,
-			      uint32_t *fit_index, uint32_t *otp_index);
-int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index);
+			      uint32_t *fit_index, uint32_t *dev_index);
+int fit_read_dev_rollback_index(uint32_t fit_index, uint32_t *dev_index);
 
 /**
  * fit_conf_get_prop_node() - Get node refered to by a configuration
