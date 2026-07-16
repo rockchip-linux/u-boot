@@ -731,12 +731,19 @@ function fit_msg_recovery()
 
 function fit_msg_loader()
 {
+	LOADER=
+
 	if ls *loader*.bin >/dev/null 2>&1 ; then
 		LOADER=`ls *loader*.bin`
 	fi
 
 	if ls *idblock*.img >/dev/null 2>&1 ; then
-		LOADER=`ls *idblock*.img`
+		IDBLOCK=`ls *idblock*.img`
+		if [ -n "${LOADER}" ]; then
+			LOADER="${LOADER}, ${IDBLOCK}"
+		else
+			LOADER="${IDBLOCK}"
+		fi
 	fi
 
 	if [ "${ARG_SIGN}" == "y" ]; then
@@ -752,12 +759,19 @@ function fit_msg_loader()
 
 function fit_msg_u_boot_loader()
 {
+	LOADER=
+
 	if ls *loader*.bin >/dev/null 2>&1 ; then
 		LOADER=`ls *loader*.bin`
 	fi
 
 	if ls *idblock*.img >/dev/null 2>&1 ; then
-		LOADER=`ls *idblock*.img`
+		IDBLOCK=`ls *idblock*.img`
+		if [ -n "${LOADER}" ]; then
+			LOADER="${LOADER}, ${IDBLOCK}"
+		else
+			LOADER="${IDBLOCK}"
+		fi
 	fi
 
 	if [ "${ARG_SIGN}" == "y" ]; then
