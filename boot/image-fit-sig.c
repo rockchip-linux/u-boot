@@ -558,9 +558,9 @@ int fit_config_verify(const void *fit, int conf_noffset)
 
 #ifndef USE_HOSTCC
 #if CONFIG_IS_ENABLED(FIT_ROLLBACK_PROTECT)
-__weak int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
+__weak int fit_read_dev_rollback_index(uint32_t fit_index, uint32_t *dev_index)
 {
-	*otp_index = 0;
+	*dev_index = 0;
 
 	return 0;
 }

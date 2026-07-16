@@ -220,7 +220,7 @@ int board_fit_image_post_process(void *fit, int node, ulong *load_addr,
  */
 #if CONFIG_IS_ENABLED(FIT_ROLLBACK_PROTECT)
 int fit_rollback_index_verify(const void *fit, uint32_t rollback_fd,
-			      uint32_t *fit_index, uint32_t *otp_index)
+			      uint32_t *fit_index, uint32_t *dev_index)
 {
 	int conf_noffset, ret;
 
@@ -234,14 +234,14 @@ int fit_rollback_index_verify(const void *fit, uint32_t rollback_fd,
 		return ret;
 	}
 
-	ret = fit_read_otp_rollback_index(*fit_index, otp_index);
+	ret = fit_read_dev_rollback_index(*fit_index, dev_index);
 	if (ret) {
-		printf("Failed to get rollback-index from otp, ret=%d\n", ret);
+		printf("Failed to get rollback-index from device, ret=%d\n", ret);
 		return ret;
 	}
 
-	/* Should update rollback index to otp ! */
-	if (*otp_index < *fit_index)
+	/* Should update rollback index to device ! */
+	if (*dev_index < *fit_index)
 		gd->rollback_index = *fit_index;
 
 	return 0;
@@ -298,7 +298,7 @@ int fit_board_verify_required_sigs(void)
 #if defined(CONFIG_FIT_ROLLBACK_PROTECT) && !defined(CONFIG_SPL_BUILD)
 #define FIT_ROLLBACK_INDEX_LOCATION     0x66697472      /* "fitr" */
 
-int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
+int fit_read_dev_rollback_index(uint32_t fit_index, uint32_t *dev_index)
 {
 #ifdef CONFIG_OPTEE
 	u64 index;
@@ -310,12 +310,12 @@ int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
 			return ret;
 
 		index = 0;
-		printf("Initial otp index as %d\n", fit_index);
+		printf("Initial device index as %d\n", fit_index);
 	}
 
-	*otp_index = (uint32_t)index;
+	*dev_index = (uint32_t)index;
 #else
-	*otp_index = 0;
+	*dev_index = 0;
 #endif
 
 	return 0;

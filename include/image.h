@@ -1435,8 +1435,8 @@ static inline int fit_config_verify(const void *fit, int conf_noffset)
 /* __weak function */
 int fit_board_verify_required_sigs(void);
 int fit_rollback_index_verify(const void *fit, uint32_t rollback_fd,
-			      uint32_t *fit_index, uint32_t *otp_index);
-int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index);
+			      uint32_t *fit_index, uint32_t *dev_index);
+int fit_read_dev_rollback_index(uint32_t fit_index, uint32_t *dev_index);
 
 int fit_all_image_verify(const void *fit);
 int fit_config_decrypt(const void *fit, int conf_noffset);
