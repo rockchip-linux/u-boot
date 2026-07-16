@@ -2430,7 +2430,7 @@ int fit_image_load_index(struct bootm_headers *images, ulong addr,
 				printf(" Error: %d\n", ret);
 				return -EACCES;
 			}
-			buf = (void *)load;
+			memcpy((void *)buf, (void *)load, size);
 			printf(" OK\n");
 		}
 #endif
