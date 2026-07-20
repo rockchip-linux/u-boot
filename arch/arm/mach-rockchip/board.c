@@ -193,6 +193,7 @@ static void env_setup(void)
 	int i;
 
 	if (rk_board_req_mem_layout1()) {
+		/* Replace orignal xxx_addr_r */
 		for (i = 0; i < ARRAY_SIZE(env_addr1); i++) {
 			addr_r = env_get(env_addr1[i]);
 			if (addr_r)
@@ -219,10 +220,26 @@ static void env_setup(void)
 
 	/* No BL32 ? */
 	if (!(gd->pflags & GD_P_FLG_BL32_ENABLED)) {
+		/*
+		 * [1] Move kernel to lower address if possible.
+		 */
 		addr_r = env_get("kernel_addr_no_low_bl32_r");
 		if (addr_r)
 			env_set("kernel_addr_r", addr_r);
 
+		/*
+		 * [2] Move ramdisk at BL32 position if need.
+		 *
+		 * 0x0a200000 and 0x08400000 offset are rockchip traditional address
+		 * of BL32 and ramdisk:
+		 *
+		 * |------------|------------|
+		 * |    BL32    |  ramdisk   |
+		 * |------------|------------|
+		 *
+		 * Move ramdisk to BL32 address to fix sysmem alloc failed
+		 * issue on the board with critical memory(ie. 256MB).
+		 */
 		if (gd->ram_size > SZ_128M && gd->ram_size <= SZ_256M) {
 			ramdisk_addr = env_get_ulong("ramdisk_addr_r", 16, 0);
 			if (ramdisk_addr == CFG_SYS_SDRAM_BASE + 0x0a200000) {
@@ -233,12 +250,18 @@ static void env_setup(void)
 	} else {
 		mem = param_parse_optee_mem();
 
+		/*
+		 * [1] Move kernel forward if possible.
+		 */
 		if (mem.base > SZ_128M) {
 			addr_r = env_get("kernel_addr_no_low_bl32_r");
 			if (addr_r)
 				env_set("kernel_addr_r", addr_r);
 		}
 
+		/*
+		 * [2] Move ramdisk backward if optee enlarge.
+		 */
 		end = mem.base + mem.size;
 		ramdisk_addr = env_get_ulong("ramdisk_addr_r", 16, 0);
 		if (ramdisk_addr >= mem.base && ramdisk_addr < end)
