@@ -510,7 +510,7 @@ struct rk628_hdmirx {
 };
 
 struct rk628_ssc {
-	bool enable;
+	u32 enable;
 	bool down_spread;
 	u32 mod_depth;
 	u32 mod_freq;
