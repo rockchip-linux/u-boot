@@ -186,6 +186,10 @@
 #define CGU_SCLK_UART		38
 #define CGU_CLK_APLL		39
 
+#define SSC_CPLL		BIT(0)
+#define SSC_GPLL		BIT(1)
+#define SSC_APLL		BIT(2)
+
 unsigned long rk628_cru_clk_get_rate(struct rk628 *rk628, unsigned int id);
 int rk628_cru_clk_set_rate(struct rk628 *rk628, unsigned int id,
 			   unsigned long rate);

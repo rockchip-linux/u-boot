@@ -326,7 +326,7 @@ of_parse_rk628_display_timing( ofnode np, struct rk628_videomode *vm)
 
 static void rk628_ssc_info_parse(struct rk628 *rk628)
 {
-	rk628->ssc.enable = false;
+	rk628->ssc.enable = 0;
 
 	if (!dev_read_bool(rk628->dev, "ssc-mod-enable"))
 		return;
@@ -348,7 +348,7 @@ static void rk628_ssc_info_parse(struct rk628 *rk628)
 		return;
 	}
 
-	rk628->ssc.enable = true;
+	rk628->ssc.enable = SSC_CPLL;
 }
 
 static void

@@ -128,8 +128,8 @@ static unsigned long rk628_cru_clk_set_rate_pll(struct rk628 *rk628,
 						unsigned long rate)
 {
 	unsigned long fin = REFCLK_RATE, fout = rate;
-	u8 min_refdiv, max_refdiv, postdiv;
-	u8 dsmpd = rk628->ssc.enable ? 0 : 1, postdiv1 = 0, postdiv2 = 0, refdiv = 0;
+	u8 min_refdiv, max_refdiv, postdiv, postdiv1 = 0, postdiv2 = 0, refdiv = 0;
+	u8 dsmpd = 0;
 	u16 fbdiv = 0;
 	u32 frac = 0;
 	u64 foutvco, foutpostdiv, div1, div2;
@@ -147,12 +147,16 @@ static unsigned long rk628_cru_clk_set_rate_pll(struct rk628 *rk628,
 	if (fout < MIN_FOUTPOSTDIV_RATE || fout > MAX_FOUTPOSTDIV_RATE)
 		return 0;
 
-	if (id == CGU_CLK_CPLL)
+	if (id == CGU_CLK_CPLL) {
 		offset = 0x00;
-	else if (id == CGU_CLK_GPLL)
+		dsmpd = (rk628->ssc.enable & SSC_CPLL) ? 0 : 1;
+	} else if (id == CGU_CLK_GPLL) {
 		offset = 0x20;
-	else
+		dsmpd = (rk628->ssc.enable & SSC_GPLL) ? 0 : 1;
+	} else {
 		offset = 0x40;
+		dsmpd = (rk628->ssc.enable & SSC_APLL) ? 0 : 1;
+	}
 
 	if (id != CGU_CLK_APLL)
 		rk628_i2c_write(rk628, offset + CRU_CPLL_CON1, PLL_PD(1));
@@ -691,13 +695,13 @@ void rk628_cru_clk_pll_enable_ssc(struct rk628 *rk628, unsigned int id)
 
 	if (id == CGU_CLK_CPLL) {
 		offset = 0x00;
-		strcpy(pll_name, "cpll");
+		strncpy(pll_name, "cpll", sizeof(pll_name));
 	} else if (id == CGU_CLK_GPLL) {
 		offset = 0x20;
-		strcpy(pll_name, "gpll");
+		strncpy(pll_name, "gpll", sizeof(pll_name));
 	} else {
 		offset = 0x40;
-		strcpy(pll_name, "apll");
+		strncpy(pll_name, "apll", sizeof(pll_name));
 	}
 
 	/* SSC operations require DSM to be enabled. */
@@ -711,7 +715,17 @@ void rk628_cru_clk_pll_enable_ssc(struct rk628 *rk628, unsigned int id)
 	 *      = (fref / refdiv) / (divval * 128)
 	 * divval = fref / (refdiv * fmod * 128)
 	 */
-	divval = DIV_ROUND_CLOSEST(REFCLK_RATE, refdiv * rk628->ssc.mod_freq) >> 7;
+	divval = DIV_ROUND_CLOSEST(REFCLK_RATE, refdiv * rk628->ssc.mod_freq * 128);
+	if (divval > 15) {
+		printf("ssc divval %u overflow, clamped to 15\n", divval);
+		divval = 15;
+	} else if (!divval) {
+		printf("divval 0 invalid, ssc can't be enabled with this setting\n");
+		rk628_i2c_write(rk628, offset + CRU_CPLL_CON3, SSMOD_SPREAD(0) | SSMOD_DIVVAL(0) |
+				SSMOD_DOWNSPREAD(0) | SSMOD_RESET(1) | SSMOD_DISABLE_SSCG(1) |
+				SSMOD_BP(1));
+		return;
+	}
 
 	rk628_i2c_write(rk628, offset + CRU_CPLL_CON3, SSMOD_SPREAD(rk628->ssc.mod_depth) |
 			SSMOD_DIVVAL(divval) | SSMOD_DOWNSPREAD(rk628->ssc.down_spread) |
@@ -722,7 +736,7 @@ void rk628_cru_clk_pll_enable_ssc(struct rk628 *rk628, unsigned int id)
 	down_spread = !!((val & SSMOD_DOWNSPREAD_MASK) >> SSMOD_DOWNSPREAD_SHIFT);
 	mod_depth = (val & SSMOD_SPREAD_MASK) >> SSMOD_SPREAD_SHIFT;
 	divval = (val & SSMOD_DIVVAL_MASK) >> SSMOD_DIVVAL_SHIFT;
-	mod_freq = DIV_ROUND_CLOSEST(REFCLK_RATE, refdiv * divval) >> 7;
+	mod_freq = DIV_ROUND_CLOSEST(REFCLK_RATE, refdiv * divval * 128);
 	printf("enable %s ssc mod, %s, depth: %d.%d%%, freq:%d.%dkHz.\n", pll_name,
 	       down_spread ? "down spread" : "center spread", mod_depth / 10, mod_depth % 10,
 	       mod_freq / 1000, mod_freq % 1000);
@@ -735,13 +749,13 @@ void rk628_cru_clk_pll_disable_ssc(struct rk628 *rk628, unsigned int id)
 
 	if (id == CGU_CLK_CPLL) {
 		offset = 0x00;
-		strcpy(pll_name, "cpll");
+		strncpy(pll_name, "cpll", sizeof(pll_name));
 	} else if (id == CGU_CLK_GPLL) {
 		offset = 0x20;
-		strcpy(pll_name, "gpll");
+		strncpy(pll_name, "gpll", sizeof(pll_name));
 	} else {
 		offset = 0x40;
-		strcpy(pll_name, "apll");
+		strncpy(pll_name, "apll", sizeof(pll_name));
 	}
 
 	rk628_i2c_write(rk628, offset + CRU_CPLL_CON3, SSMOD_SPREAD(0) | SSMOD_DIVVAL(0) |
