@@ -1055,8 +1055,9 @@ static const struct udevice_id rockchip_pcie_ids[] = {
 	{ .compatible = "rockchip,rk3528-pcie" },
 	{ .compatible = "rockchip,rk3562-pcie" },
 	{ .compatible = "rockchip,rk3568-pcie" },
-	{ .compatible = "rockchip,rk3588-pcie" },
+	{ .compatible = "rockchip,rk3572-pcie" },
 	{ .compatible = "rockchip,rk3576-pcie" },
+	{ .compatible = "rockchip,rk3588-pcie" },
 	{ }
 };
 
