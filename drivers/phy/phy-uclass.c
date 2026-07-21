@@ -555,6 +555,17 @@ int generic_shutdown_phy(struct phy *phy)
 	return generic_phy_exit(phy);
 }
 
+int generic_phy_calibrate(struct phy *phy)
+{
+	struct phy_ops const *ops;
+
+	if (!generic_phy_valid(phy))
+		return 0;
+	ops = phy_dev_ops(phy->dev);
+
+	return ops->calibrate ? ops->calibrate(phy) : 0;
+}
+
 UCLASS_DRIVER(phy) = {
 	.id		= UCLASS_PHY,
 	.name		= "phy",

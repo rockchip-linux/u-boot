@@ -200,6 +200,17 @@ struct phy_ops {
 	 * Return: 0 if OK, or a negative error code
 	 */
 	int	(*set_speed)(struct phy *phy, int speed);
+
+	/**
+	 * calibrate - set PHY
+	 *
+	 * @phy:	PHY port to be configured
+	 *
+	 * Calibrate PHY.
+	 *
+	 * Return: 0 if OK, or a negative error code
+	 */
+	int     (*calibrate)(struct phy *phy);
 };
 
 /**
@@ -288,6 +299,14 @@ int generic_phy_set_mode(struct phy *phy, enum phy_mode mode, int submode);
  * Return: 0 if OK, or a negative error code
  */
 int generic_phy_set_speed(struct phy *phy, int speed);
+
+/**
+ * generic_phy_calibrate() - calibrate PHY
+ *
+ * @phy:	PHY port to be configured
+ * Return: 0 if OK, or a negative error code
+ */
+int generic_phy_calibrate(struct phy *phy);
 
 /**
  * generic_phy_get_by_index() - Get a PHY device by integer index.
