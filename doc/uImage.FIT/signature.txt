@@ -116,7 +116,11 @@ two images will be looked up in the config and signed if present.
 For config bindings, these properties are added by the signer:
 
 - hashed-nodes: A list of nodes which were hashed by the signer. Each is
-	a string - the full path to node. A typical value might be:
+	a string - the full path to node. The signer writes this property as a
+	record of what was included in the hash. During verification, U-Boot does
+	not read hashed-nodes. Instead it rebuilds the node list from the
+	configuration's own image references, since hashed-nodes is not itself
+	covered by the signature. A typical value might be:
 
 	hashed-nodes = "/", "/configurations/conf@1", "/images/kernel@1",
 		"/images/kernel@1/hash@1", "/images/fdt@1",

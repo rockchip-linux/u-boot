@@ -949,6 +949,7 @@ int bootz_setup(ulong image, ulong *start, ulong *end);
 #define FIT_FDT_PROP		"fdt"
 #define FIT_MULTI_PROP		"multi"
 #define FIT_LOADABLE_PROP	"loadables"
+#define FIT_COMPAT_PROP		"compatible"
 #define FIT_DEFAULT_PROP	"default"
 #define FIT_SETUP_PROP		"setup"
 #define FIT_FPGA_PROP		"fpga"
