@@ -110,9 +110,19 @@ enum {
 #define HDMIRX_NODE_FDT_PATH		"/hdmirx-controller@fdee0000"
 #define RK3588_PHY_CONFIG		0xfdee00c0
 
+#define DMAC0_PRIORITY_REG		0xfdf32208
 #define VOP_M0_PRIORITY_REG		0xfdf82008
 #define VOP_M1_PRIORITY_REG		0xfdf82208
+#define MMU600PHP_TBU_PRIORITY_REG	0xfdf3a608
+#define MMU600PHP_TCU_PRIORITY_REG	0xfdf3a808
 #define QOS_PRIORITY_LEVEL(h, l)	((((h) & 7) << 8) | ((l) & 7))
+
+#define SATA0_BASE_ADDR			0xfe210000
+#define SATA1_BASE_ADDR			0xfe220000
+#define SATA2_BASE_ADDR			0xfe230000
+#define SATA_PI				0xC
+#define SATA_PORT_CMD			0x118
+#define SATA_FBS_ENABLE			BIT(22)
 
 const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
 	[BROM_BOOTSOURCE_EMMC] = "/mmc@fe2e0000",
@@ -1072,13 +1082,34 @@ int arch_cpu_init(void)
 	writel(0xffff1111, BUS_IOC_BASE + BUS_IOC_GPIO2D_IOMUX_SEL_H);
 #endif
 	/*
+	 * set DMAC0 to priority 0x404 to keep the same with DMAC1/2
+	 * which had been set 0x404 by default.
+	 */
+	writel(QOS_PRIORITY_LEVEL(4, 4), DMAC0_PRIORITY_REG);
+
+	/*
 	 * set VOP M0 and VOP M1 to priority 0x303,then
 	 * Peri > VOP/MCU > ISP/VICAP > other
 	 * Note: VOP priority can only be modified during the u-boot stage,
-	 *	 as VOP default power down, and power up after trust.
+	 * 	 as VOP default power down, and power up after trust.
 	 */
 	writel(QOS_PRIORITY_LEVEL(3, 3), VOP_M0_PRIORITY_REG);
 	writel(QOS_PRIORITY_LEVEL(3, 3), VOP_M1_PRIORITY_REG);
+	/*
+	 * set SATA,USB,GMAC to priority 0x404
+	 */
+	writel(QOS_PRIORITY_LEVEL(4, 4), MMU600PHP_TBU_PRIORITY_REG);
+	writel(QOS_PRIORITY_LEVEL(4, 4), MMU600PHP_TCU_PRIORITY_REG);
+
+	/*
+	 * Set SATA FBSCP and PORTS_IMPL for kernel drivers
+	 */
+	writel(SATA_FBS_ENABLE, SATA0_BASE_ADDR + SATA_PORT_CMD);
+	writel(1, SATA0_BASE_ADDR + SATA_PI);
+	writel(SATA_FBS_ENABLE, SATA1_BASE_ADDR + SATA_PORT_CMD);
+	writel(1, SATA1_BASE_ADDR + SATA_PI);
+	writel(SATA_FBS_ENABLE, SATA2_BASE_ADDR + SATA_PORT_CMD);
+	writel(1, SATA2_BASE_ADDR + SATA_PI);
 #endif
 
 	/* Select usb otg0 phy status to 0 that make rockusb can work at high-speed */
@@ -1091,10 +1122,22 @@ int arch_cpu_init(void)
 
 #define BAD_CPU(mask, n)	((mask) & (1 << (n)))
 #define BAD_RKVENC(mask, n)	((mask) & (1 << (n)))
+#define BAD_RKVDEC(mask, n)	((mask) & (1 << (n)))
 
 static void fdt_rm_path(void *blob, const char *path)
 {
 	fdt_del_node(blob, fdt_path_offset(blob, path));
+}
+
+static void fdt_rename_path(void *blob, const char *path, const char *name)
+{
+	int noffset;
+
+	noffset = fdt_path_offset(blob, path);
+	if (noffset < 0)
+		return;
+
+	fdt_set_name(blob, noffset, name);
 }
 
 static void fdt_rm_cooling_map(const void *blob, u8 cpu_mask)
@@ -1229,7 +1272,7 @@ static void fdt_rm_cpu(const void *blob, u8 cpu_mask)
 	}
 }
 
-static void fdt_rm_cpus(const void *blob, u8 cpu_mask)
+static void rk3582_3_fdt_rm_cpus(const void *blob, u8 cpu_mask)
 {
 	/*
 	 * policy:
@@ -1252,39 +1295,15 @@ static void fdt_rm_cpus(const void *blob, u8 cpu_mask)
 	fdt_rm_cpu(blob, cpu_mask);
 }
 
-static void fdt_rm_gpu(void *blob)
-{
-	/*
-	 * policy:
-	 *
-	 * Remove GPU by default.
-	 */
-	fdt_rm_path(blob, "/gpu@fb000000");
-	fdt_rm_path(blob, "/thermal-zones/soc-thermal/cooling-maps/map3");
-	debug("rm: gpu\n");
-}
-
-static void fdt_rm_rkvdec01(void *blob)
-{
-	/*
-	 * policy:
-	 *
-	 * Remove rkvdec0 and rkvdec1 by default.
-	 */
-	fdt_rm_path(blob, "/rkvdec-core@fdc38000");
-	fdt_rm_path(blob, "/iommu@fdc38700");
-	fdt_rm_path(blob, "/rkvdec-core@fdc48000");
-	fdt_rm_path(blob, "/iommu@fdc48700");
-	debug("rm: rkvdec0, rkvdec1\n");
-}
-
-static void fdt_rm_rkvenc01(void *blob, u8 mask)
+static void rk3582_3_fdt_rm_rkvenc01(void *blob, u8 mask)
 {
 	/*
 	 * policy:
 	 *
 	 * 1. remove bad.
 	 * 2. if both of rkvenc0 and rkvenc1 are normal, remove rkvenc1 by default.
+	 * 3. disable '*-ccu' node
+	 * 4. rename '*-core@' node
 	 */
 	if (!BAD_RKVENC(mask, 0) && !BAD_RKVENC(mask, 1)) {
 		/* rkvenc1 */
@@ -1304,6 +1323,50 @@ static void fdt_rm_rkvenc01(void *blob, u8 mask)
 			debug("rm: rkvenv1\n");
 		}
 	}
+
+	do_fixup_by_path((void *)blob, "/rkvenc-ccu",
+			 "status", "disabled", sizeof("disabled"), 0);
+
+	/* rename node name if the node exist, actually only one exist  */
+	fdt_rename_path(blob, "/rkvenc-core@fdbd0000", "rkvenc@fdbd0000");
+	fdt_rename_path(blob, "/rkvenc-core@fdbe0000", "rkvenc@fdbe0000");
+}
+
+static void rk3582_3_fdt_rm_rkvdec01(void *blob, u8 mask)
+{
+	/*
+	 * policy:
+	 *
+	 * 1. remove bad.
+	 * 2. if both of rkvdec0 and rkvdec1 are normal, remove rkvdec1 by default.
+	 * 3. disable '*-ccu' node
+	 * 4. rename '*-core@' node
+	 */
+	if (!BAD_RKVDEC(mask, 0) && !BAD_RKVDEC(mask, 1)) {
+		/* rkvdec1 */
+		fdt_rm_path(blob, "/rkvdec-core@fdc48000");
+		fdt_rm_path(blob, "/iommu@fdc48700");
+		debug("rm: rkvdec1\n");
+	} else {
+		if (BAD_RKVDEC(mask, 0)) {
+			fdt_rm_path(blob, "/rkvdec-core@fdc38000");
+			fdt_rm_path(blob, "/iommu@fdc38700");
+			debug("rm: rkvdec0\n");
+
+		}
+		if (BAD_RKVDEC(mask, 1)) {
+			fdt_rm_path(blob, "/rkvdec-core@fdc48000");
+			fdt_rm_path(blob, "/iommu@fdc48700");
+			debug("rm: rkvdec1\n");
+		}
+	}
+
+	do_fixup_by_path((void *)blob, "/rkvdec-ccu@fdc30000",
+			 "status", "disabled", sizeof("disabled"), 0);
+
+	/* rename node name if the node exist, actually only one exist  */
+	fdt_rename_path(blob, "/rkvdec-core@fdc38000", "rkvdec@fdc38000");
+	fdt_rename_path(blob, "/rkvdec-core@fdc48000", "rkvdec@fdc48000");
 }
 
 #define CHIP_ID_OFF	2
@@ -1315,6 +1378,7 @@ static int fdt_fixup_modules(void *blob)
 	u8 ip_state[3];
 	u8 chip_id[2];
 	u8 rkvenc_mask;
+	u8 rkvdec_mask;
 	u8 cpu_mask;
 	int ret;
 
@@ -1333,8 +1397,9 @@ static int fdt_fixup_modules(void *blob)
 
 	debug("# chip: rk%02x%02x\n", chip_id[0], chip_id[1]);
 
-	/* only rk3582 goes further */
-	if (!(chip_id[0] == 0x35 && chip_id[1] == 0x82))
+	/* only rk3582/rk3583 goes further */
+	if (!(chip_id[0] == 0x35 && chip_id[1] == 0x82) &&
+	    !(chip_id[0] == 0x35 && chip_id[1] == 0x83))
 		return 0;
 
 	ret = misc_read(dev, IP_STATE_OFF, &ip_state, sizeof(ip_state));
@@ -1347,33 +1412,27 @@ static int fdt_fixup_modules(void *blob)
 	cpu_mask = ip_state[0];
 	/* ip_state[2]: bit0,2 */
 	rkvenc_mask = (ip_state[2] & 0x1) | ((ip_state[2] & 0x4) >> 1);
+	/* ip_state[1]: bit6,7 */
+	rkvdec_mask = (ip_state[1] & 0xc0) >> 6;
 #if 0
 	/* ip_state[1]: bit1~4 */
 	gpu_mask = (ip_state[1] & 0x1e) >> 1;
-	/* ip_state[1]: bit6,7 */
-	rkvdec_mask = (ip_state[1] & 0xc0) >> 6;
 #endif
-
-	debug("hwmask: 0x%02x, 0x%02x, 0x%02x\n", ip_state[0], ip_state[1], ip_state[2]);
-	debug("swmask: 0x%02x, 0x%02x\n", cpu_mask, rkvenc_mask);
+	debug("hw-mask: 0x%02x, 0x%02x, 0x%02x\n", ip_state[0], ip_state[1], ip_state[2]);
+	debug("sw-mask: 0x%02x, 0x%02x, 0x%02x\n", cpu_mask, rkvenc_mask, rkvdec_mask);
 
 	/*
-	 * RK3582 Policy: gpu/rkvdec are removed by default, the same for other
-	 * IP under some condition.
-	 *
-	 * So don't use pattern like "if (rkvenc_mask) then fdt_rm_rkvenc01()",
-	 * just go through all of them as this chip is rk3582.
-	 *
 	 *		FIXUP WARNING!
 	 *
 	 * The node delete changes the fdt structure, a node offset you already
 	 * got before maybe not right by now. Make sure always reading the node
 	 * offset exactly before you are going to use.
 	 */
-	fdt_rm_gpu(blob);
-	fdt_rm_rkvdec01(blob);
-	fdt_rm_rkvenc01(blob, rkvenc_mask);
-	fdt_rm_cpus(blob, cpu_mask);
+	if (chip_id[0] == 0x35 && (chip_id[1] == 0x82 || chip_id[1] == 0x83)) {
+		rk3582_3_fdt_rm_rkvdec01(blob, rkvdec_mask);
+		rk3582_3_fdt_rm_rkvenc01(blob, rkvenc_mask);
+		rk3582_3_fdt_rm_cpus(blob, cpu_mask);
+	}
 
 	return 0;
 }
@@ -1398,44 +1457,6 @@ int rk_board_fdt_fixup(const void *blob)
 
 	return 0;
 }
-
-#ifdef CONFIG_SPL_BUILD
-int spl_fit_standalone_release(char *id, uintptr_t entry_point)
-{
-	u32 val;
-
-	/* pmu m0 configuration: */
-	/* set gpll */
-	writel(0x00f00042, CRU_BASE + CRU_GPLL_CON1);
-	/* set pmu mcu to access ddr memory */
-	val = readl(FIREWALL_DDR_BASE + FW_DDR_MST19_REG);
-	writel(val & 0x0000ffff, FIREWALL_DDR_BASE + FW_DDR_MST19_REG);
-	/* set pmu mcu to access system memory */
-	val = readl(FIREWALL_SYSMEM_BASE + FW_SYSM_MST19_REG);
-	writel(val & 0x000000ff, FIREWALL_SYSMEM_BASE + FW_SYSM_MST19_REG);
-	/* set pmu mcu to secure */
-	writel(0x00080000, PMU1_SGRF_BASE + PMU1_SGRF_SOC_CON0);
-	/* set start addr, pmu_mcu_code_addr_start */
-	writel(0xFFFF0000 | (entry_point >> 16), PMU1_SGRF_BASE + PMU1_SGRF_SOC_CON9);
-	/* set pmu_mcu_sram_addr_start */
-	writel(0xFFFF2000, PMU1_SGRF_BASE + PMU1_SGRF_SOC_CON10);
-	/* set pmu_mcu_tcm_addr_start */
-	writel(0xFFFF2000, PMU1_SGRF_BASE + PMU1_SGRF_SOC_CON13);
-	/* set cache cache_peripheral_addr */
-	/* 0xf0000000 ~ 0xfee00000 */
-	writel(0xffff0000, PMU1_SGRF_BASE + PMU1_SGRF_SOC_CON6);
-	writel(0xffffee00, PMU1_SGRF_BASE + PMU1_SGRF_SOC_CON7);
-	writel(0x00ff00ff, PMU1_SGRF_BASE + PMU1_SGRF_SOC_CON8);
-	/* enable PMU WDT reset system */
-	writel(0x02000200, BUS_SGRF_BASE + BUS_SGRF_SOC_CON2);
-	/* select WDT trigger global reset. */
-	writel(0x08400840, CRU_BASE + CRU_GLB_RST_CON);
-	/* release pmu mcu */
-	/* writel(0x20000000, PMU1CRU_BASE + PMU1CRU_SOFTRST_CON00); */
-
-	return 0;
-}
-#endif
 
 int fit_standalone_ext_release(char *id, standalone_args_t *args)
 {
