@@ -175,6 +175,7 @@ int rockchip_read_dtb_file(void *fdt)
 	/* early fixup */
 	rk_board_early_fdt_fixup(fdt);
 
+	/* dtbo overlay */
 #ifdef CONFIG_ANDROID_DTBO_SUPPORT
 	android_fdt_overlay_apply((void *)fdt);
 #endif

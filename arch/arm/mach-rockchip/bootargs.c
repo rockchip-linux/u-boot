@@ -225,6 +225,7 @@ static void bootargs_add_android(bool verbose)
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	struct andr_img_hdr *hdr;
 	char *fwver;
+	char buf[32];
 
 	/* Android header v4+ need this handle */
 	hdr = (void *)env_get_ulong("android_addr_r", 16, 0);
@@ -240,6 +241,13 @@ static void bootargs_add_android(bool verbose)
 			env_update("bootargs", fwver);
 			env_set("fwver", NULL);
 		}
+	}
+
+	/* Android dtbo idx */
+	if (gd->bd->bi_andr_dtbo_idx > 0) {
+		snprintf(buf, sizeof(buf), "androidboot.dtbo_idx=%ld",
+			 gd->bd->bi_andr_dtbo_idx - 1);
+		env_update("bootargs", buf);
 	}
 
 	/* Android >= 17 */

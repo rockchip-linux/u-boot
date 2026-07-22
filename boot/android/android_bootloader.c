@@ -1401,7 +1401,6 @@ int android_fdt_overlay_apply(void *fdt_addr)
 	struct disk_partition part_info;
 	char *fdt_backup;
 	char *part_dtbo = PART_DTBO;
-	char buf[32] = {0};
 	ulong fdt_dtbo = -1;
 	u32 totalsize;
 	int index = -1;
@@ -1478,8 +1477,8 @@ int android_fdt_overlay_apply(void *fdt_addr)
 		fdt_increase_size(fdt_addr, fdt_totalsize((void *)fdt_dtbo));
 		ret = fdt_overlay_apply(fdt_addr, (void *)fdt_dtbo);
 		if (!ret) {
-			snprintf(buf, 32, "%s%d", "androidboot.dtbo_idx=", index);
-			env_update("bootargs", buf);
+			/* trick: +1 makes the default value 0 to be invalid */
+			gd->bd->bi_andr_dtbo_idx = index + 1;
 			printf("ANDROID: fdt overlay OK\n");
 		} else {
 			memcpy(fdt_addr, fdt_backup, totalsize);
