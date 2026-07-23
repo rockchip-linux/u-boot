@@ -227,22 +227,6 @@ static void bootargs_add_android(bool verbose)
 	char *fwver;
 	char buf[32];
 
-	/* Android header v4+ need this handle */
-	hdr = (void *)env_get_ulong("android_addr_r", 16, 0);
-	if (hdr && !android_image_check_header(hdr) && hdr->header_version >= 4) {
-		if (env_update_extract_subset("bootargs", "andr_bootargs", "androidboot."))
-			printf("extract androidboot.xxx error\n");
-		if (verbose)
-			printf("## bootargs(android): %s\n\n", env_get("andr_bootargs"));
-
-		/* for kernel cmdline can be read */
-		fwver = env_get("fwver");
-		if (fwver) {
-			env_update("bootargs", fwver);
-			env_set("fwver", NULL);
-		}
-	}
-
 	/* Android dtbo idx */
 	if (gd->bd->bi_andr_dtbo_idx > 0) {
 		snprintf(buf, sizeof(buf), "androidboot.dtbo_idx=%ld",
@@ -258,6 +242,26 @@ static void bootargs_add_android(bool verbose)
 		ddr_size = gd->ram_size + bidram_append_size();
 		snprintf(buf, sizeof(buf), "androidboot.ddr_size=0x%08lx", ddr_size);
 		env_update("bootargs", buf);
+	}
+
+	/*
+	 * WARNING: All "androidboot.xxx" must be ready before reaching here !!!
+	 *
+	 * Android header v4+ needs this handle.
+	 */
+	hdr = (void *)env_get_ulong("android_addr_r", 16, 0);
+	if (hdr && !android_image_check_header(hdr) && hdr->header_version >= 4) {
+		if (env_update_extract_subset("bootargs", "andr_bootargs", "androidboot."))
+			printf("extract androidboot.xxx error\n");
+		if (verbose)
+			printf("## bootargs(android): %s\n\n", env_get("andr_bootargs"));
+
+		/* for kernel cmdline can be read */
+		fwver = env_get("fwver");
+		if (fwver) {
+			env_update("bootargs", fwver);
+			env_set("fwver", NULL);
+		}
 	}
 #endif
 }
