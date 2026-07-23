@@ -6,7 +6,7 @@
 #ifndef __CONFIG_RK3538_COMMON_H
 #define __CONFIG_RK3538_COMMON_H
 
-#define CFG_CPUID_OFFSET	0xa
+#define CFG_CPUID_OFFSET	0x22
 
 #include "rockchip-common.h"
 
