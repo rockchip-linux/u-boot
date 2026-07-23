@@ -257,7 +257,12 @@ int rockchip_setup_serial_number(void)
 		return 0;
 #endif
 	ret = rockchip_cpuid_from_efuse(CFG_CPUID_OFFSET, CPUID_LEN, cpuid);
-	if (ret) {
+	/* Generate random serial when get cpuid fail or cpuid is all zeros. */
+	for (i = 0; !ret && i < CPUID_LEN; i++) {
+		if (cpuid[i])
+			break;
+	}
+	if (ret || i == CPUID_LEN) {
 		for (i = 0; i < CPUID_LEN; i++)
 			cpuid[i] = (u8)(rand());
 	}
