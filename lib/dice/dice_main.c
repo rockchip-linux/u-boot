@@ -385,7 +385,7 @@ int dice_start(void)
 int dice_finish(void)
 {
 	struct DiceContext *DiceCtx_km = (void *)DICE_BUF_ADDR;
-	int ret;
+	uint32_t ret;
 
 	printf("DICE(%s): 0x%08lx - 0x%08lx, cert_count=%d\n",
 		DiceCtx_km->profile_name,
@@ -463,6 +463,19 @@ int dice_finish(void)
 		return ret;
 	}
 
+#endif
+#ifndef CONFIG_SPL_BUILD
+	uint8_t written = 0;
+	char buf[32];
+
+	ret = optee_oem_dice_uds_is_written(&written);
+	if (ret)
+		printf("DICE: Can't get UDS written status, ret=%d\n", ret);
+
+	/* cmdline to kernel */
+	snprintf(buf, sizeof(buf), "androidboot.uds_written=%d", written);
+	env_update("bootargs", buf);
+	printf("DICE: UDS is%s written\n", written ? "" : " not");
 #endif
 	return 0;
 }
@@ -657,6 +670,7 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 				break;
 			}
 		}
+		printf("DICE: UDS is%s written\n", valid_otp_uds ? "" : " not");
 
 		clear_uds = 1;
 		if (valid_otp_uds) {
