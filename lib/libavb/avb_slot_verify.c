@@ -18,6 +18,7 @@
 #include <android_avb/avb_version.h>
 #include <log.h>
 #include <malloc.h>
+#include <dice/dice.h>
 
 /* Maximum number of partitions that can be loaded with avb_slot_verify(). */
 #define MAX_NUMBER_OF_LOADED_PARTITIONS 32
@@ -438,6 +439,18 @@ static AvbSlotVerifyResult load_and_verify_hash_partition(
     ret = AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION;
     goto out;
   }
+
+  /* DICE */
+#if CONFIG_IS_ENABLED(DICE)
+  if (digest_len != DICE_HASH_SIZE) {
+    printf("DICE: AVB %s digest_len %ld != %d(expected)\n",
+    	   part_name, digest_len, DICE_HASH_SIZE);
+    return AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION;
+  }
+
+  if (dice_measure(part_name, digest, digest_len))
+    return AVB_SLOT_VERIFY_RESULT_ERROR_VERIFICATION;
+#endif
 
   ret = AVB_SLOT_VERIFY_RESULT_OK;
 
