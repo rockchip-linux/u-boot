@@ -72,108 +72,110 @@ config SPI_NAND_HYF
 	  Add support for various HYF SPI Nand flash chips
 
 config SPI_NAND_FMSH
-	default y
 	bool "FMSH SPI flash support"
+	default y
 	help
 	  Add support for various FMSH SPI Nand flash chips
 
 config SPI_NAND_FORESEE
-	default y
 	bool "FORESEE SPI flash support"
+	default y
 	help
 	  Add support for various FORESEE SPI Nand flash chips
 
 config SPI_NAND_BIWIN
-	default y
 	bool "BIWIN SPI flash support"
+	default y
 	help
 	  Add support for various BIWIN SPI Nand flash chips
 
 config SPI_NAND_ETRON
-	default y
 	bool "ETRON SPI flash support"
+	default y
 	help
 	  Add support for various ETRON SPI Nand flash chips
 
 config SPI_NAND_JSC
-	default y
 	bool "JSC SPI flash support"
+	default y
 	help
 	  Add support for various JSC SPI Nand flash chips
 
 config SPI_NAND_SILICONGO
-	default y
 	bool "SILICONGO SPI flash support"
+	default y
 	help
 	  Add support for various SILICONGO SPI Nand flash chips
 
 config SPI_NAND_UNIM
-	default y
 	bool "UNIM SPI flash support"
+	default y
 	help
 	  Add support for various UNIM SPI Nand flash chips
 
 config SPI_NAND_SKYHIGH
-	default y
 	bool "SKYHIGH SPI flash support"
+	default y
 	help
 	  Add support for various SKYHIGH SPI Nand flash chips
 
 config SPI_NAND_GSTO
-	default y
 	bool "GSTO SPI flash support"
+	default y
 	help
 	  Add support for various GSTO SPI Nand flash chips
 
 config SPI_NAND_ZBIT
-	default y
 	bool "ZBIT SPI flash support"
+	default y
 	help
 	  Add support for various ZBIT SPI Nand flash chips
 
 config SPI_NAND_HIKSEMI
-	default y
 	bool "HIKSEMI SPI flash support"
+	default y
 	help
 	  Add support for various HIKSEMI SPI Nand flash chips
 
 config SPI_NAND_KINGSTON
-	default y
 	bool "KINGSTON SPI flash support"
+	default y if !ROCKCHIP_RV1106
 	help
 	  Add support for various KINGSTON SPI Nand flash chips
 
 config SPI_NAND_ISSI
-	default y
 	bool "ISSI SPI flash support"
+	default y if !ROCKCHIP_RV1106
 	help
 	  Add support for various ISSI SPI Nand flash chips
 
 config SPI_NAND_TITAN
-	default y
 	bool "TITAN SPI flash support"
+	default y if !ROCKCHIP_RV1106
 	help
 	  Add support for various TITAN SPI Nand flash chips
 
 config SPI_NAND_MK
-	default y
 	bool "MK SPI flash support"
+	default y if !ROCKCHIP_RV1106
 	help
 	  Add support for various MK SPI Nand flash chips
 
 config SPI_NAND_CHUCUN
-	default y
 	bool "CHUCUN SPI flash support"
+	default y if !ROCKCHIP_RV1106
 	help
 	  Add support for various CHUCUN SPI Nand flash chips
 
 config SPI_NAND_ICTHINK
 	bool "IC-THINK SPI flash support"
+	default y if !ROCKCHIP_RV1106
 	help
 	  Add support for various IC-THINK SPI Nand flash chips
 
 config SPI_NAND_UNILC
 	bool "UNILC SPI flash support"
+	default y if !ROCKCHIP_RV1106
 	help
 	  Add support for various UNILC SPI Nand flash chips
 
