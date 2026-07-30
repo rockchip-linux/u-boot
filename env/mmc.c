@@ -371,15 +371,21 @@ static inline int erase_env(struct mmc *mmc, unsigned long size,
 {
 	uint blk_start, blk_cnt, n;
 	struct blk_desc *desc = mmc_get_blk_desc(mmc);
-	u32 erase_size;
+	void *buf;
 
-	erase_size = mmc->erase_grp_size * desc->blksz;
-	blk_start = ALIGN_DOWN(offset, erase_size) / desc->blksz;
-	blk_cnt = ALIGN(size, erase_size) / desc->blksz;
+	blk_start = ALIGN_DOWN(offset, desc->blksz) / desc->blksz;
+	blk_cnt = ALIGN(size, desc->blksz) / desc->blksz;
+	buf = calloc(1, desc->blksz * blk_cnt);
+	if (!buf) {
+		printf("MMC env: no memory\n");
+		return 1;
+	}
 
-	n = blk_derase(desc, blk_start, blk_cnt);
+	n = blk_dwrite(desc, blk_start, blk_cnt, buf);
 	printf("%d blocks erased at 0x%x: %s\n", n, blk_start,
 	       (n == blk_cnt) ? "OK" : "ERROR");
+
+	free(buf);
 
 	return (n == blk_cnt) ? 0 : 1;
 }

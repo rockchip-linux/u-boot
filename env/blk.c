@@ -139,13 +139,21 @@ static inline int erase_env(struct blk_desc *blk_desc, unsigned long size,
 			    unsigned long offset)
 {
 	uint blk_start, blk_cnt, n;
+	void *buf;
 
 	blk_start = ALIGN_DOWN(offset, blk_desc->blksz) / blk_desc->blksz;
-	blk_cnt	  = ALIGN(size, blk_desc->blksz) / blk_desc->blksz;
+	blk_cnt = ALIGN(size, blk_desc->blksz) / blk_desc->blksz;
+	buf = calloc(1, blk_desc->blksz * blk_cnt);
+	if (!buf) {
+		printf("BLK env: no memory\n");
+		return 1;
+	}
 
-	n = blk_derase(blk_desc, blk_start, blk_cnt);
+	n = blk_dwrite(blk_desc, blk_start, blk_cnt, buf);
 	printf("%d blocks erased at 0x%x: %s\n", n, blk_start,
 	       (n == blk_cnt) ? "OK" : "ERROR");
+
+	free(buf);
 
 	return (n == blk_cnt) ? 0 : 1;
 }
