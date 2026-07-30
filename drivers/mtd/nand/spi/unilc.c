@@ -100,7 +100,7 @@ static int scf2bw1i3a_ecc_get_status(struct spinand_device *spinand,
 static const struct spinand_info unilc_spinand_table[] = {
 	SPINAND_INFO("SCF2BW1I3A",
 		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0x24),
-		     NAND_MEMORG(1, 2048, 128, 64, 2048, 1, 1, 1),
+		     NAND_MEMORG(1, 2048, 128, 64, 2048, 40, 1, 1, 1),
 		     NAND_ECCREQ(8, 512),
 		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
 					      &write_cache_variants,

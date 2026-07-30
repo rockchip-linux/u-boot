@@ -83,7 +83,7 @@ static int xs25d2gasl_ecc_get_status(struct spinand_device *spinand,
 static const struct spinand_info icthink_spinand_table[] = {
 	SPINAND_INFO("XS25D2GASL",
 		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_ADDR, 0x3),
-		     NAND_MEMORG(1, 2048, 128, 64, 2048, 1, 1, 1),
+		     NAND_MEMORG(1, 2048, 128, 64, 2048, 40, 1, 1, 1),
 		     NAND_ECCREQ(8, 512),
 		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
 					      &write_cache_variants,
