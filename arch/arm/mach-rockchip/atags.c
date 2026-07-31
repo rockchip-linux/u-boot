@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:     GPL-2.0+
+// SPDX-License-Identifier:     GPL-2.0-or-later OR Apache-2.0
 /*
  * (C) Copyright 2018 Rockchip Electronics Co., Ltd.
  *
@@ -61,22 +61,15 @@ static int spl_bootdev_map[] = {
 #if CONFIG_IS_ENABLED(TINY_FRAMEWORK) &&		\
 	!CONFIG_IS_ENABLED(LIBGENERIC_SUPPORT) &&	\
 	!CONFIG_IS_ENABLED(USE_ARCH_MEMSET)
-/**
- * memset - Fill a region of memory with the given value
- * @s: Pointer to the start of the area.
- * @c: The byte to fill the area with
- * @count: The size of the area.
- *
- * Do not use memset() to access IO space, use memset_io() instead.
- */
+/* Minimal byte-wise fallback for builds without generic string support. */
 void *memset(void *s, int c, size_t count)
 {
-	unsigned long *sl = (unsigned long *)s;
-	char *s8;
+	u8 *bytes = s;
 
-	s8 = (char *)sl;
-	while (count--)
-		*s8++ = c;
+	while (count != 0) {
+		*bytes++ = (u8)c;
+		count--;
+	}
 
 	return s;
 }
@@ -85,35 +78,19 @@ void *memset(void *s, int c, size_t count)
 #if CONFIG_IS_ENABLED(TINY_FRAMEWORK) &&		\
 	!CONFIG_IS_ENABLED(LIBGENERIC_SUPPORT) &&	\
 	!CONFIG_IS_ENABLED(USE_ARCH_MEMCPY)
-/**
- * memcpy - Copy one area of memory to another
- * @dest: Where to copy to
- * @src: Where to copy from
- * @count: The size of the area.
- *
- * You should not use this function to access IO space, use memcpy_toio()
- * or memcpy_fromio() instead.
- */
+/* Minimal non-overlapping copy for builds without generic string support. */
 void *memcpy(void *dest, const void *src, size_t count)
 {
-	unsigned long *dl = (unsigned long *)dest, *sl = (unsigned long *)src;
-	char *d8, *s8;
+	u8 *out = dest;
+	const u8 *in = src;
 
 	if (src == dest)
 		return dest;
 
-	/* while all data is aligned (common case), copy a word at a time */
-	if ((((ulong)dest | (ulong)src) & (sizeof(*dl) - 1)) == 0) {
-		while (count >= sizeof(*dl)) {
-			*dl++ = *sl++;
-			count -= sizeof(*dl);
-		}
+	while (count != 0) {
+		*out++ = *in++;
+		count--;
 	}
-	/* copy the reset one byte at a time */
-	d8 = (char *)dl;
-	s8 = (char *)sl;
-	while (count--)
-		*d8++ = *s8++;
 
 	return dest;
 }
@@ -204,15 +181,16 @@ int atags_set_tag(u32 magic, void *tagdata)
 	/* If not initialized, setup now! */
 	if (t->hdr.magic != ATAG_CORE) {
 		t->hdr.magic = ATAG_CORE;
-		t->hdr.size = tag_size(tag_core);
+		t->hdr.size = rk_atags_size(tag_core);
 		t->u.core.flags = 0;
 		t->u.core.pagesize = 0;
 		t->u.core.rootdev = 0;
 
-		t = tag_next(t);
+		t = rk_atags_next(t);
 	} else {
 		/* Find the end, and use it as a new tag */
-		for_each_tag(t, (struct tag *)ATAGS_PHYS_BASE) {
+		for (t = (struct tag *)ATAGS_PHYS_BASE; t->hdr.size != 0;
+		     t = rk_atags_next(t)) {
 			if (atags_overflow(t))
 				return -EINVAL;
 
@@ -233,37 +211,37 @@ int atags_set_tag(u32 magic, void *tagdata)
 	/* Initialize new tag */
 	switch (magic) {
 	case ATAG_SERIAL:
-		size = tag_size(tag_serial);
+		size = rk_atags_size(tag_serial);
 		break;
 	case ATAG_BOOTDEV:
-		size = tag_size(tag_bootdev);
+		size = rk_atags_size(tag_bootdev);
 		break;
 	case ATAG_TOS_MEM:
-		size = tag_size(tag_tos_mem);
+		size = rk_atags_size(tag_tos_mem);
 		break;
 	case ATAG_DDR_MEM:
-		size = tag_size(tag_ddr_mem);
+		size = rk_atags_size(tag_ddr_mem);
 		break;
 	case ATAG_RAM_PARTITION:
-		size = tag_size(tag_ram_partition);
+		size = rk_atags_size(tag_ram_partition);
 		break;
 	case ATAG_ATF_MEM:
-		size = tag_size(tag_atf_mem);
+		size = rk_atags_size(tag_atf_mem);
 		break;
 	case ATAG_PUB_KEY:
-		size = tag_size(tag_pub_key);
+		size = rk_atags_size(tag_pub_key);
 		break;
 	case ATAG_SOC_INFO:
-		size = tag_size(tag_soc_info);
+		size = rk_atags_size(tag_soc_info);
 		break;
 	case ATAG_BOOT1_PARAM:
-		size = tag_size(tag_boot1p);
+		size = rk_atags_size(tag_boot1p);
 		break;
 	case ATAG_PSTORE:
-		size = tag_size(tag_pstore);
+		size = rk_atags_size(tag_pstore);
 		break;
 	case ATAG_FWVER:
-		size = tag_size(tag_fwver);
+		size = rk_atags_size(tag_fwver);
 		break;
 	};
 
@@ -283,7 +261,7 @@ int atags_set_tag(u32 magic, void *tagdata)
 
 	if (append) {
 		/* Next tag */
-		t = tag_next(t);
+		t = rk_atags_next(t);
 
 		/* Setup done */
 		t->hdr.magic = ATAG_NONE;
@@ -324,7 +302,8 @@ struct tag *atags_get_tag(u32 magic)
 	if (!atags_is_available())
 		return NULL;
 
-	for_each_tag(t, (struct tag *)ATAGS_PHYS_BASE) {
+	for (t = (struct tag *)ATAGS_PHYS_BASE; t->hdr.size != 0;
+	     t = rk_atags_next(t)) {
 		if (atags_overflow(t))
 			return NULL;
 

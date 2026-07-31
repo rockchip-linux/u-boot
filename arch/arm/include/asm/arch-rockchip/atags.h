@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier:     GPL-2.0+ */
+/* SPDX-License-Identifier:     GPL-2.0-or-later OR Apache-2.0 */
 /*
  * (C) Copyright 2018 Rockchip Electronics Co., Ltd
  *
@@ -211,11 +211,11 @@ struct tag_core {
 } __packed;
 
 struct tag_header {
-	u32 size;	/* bytes = size * 4 */
+	u32 size;	/* number of 32-bit words occupied by this tag */
 	u32 magic;
 } __packed;
 
-/* Must be 4 bytes align */
+/* The header and payload share one aligned wire-format container. */
 struct tag {
 	struct tag_header hdr;
 	union {
@@ -234,10 +234,19 @@ struct tag {
 	} u;
 } __aligned(4);
 
-#define tag_next(t)	((struct tag *)((u32 *)(t) + (t)->hdr.size))
-#define tag_size(type)	((sizeof(struct tag_header) + sizeof(struct type)) >> 2)
-#define for_each_tag(t, base)		\
-	for (t = base; t->hdr.size; t = tag_next(t))
+static inline struct tag *rk_atags_next(struct tag *tag)
+{
+	return (struct tag *)((u8 *)tag +
+			      (size_t)tag->hdr.size * sizeof(u32));
+}
+
+#define rk_atags_size(type) \
+	((sizeof(struct tag_header) + sizeof(struct type)) / sizeof(u32))
+
+/* Public iterator used by the ATAGS command. */
+#define for_each_tag(entry, start) \
+	for ((entry) = (start); (entry)->hdr.size != 0; \
+	     (entry) = rk_atags_next(entry))
 /*
  * Destroy atags
  *
