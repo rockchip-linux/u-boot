@@ -667,11 +667,11 @@ void spl_hang_reset(void)
 }
 
 #ifdef CONFIG_SPL_FIT_ROLLBACK_PROTECT
-int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
+int fit_read_dev_rollback_index(uint32_t fit_index, uint32_t *dev_index)
 {
 	int ret = 0;
 
-	*otp_index = 0;
+	*dev_index = 0;
 #if defined(CONFIG_SPL_ROCKCHIP_SECURE_OTP)
 	struct udevice *dev;
 	u32 index, i, otp_version;
@@ -693,17 +693,17 @@ int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
 		bit_count = fls(index);
 		otp_version += bit_count;
 	}
-	*otp_index = otp_version;
+	*dev_index = otp_version;
 #endif
 
 	return ret;
 }
 
-static int fit_write_otp_rollback_index(u32 fit_index)
+static int fit_write_dev_rollback_index(u32 fit_index)
 {
 #if defined(CONFIG_SPL_ROCKCHIP_SECURE_OTP)
 	struct udevice *dev;
-	u32 index, i, otp_index;
+	u32 index, i, dev_index;
 
 	if (!fit_index)
 		return 0;
@@ -715,11 +715,11 @@ static int fit_write_otp_rollback_index(u32 fit_index)
 	if (!dev)
 		return -ENODEV;
 
-	if (fit_read_otp_rollback_index(fit_index, &otp_index))
+	if (fit_read_dev_rollback_index(fit_index, &dev_index))
 		return -EIO;
 
-	if (otp_index < fit_index) {
-		/* Write new SW version to otp */
+	if (dev_index < fit_index) {
+		/* Write new SW version to device */
 		for (i = 0; i < OTP_UBOOT_ROLLBACK_WORDS; i++) {
 			/*
 			 * If fit_index is equal to 0, then execute 0xffffffff >> 32.
@@ -754,7 +754,7 @@ int spl_board_prepare_for_jump(struct spl_image_info *spl_image)
 #ifdef CONFIG_SPL_FIT_ROLLBACK_PROTECT
 	int ret;
 
-	ret = fit_write_otp_rollback_index(gd->rollback_index);
+	ret = fit_write_dev_rollback_index(gd->rollback_index);
 	if (ret) {
 		panic("Failed to write fit rollback index %d, ret=%d",
 		      gd->rollback_index, ret);
