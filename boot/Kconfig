@@ -62,6 +62,7 @@ config ANDROID_WRITE_KEYBOX
 	bool "Support Write Keybox"
 	default y
 	depends on ANDROID_BOOT_IMAGE && OPTEE
+	select AES
 	help
 	  This enable support write keybox to secure storage.
 
