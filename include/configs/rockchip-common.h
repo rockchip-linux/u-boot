@@ -31,24 +31,44 @@
 	"name=rootfs,size=-,uuid="ROOT_UUID
 
 #undef CONFIG_BOOTCOMMAND
-#if defined(CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE)
-#ifdef CONFIG_GBL
-#define CONFIG_BOOTCOMMAND			\
-	"boot_gbl;"				\
-	"boot_android ${devtype} ${devnum};"
+
+#ifdef CONFIG_CMD_BOOT_GBL
+#define BOOTCMD_BOOT_GBL	"boot_gbl;"
 #else
-#define CONFIG_BOOTCOMMAND			\
-	"boot_android ${devtype} ${devnum};"
+#define BOOTCMD_BOOT_GBL	""
 #endif
+
+#ifdef CONFIG_CMD_BOOT_FIT
+#define BOOTCMD_BOOT_FIT	"boot_fit;"
+#else
+#define BOOTCMD_BOOT_FIT	""
+#endif
+
+#ifdef CONFIG_CMD_BOOT_ANDROID
+#define BOOTCMD_BOOT_ANDROID	"boot_android ${devtype} ${devnum};"
+#else
+#define BOOTCMD_BOOT_ANDROID	""
+#endif
+
+#ifdef CONFIG_CMD_BOOTFLOW
+#define BOOTCMD_BOOT_SCAN	"bootflow scan -bl;"
+#else
+#define BOOTCMD_BOOT_SCAN	""
+#endif
+
+#if defined(CONFIG_LIBAVB_VBMETA_PUBLIC_KEY_VALIDATE)
+#define CONFIG_BOOTCOMMAND			\
+	BOOTCMD_BOOT_GBL			\
+	BOOTCMD_BOOT_ANDROID
 #elif defined(CONFIG_FIT_SIGNATURE)
 #define CONFIG_BOOTCOMMAND			\
-	"boot_fit;"
+	BOOTCMD_BOOT_FIT
 #else
 #define CONFIG_BOOTCOMMAND			\
-	"boot_gbl;"				\
-	"boot_android ${devtype} ${devnum};"	\
-	"boot_fit;"				\
-	"bootflow scan -bl;"
+	BOOTCMD_BOOT_GBL			\
+	BOOTCMD_BOOT_ANDROID			\
+	BOOTCMD_BOOT_FIT			\
+	BOOTCMD_BOOT_SCAN
 #endif
 #endif
 
