@@ -635,7 +635,7 @@ int spl_fdt_chosen_bootargs(struct spl_load_info *info, void *fdt)
 	}
 #endif
 #ifdef CONFIG_MTD_BLK
-	if (!env && desc->if_type == IF_TYPE_MTD) {
+	if (!env && desc->uclass_id == UCLASS_MTD) {
 		char *mtd_par_info = mtd_part_parse(desc);
 
 		ret = fdt_bootargs_append(fdt, mtd_par_info);

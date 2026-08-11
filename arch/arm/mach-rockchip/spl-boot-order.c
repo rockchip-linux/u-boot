@@ -253,14 +253,14 @@ int spl_decode_boot_device(u32 boot_device, char *buf, size_t buflen)
 			continue;
 		}
 
-		if (boot_device == BOOT_DEVICE_MTD_BLK_SPI_NAND ||
-		    boot_device == BOOT_DEVICE_MTD_BLK_SPI_NOR) {
+		if (boot_device == BOOT_DEVICE_MTD_BLK_SPI_NOR) {
 			ret = uclass_find_device_by_of_offset(UCLASS_SPI_FLASH, node, &dev);
 			if (ret) {
 				debug("%s: could not find udevice for %s\n", __func__, conf);
 				continue;
 			}
-		} else if (boot_device == BOOT_DEVICE_MTD_BLK_NAND) {
+		} else if (boot_device == BOOT_DEVICE_MTD_BLK_SPI_NAND ||
+			   boot_device == BOOT_DEVICE_MTD_BLK_NAND) {
 			ret = uclass_find_device_by_of_offset(UCLASS_MTD, node, &dev);
 			if (ret) {
 				debug("%s: could not find udevice for %s\n", __func__, conf);
