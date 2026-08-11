@@ -92,7 +92,7 @@ static int kernel_dtb_build(const void *blob)
 	gd->flags |= GD_FLG_KDTB_READY;
 
 	of_live_build(gd->fdt_blob, (struct device_node **)gd_of_root_ptr());
-	dm_scan_fdt(false);
+	dm_extended_scan(false);
 
 	return boot_fdt_add_sysmem_rsv_regions((void *)gd->fdt_blob);
 }
