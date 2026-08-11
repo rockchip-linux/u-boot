@@ -366,6 +366,7 @@ static int rockchip_iodomain_probe(struct udevice *dev)
 	struct regmap *grf;
 	int ret;
 
+	printf("io-domain: ");
 	grf = syscon_get_regmap(dev_get_parent(dev));
 	if (IS_ERR(grf))
 		return PTR_ERR(grf);
@@ -401,6 +402,7 @@ static int rockchip_iodomain_probe(struct udevice *dev)
 		if (ret)
 			dev_err(dev, "%s: Couldn't write to GRF\n", supply_name);
 	}
+	printf("OK\n");
 
 	return 0;
 }
