@@ -48,7 +48,6 @@
 	"script_size_f=0x2000\0"	\
 	"pxefile_addr_r=0x40600000\0" \
 	"kernel_addr_r=0x40400000\0" \
-	"kernel_addr_c=0x45480000\0"	\
 	"kernel_comp_addr_r=0x45480000\0"	\
 	"ramdisk_addr_r=0x4a200000\0"	\
 	"fdt_addr_r=0x48300000\0"	\

@@ -318,7 +318,7 @@ int fit_image_pre_process(const void *fit)
 
 	if (!bootz_setup((ulong)buf, &start, &end))
 		ret = fit_image_fixup_alloc(fit, FIT_KERNEL_PROP,
-					    "kernel_addr_c", MEM_KERNEL);
+					    "kernel_comp_addr_r", MEM_KERNEL);
 	else
 #endif
 	ret = fit_image_fixup_alloc(fit, FIT_KERNEL_PROP,

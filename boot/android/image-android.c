@@ -899,27 +899,23 @@ static int android_image_separate_v34(struct andr_img_hdr *hdr,
 
 static ulong android_image_get_comp_addr(struct andr_img_hdr *hdr, int comp)
 {
-	ulong kernel_addr_c;
+	ulong comp_addr;
 	ulong load_addr = 0;
 
-	kernel_addr_c = env_get_ulong("kernel_addr_c", 16, 0);
+	comp_addr = env_get_ulong("kernel_comp_addr_r", 16, 0);
 
 #ifdef CONFIG_ARM64
 	/*
 	 * On 64-bit kernel, assuming use IMAGE by default.
 	 *
-	 * kernel_addr_c is for LZ4-IMAGE but maybe not defined.
+	 * kernel_comp_addr_r is for LZ4-IMAGE but maybe not defined.
 	 * kernel_addr_r is for IMAGE.
 	 */
 	if (comp != IH_COMP_NONE) {
-		ulong comp_addr;
-
-		if (kernel_addr_c) {
-			comp_addr = kernel_addr_c;
-		} else {
-			printf("Warn: No \"kernel_addr_c\"\n");
+		if (!comp_addr) {
+			printf("Warn: No \"kernel_comp_addr_r\"\n");
 			comp_addr = CFG_SYS_SDRAM_BASE + 0x2000000;/* 32M */
-			env_set_hex("kernel_addr_c", comp_addr);
+			env_set_hex("kernel_comp_addr_r", comp_addr);
 		}
 
 		load_addr = comp_addr - hdr->page_size;
@@ -929,13 +925,13 @@ static ulong android_image_get_comp_addr(struct andr_img_hdr *hdr, int comp)
 	 * On 32-bit kernel:
 	 *
 	 * The input load_addr is from env value: "kernel_addr_r", it has
-	 * different role depends on whether kernel_addr_c is defined:
+	 * different role depends on whether kernel_comp_addr_r is defined:
 	 *
-	 * - kernel_addr_r is for lz4/zImage if kernel_addr_c if [not] defined.
-	 * - kernel_addr_r is for IMAGE if kernel_addr_c is defined.
+	 * - kernel_addr_r is for lz4/zImage if kernel_comp_addr_r is [not] defined.
+	 * - kernel_addr_r is for IMAGE if kernel_comp_addr_r is defined.
 	 */
 	if (comp == IH_COMP_NONE) {
-		if (kernel_addr_c) {
+		if (comp_addr) {
 			/* input load_addr is for Image, nothing to do */
 		} else {
 			/* input load_addr is for lz4/zImage, set default addr for Image */
@@ -945,9 +941,9 @@ static ulong android_image_get_comp_addr(struct andr_img_hdr *hdr, int comp)
 			load_addr -= hdr->page_size;
 		}
 	} else {
-		if (kernel_addr_c) {
+		if (comp_addr) {
 			/* input load_addr is for Image, so use another for lz4/zImage */
-			load_addr = kernel_addr_c - hdr->page_size;
+			load_addr = comp_addr - hdr->page_size;
 		} else {
 			/* input load_addr is for lz4/zImage, nothing to do */
 		}

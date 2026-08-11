@@ -179,15 +179,24 @@ static void env_setup(void)
 	env_set_hex("fdt_high", -1UL);
 	env_set_hex("initrd_high", -1UL);
 
+	/* Migrate saved environments using the deprecated names. */
+	addr_r = env_get("kernel_addr_c");
+	if (addr_r && !env_set("kernel_comp_addr_r", addr_r))
+		env_set("kernel_addr_c", NULL);
+
 #ifdef ENV_MEM_LAYOUT_SETTINGS1
+	addr_r = env_get("kernel_addr1_c");
+	if (addr_r && !env_set("kernel_comp_addr1_r", addr_r))
+		env_set("kernel_addr1_c", NULL);
+
 	const char *env_addr0[] = {
 		"scriptaddr", "pxefile_addr_r", "fdt_addr_r",
-		"kernel_addr_r", "kernel_addr_aarch32_r", "kernel_addr_c",
+		"kernel_addr_r", "kernel_addr_aarch32_r", "kernel_comp_addr_r",
 		"ramdisk_addr_r",
 	};
 	const char *env_addr1[] = {
 		"scriptaddr1", "pxefile_addr1_r", "fdt_addr1_r",
-		"kernel_addr1_r", "kernel_addr1_aarch32_r", "kernel_addr1_c",
+		"kernel_addr1_r", "kernel_addr1_aarch32_r", "kernel_comp_addr1_r",
 		"ramdisk_addr1_r",
 	};
 	int i;

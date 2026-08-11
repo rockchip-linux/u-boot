@@ -334,7 +334,7 @@ static int brought_up_amp(void *fit, int noffset,
 		if (load != -ENODATA)
 			env_set_hex("kernel_addr_r", load);
 		if (load_c != -ENODATA)
-			env_set_hex("kernel_addr_c", load_c);
+			env_set_hex("kernel_comp_addr_r", load_c);
 	}
 
 	aarch64 = (arch == IH_ARCH_ARM) ? 0 : 1;

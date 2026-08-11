@@ -259,7 +259,7 @@ static int sysmem_alloc_uncomp_kernel(ulong andr_hdr,
 
 	if (comp != IH_COMP_NONE) {
 		/* Release compressed sysmem */
-		kaddr = env_get_hex("kernel_addr_c", 0);
+		kaddr = env_get_hex("kernel_comp_addr_r", 0);
 		if (!kaddr)
 			kaddr = env_get_hex("kernel_addr_r", 0);
 		kaddr -= hdr->page_size;
@@ -301,7 +301,7 @@ int android_bootloader_boot_kernel(unsigned long kernel_address)
 {
 	struct bootm_info bmi;
 	char *kernel_addr_r = env_get("kernel_addr_r");
-	char *kernel_addr_c = env_get("kernel_addr_c");
+	char *comp_addr = env_get("kernel_comp_addr_r");
 	char *fdt_addr = env_get("fdt_addr_r");
 	char kernel_addr_str[32];
 	char comp_str[32] = {0};
@@ -321,8 +321,8 @@ int android_bootloader_boot_kernel(unsigned long kernel_address)
 
 	if (comp_type != IH_COMP_NONE) {
 		if (comp_type == IH_COMP_ZIMAGE &&
-		    kernel_addr_r && !kernel_addr_c) {
-			kernel_addr_c = kernel_addr_r;
+		    kernel_addr_r && !comp_addr) {
+			comp_addr = kernel_addr_r;
 			kernel_addr_r = __stringify(CFG_SYS_SDRAM_BASE);
 		}
 		snprintf(comp_str, 32, "%s%s%s",
@@ -331,7 +331,7 @@ int android_bootloader_boot_kernel(unsigned long kernel_address)
 
 	printf("Booting %s kernel at %s%s with fdt at %s...\n\n\n",
 	       comp_name[comp_type],
-	       comp_type != IH_COMP_NONE ? kernel_addr_c : kernel_addr_r,
+	       comp_type != IH_COMP_NONE ? comp_addr : kernel_addr_r,
 	       comp_str, fdt_addr);
 
 	hotkey_run(HK_SYSMEM);
