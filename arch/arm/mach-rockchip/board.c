@@ -21,6 +21,7 @@
 #include <tee/optee.h>
 #include <dm.h>
 #include <dm/uclass-internal.h>
+#include <dm/root.h>
 #include <efi_loader.h>
 #include <fastboot.h>
 #include <hash.h>
@@ -347,11 +348,11 @@ int board_init(void)
 #ifdef CONFIG_DM_REGULATOR
 	regulators_enable_boot_on(false);
 #endif
-#ifdef CONFIG_ROCKCHIP_IO_DOMAIN
-	io_domain_init();
-#endif
 #ifdef CONFIG_CLK
 	set_armclk_rate();
+#endif
+#ifdef CONFIG_DM_KERNEL_DTB
+	dm_autoprobe(); /* HANDLE: io-domain, ... */
 #endif
 #ifdef CONFIG_DM_DVFS
 	dvfs_init(true);
