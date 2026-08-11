@@ -655,11 +655,91 @@ static int rk8xx_irq_chip_init(struct udevice *dev)
 static inline int rk8xx_irq_chip_init(struct udevice *dev) { return 0; }
 #endif
 
+static void rk8xx_read_long_press(struct udevice *dev,
+				  struct rk8xx_priv *rk8xx,
+				  bool read_restart)
+{
+	u32 val;
+
+	val = dev_read_u32_default(dev, "long-press-off-time-sec", 0);
+	if (val <= 6)
+		rk8xx->lp_off_time = RK8XX_LP_TIME_6S;
+	else if (val <= 8)
+		rk8xx->lp_off_time = RK8XX_LP_TIME_8S;
+	else if (val <= 10)
+		rk8xx->lp_off_time = RK8XX_LP_TIME_10S;
+	else
+		rk8xx->lp_off_time = RK8XX_LP_TIME_12S;
+
+	if (!read_restart)
+		return;
+
+	val = dev_read_u32_default(dev, "long-press-restart", 0);
+	if (val)
+		rk8xx->lp_action = RK8XX_LP_RESTART;
+	else
+		rk8xx->lp_action = RK8XX_LP_OFF;
+}
+
+static void rk806_ofdata_to_platdata(struct udevice *dev,
+				     struct rk8xx_priv *rk8xx)
+{
+	int len;
+
+	rk8xx->rst_fun = dev_read_u32_default(dev, "pmic-reset-func", 0);
+	/* buck5 external feedback resister disable */
+	rk8xx->buck5_feedback_dis = dev_read_bool(dev, "buck5-feedback-disable");
+
+	rk8xx->pwr_ctr[0] = dev_read_u32_default(dev, "pwrctrl1_output", -1);
+	rk8xx->pwr_ctr[1] = dev_read_u32_default(dev, "pwrctrl2_output", -1);
+	rk8xx->pwr_ctr[2] = dev_read_u32_default(dev, "pwrctrl3_output", -1);
+
+	if (!dev_read_prop(dev, "shutdown-sequence", &len)) {
+		printf("can't find shutdown-sequence prop\n");
+	} else {
+		if (len / 4 != RK806_ID_END)
+			return;
+		rk8xx->shutdown_sequence = calloc(len, 1);
+		if (!rk8xx->shutdown_sequence) {
+			printf("can't calloc shutdown_sequence\n");
+			return;
+		}
+
+		if (dev_read_u32_array(dev, "shutdown-sequence",
+				       rk8xx->shutdown_sequence,
+				       RK806_ID_END)) {
+			printf("can't read shutdown_sequence\n");
+			free(rk8xx->shutdown_sequence);
+			return;
+		}
+	}
+
+	if (!dev_read_prop(dev, "vb-shutdown-sequence", &len)) {
+		printf("can't find vb-shutdown-sequence prop\n");
+	} else {
+		if (len / 4 != RK806_ID_END)
+			return;
+		rk8xx->vb_shutdown_sequence = calloc(len, 1);
+		if (!rk8xx->vb_shutdown_sequence) {
+			printf("can't calloc vb_shutdown_sequence\n");
+			return;
+		}
+
+		if (dev_read_u32_array(dev, "vb-shutdown-sequence",
+				       rk8xx->vb_shutdown_sequence,
+				       RK806_ID_END)) {
+			printf("can't read vb-shutdown-sequence\n");
+			free(rk8xx->vb_shutdown_sequence);
+			return;
+		}
+	}
+}
+
 static int rk8xx_ofdata_to_platdata(struct udevice *dev)
 {
 	struct rk8xx_priv *rk8xx = dev_get_priv(dev);
-	u32 interrupt, phandle, val;
-	int ret, len;
+	u32 interrupt, phandle;
+	int ret;
 
 	phandle = dev_read_u32_default(dev, "interrupt-parent", -ENODATA);
 	if (phandle == -ENODATA) {
@@ -680,70 +760,26 @@ static int rk8xx_ofdata_to_platdata(struct udevice *dev)
 		return rk8xx->irq;
 	}
 #endif
-	val = dev_read_u32_default(dev, "long-press-off-time-sec", 0);
-	if (val <= 6)
-		rk8xx->lp_off_time = RK8XX_LP_TIME_6S;
-	else if (val <= 8)
-		rk8xx->lp_off_time = RK8XX_LP_TIME_8S;
-	else if (val <= 10)
-		rk8xx->lp_off_time = RK8XX_LP_TIME_10S;
-	else
-		rk8xx->lp_off_time = RK8XX_LP_TIME_12S;
 
-	val = dev_read_u32_default(dev, "long-press-restart", 0);
-	if (val)
-		rk8xx->lp_action = RK8XX_LP_RESTART;
-	else
-		rk8xx->lp_action = RK8XX_LP_OFF;
-
-	rk8xx->not_save_power_en = dev_read_u32_default(dev, "not-save-power-en", 0);
-	rk8xx->sys_can_sd = dev_read_bool(dev, "vsys-off-shutdown");
-	rk8xx->rst_fun = dev_read_u32_default(dev, "pmic-reset-func", 0);
-	/* buck5 external feedback resister disable */
-	rk8xx->buck5_feedback_dis = dev_read_bool(dev, "buck5-feedback-disable");
-
-	rk8xx->pwr_ctr[0] = dev_read_u32_default(dev, "pwrctrl1_output", -1);
-	rk8xx->pwr_ctr[1] = dev_read_u32_default(dev, "pwrctrl2_output", -1);
-	rk8xx->pwr_ctr[2] = dev_read_u32_default(dev, "pwrctrl3_output", -1);
-
-	if (!dev_read_prop(dev, "shutdown-sequence", &len)) {
-		printf("can't find shutdown-sequence prop\n");
+	if (device_is_compatible(dev, "rockchip,rk805")) {
+		rk8xx_read_long_press(dev, rk8xx, true);
+		rk8xx->rst_fun = dev_read_u32_default(dev, "pmic-reset-func", 0);
+	} else if (device_is_compatible(dev, "rockchip,rk806")) {
+		rk806_ofdata_to_platdata(dev, rk8xx);
+	} else if (device_is_compatible(dev, "rockchip,rk808")) {
+		rk8xx_read_long_press(dev, rk8xx, false);
+	} else if (device_is_compatible(dev, "rockchip,rk816") ||
+		   device_is_compatible(dev, "rockchip,rk818")) {
+		rk8xx_read_long_press(dev, rk8xx, true);
+	} else if (device_is_compatible(dev, "rockchip,rk809") ||
+		   device_is_compatible(dev, "rockchip,rk817")) {
+		rk8xx_read_long_press(dev, rk8xx, true);
+		rk8xx->not_save_power_en =
+			dev_read_u32_default(dev, "not-save-power-en", 0);
+		rk8xx->sys_can_sd = dev_read_bool(dev, "vsys-off-shutdown");
+		rk8xx->rst_fun = dev_read_u32_default(dev, "pmic-reset-func", 0);
 	} else {
-		if (len / 4 != RK806_ID_END)
-			return 0;
-		rk8xx->shutdown_sequence = calloc(len, 1);
-		if (!rk8xx->shutdown_sequence) {
-			printf("can't calloc shutdown_sequence\n");
-			return 0;
-		}
-
-		if (dev_read_u32_array(dev, "shutdown-sequence",
-				       rk8xx->shutdown_sequence,
-				       RK806_ID_END)) {
-			printf("can't read shutdown_sequence\n");
-			free(rk8xx->shutdown_sequence);
-			return 0;
-		}
-	}
-
-	if (!dev_read_prop(dev, "vb-shutdown-sequence", &len)) {
-		printf("can't find vb-shutdown-sequence prop\n");
-	} else {
-		if (len / 4 != RK806_ID_END)
-			return 0;
-		rk8xx->vb_shutdown_sequence = calloc(len, 1);
-		if (!rk8xx->vb_shutdown_sequence) {
-			printf("can't calloc vb_shutdown_sequence\n");
-			return 0;
-		}
-
-		if (dev_read_u32_array(dev, "vb-shutdown-sequence",
-				       rk8xx->vb_shutdown_sequence,
-				       RK806_ID_END)) {
-			printf("can't read vb-shutdown-sequence\n");
-			free(rk8xx->vb_shutdown_sequence);
-			return 0;
-		}
+		return -EINVAL;
 	}
 
 	return 0;
