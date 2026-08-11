@@ -31,6 +31,15 @@ extern "C" {
 AvbABFlowResult ab_get_current_slot(char *select_slot);
 
 /**
+ * Keep using a selected slot while A/B metadata remains unchanged.
+ *
+ * @param slot_suffix selected slot, '_a' or '_b'.
+ * @param ab_data     expected A/B metadata after updating tries.
+ */
+void ab_lock_current_slot(const char *slot_suffix,
+			  const AvbABData *ab_data);
+
+/**
  * Append current slot to given partition name
  *
  * @param part_name	partition name

@@ -781,6 +781,9 @@ int ab_decrease_tries(void)
 		return -1;
 	}
 
+	/* Keep all images on this slot unless misc metadata changes again. */
+	ab_lock_current_slot(slot_suffix, &ab_data);
+
 	return 0;
 }
 

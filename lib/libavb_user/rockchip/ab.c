@@ -11,6 +11,18 @@
 #include <part.h>
 #include <android_avb/ab.h>
 
+static bool current_slot_locked;
+static char current_slot_suffix[3];
+static AvbABData current_slot_ab_data;
+
+void ab_lock_current_slot(const char *slot_suffix,
+			  const AvbABData *ab_data)
+{
+	strcpy(current_slot_suffix, slot_suffix);
+	memcpy(&current_slot_ab_data, ab_data, sizeof(current_slot_ab_data));
+	current_slot_locked = true;
+}
+
 AvbABFlowResult ab_slot_select(AvbABOps* ab_ops,char* select_slot)
 {
 	AvbABFlowResult ret = AVB_AB_FLOW_RESULT_OK;
@@ -25,6 +37,16 @@ AvbABFlowResult ab_slot_select(AvbABOps* ab_ops,char* select_slot)
 		ret = AVB_AB_FLOW_RESULT_ERROR_IO;
 		goto out;
 	}
+
+	/* CRC changes when tries is updated, so compare metadata payload only. */
+	if (current_slot_locked &&
+	    !avb_safe_memcmp(&ab_data, &current_slot_ab_data,
+			     sizeof(ab_data) - sizeof(ab_data.crc32))) {
+		strcpy(select_slot, current_slot_suffix);
+		goto out;
+	}
+	current_slot_locked = false;
+
 	if (slot_is_bootable(&ab_data.slots[0]) && slot_is_bootable(&ab_data.slots[1])) {
 		if (ab_data.slots[1].priority > ab_data.slots[0].priority) {
 			slot_index_to_boot = 1;
