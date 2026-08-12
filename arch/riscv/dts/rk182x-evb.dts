@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd.
+ */
+
+/dts-v1/;
+#include "rk182x.dtsi"
+#include "rk182x-u-boot.dtsi"
+
+/ {
+	model = "Rockchip RK182X EVB1 V10 Board";
+	compatible = "rockchip,rk182x-evb1-v10", "rockchip,rk182x";
+
+	chosen {
+		bootargs = "earlycon console=ttyS0,1500000n8 clk_gate.always_on=1 pm_domains.always_on=1 root=/dev/mmcblk0p7 rootwait";
+		stdout-path = &uart0;
+	};
+};

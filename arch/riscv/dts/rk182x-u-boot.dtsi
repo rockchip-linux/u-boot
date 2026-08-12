@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd.
+ */
+
+#include <dt-bindings/input/input.h>
+
+/ {
+	aliases {
+		mmc0 = &mmc;
+	};
+
+	chosen {
+		u-boot,spl-boot-order = &mmc;
+		tick-timer = &timer;
+	};
+
+	timer: timer {
+		compatible = "riscv,timer";
+		bootph-all;
+		status = "okay";
+	};
+};
+
+&memory {
+	bootph-all;
+	status = "okay";
+};
+
+&cpus {
+	bootph-all;
+	status = "okay";
+};
+
+&cpu0 {
+	bootph-all;
+	status = "okay";
+};
+
+&l2_cache {
+	bootph-all;
+	status = "okay";
+};
+
+&pmu {
+	bootph-all;
+	status = "okay";
+};
+
+&plic {
+	bootph-all;
+	status = "okay";
+};
+
+&pinctrl {
+	bootph-all;
+	status = "okay";
+};
+
+&gpio0 {
+	bootph-all;
+	status = "okay";
+};
+
+&gpio1 {
+	bootph-all;
+	status = "okay";
+};
+
+&soc {
+	bootph-all;
+	status = "okay";
+};
+
+&php_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&ioc_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&cru {
+	bootph-all;
+	status = "okay";
+};
+
+&uart0 {
+	bootph-all;
+	status = "okay";
+};
+
+&combphy0_p {
+	bootph-all;
+	status = "okay";
+};
+
+&pipe_phy0_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&mmc {
+	bootph-all;
+	cap-mmc-highspeed;
+	no-sdio;
+	no-sd;
+	disable-wp;
+	non-removable;
+	num-slots = <1>;
+	fifo-mode;
+	status = "okay";
+};

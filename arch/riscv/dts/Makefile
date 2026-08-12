@@ -15,6 +15,7 @@ dtb-$(CONFIG_TARGET_TH1520_LPI4A) += th1520-lichee-pi-4a.dtb
 dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv32.dtb
 dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv64.dtb
 dtb-$(CONFIG_TARGET_ASPEED_AST2700_IBEX) += ast2700-ibex.dtb
+dtb-$(CONFIG_ROCKCHIP_RK182X) += rk182x-evb.dtb
 
 include $(srctree)/scripts/Makefile.dts
 
