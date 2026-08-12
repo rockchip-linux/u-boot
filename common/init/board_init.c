@@ -195,6 +195,7 @@ __weak int board_init_f_init_misc(void)
 	gd->serial.baudrate = CONFIG_BAUDRATE;
 	gd->serial.addr = CONFIG_DEBUG_UART_BASE;
 	gd->serial.using_pre_serial = 0;
+	gd->serial.enable = 1;
 
 	return 0;
 }
