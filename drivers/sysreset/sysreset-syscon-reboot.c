@@ -52,7 +52,7 @@ static int syscon_reboot_request_prepare(struct udevice *dev, const char *mode)
 
 	printf("## Reboot mode: %s(%x)\n\n", mode, magic);
 
-	writel(magic, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+	writel(magic, (void *)CONFIG_ROCKCHIP_BOOT_MODE_REG);
 	free(command);
 
 	return 0;

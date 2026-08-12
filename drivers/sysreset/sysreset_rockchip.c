@@ -7,7 +7,9 @@
 #include <errno.h>
 #include <sysreset.h>
 #include <asm/arch-rockchip/clock.h>
+#ifdef CONFIG_ROCKCHIP_RK3328
 #include <asm/arch-rockchip/cru_rk3328.h>
+#endif
 #include <asm/arch-rockchip/hardware.h>
 #include <linux/err.h>
 
@@ -21,10 +23,10 @@ int rockchip_sysreset_request(struct udevice *dev, enum sysreset_t type)
 
 	switch (type) {
 	case SYSRESET_WARM:
-		writel(0xeca8, cru_base + offset->glb_srst_snd_value);
+		writel(0xeca8, (void __iomem *)(cru_base + offset->glb_srst_snd_value));
 		break;
 	case SYSRESET_COLD:
-		writel(0xfdb9, cru_base + offset->glb_srst_fst_value);
+		writel(0xfdb9, (void __iomem *)(cru_base + offset->glb_srst_fst_value));
 		break;
 	default:
 		return -EPROTONOSUPPORT;

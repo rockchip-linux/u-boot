@@ -18,7 +18,7 @@ __weak void do_board_download(void)
 static int do_rbrom(struct cmd_tbl *cmdtp, int flag,
 		    int argc, char *const argv[])
 {
-	writel(BOOT_BROM_DOWNLOAD, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+	writel(BOOT_BROM_DOWNLOAD, (void *)CONFIG_ROCKCHIP_BOOT_MODE_REG);
 	do_reset(NULL, 0, 0, NULL);
 
 	return 0;
