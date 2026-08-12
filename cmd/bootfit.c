@@ -61,7 +61,7 @@ static void *do_boot_fit_ram(char *const argv[], ulong *data_size)
 static int do_boot_fit(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	struct bootm_info bmi;
-	char fit_addr[12];
+	char fit_addr[20];
 	ulong size;
 	void *fit;
 
@@ -108,7 +108,8 @@ static int do_boot_fit(struct cmd_tbl *cmdtp, int flag, int argc, char *const ar
 	}
 
 	/* boot! */
-	snprintf(fit_addr, sizeof(fit_addr), "0x%lx", (ulong)fit);
+	snprintf(fit_addr, sizeof(fit_addr), "0x%llx",
+		 (unsigned long long)(uintptr_t)fit);
 	bootm_init(&bmi);
 	bmi.addr_img = fit_addr;
 	if (!bootm_run(&bmi))
