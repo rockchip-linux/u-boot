@@ -8,6 +8,7 @@
 
 #include <common.h>
 #include <config.h>
+#include <cpu_func.h>
 #include <bloblist.h>
 #include <binman_sym.h>
 #include <bootstage.h>
@@ -305,8 +306,8 @@ void spl_set_header_raw_uboot(struct spl_image_info *spl_image)
 	} else {
 		spl_image->entry_point = CONFIG_SYS_UBOOT_START;
 		spl_image->load_addr = CONFIG_TEXT_BASE;
-		log_debug("Default load addr %x (u_boot_pos=%lx)\n",
-			  CONFIG_TEXT_BASE, u_boot_pos);
+		log_debug("Default load addr %lx (u_boot_pos=%lx)\n",
+			  (ulong)CONFIG_TEXT_BASE, u_boot_pos);
 	}
 	spl_image->os = IH_OS_U_BOOT;
 	spl_image->name = xpl_name(xpl_next_phase());
@@ -439,6 +440,7 @@ __weak void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
 #ifndef CONFIG_SPL_SYS_DCACHE_OFF
 static int spl_dcache_enable(void)
 {
+#ifdef CONFIG_ARM
 	bool free_bd = false;
 
 #ifndef CONFIG_ARM64
@@ -468,6 +470,9 @@ static int spl_dcache_enable(void)
 	dcache_enable();
 	if (free_bd)
 		free(gd->bd);
+#else /* CONFIG_RISCV: no U-Boot managed MMU/TLB, just enable the D-cache */
+	dcache_enable();
+#endif
 
 	return 0;
 }
@@ -976,7 +981,8 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	if (os == IH_OS_U_BOOT) {
 		debug("Jumping to %s...\n", xpl_name(xpl_next_phase()));
 		spl_cleanup_before_jump(&spl_image);
-	} else if (CONFIG_IS_ENABLED(ATF) && os == IH_OS_ARM_TRUSTED_FIRMWARE) {
+#if CONFIG_IS_ENABLED(ATF)
+	} else if (os == IH_OS_ARM_TRUSTED_FIRMWARE) {
 		printf("Jumping to %s(0x%08lx) via ARM Trusted Firmware(0x%08lx)\n",
 		       spl_image.next_stage == SPL_NEXT_STAGE_UBOOT ? "U-Boot" :
 		       (spl_image.next_stage == SPL_NEXT_STAGE_KERNEL ? "Kernel" : "Unknown"),
@@ -986,6 +992,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		spl_fixup_fdt(spl_image_fdt_addr(&spl_image));
 #endif
 		jump_to_image = &spl_invoke_atf;
+#endif
 	} else if (CONFIG_IS_ENABLED(OPTEE_IMAGE) &&
 		   (os == IH_OS_OP_TEE || os == IH_OS_TEE)) {
 		printf("Jumping to %s(0x%08lx) via OP-TEE(0x%08lx)\n",
@@ -997,7 +1004,10 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		spl_board_prepare_for_optee(spl_image_fdt_addr(&spl_image));
 		jump_to_image = &jump_to_image_optee;
 	} else if (CONFIG_IS_ENABLED(OPENSBI) && os == IH_OS_OPENSBI) {
-		debug("Jumping to U-Boot via RISC-V OpenSBI\n");
+		printf("Jumping to U-Boot(0x%08lx) via RISC-V OpenSBI(0x%08lx)\n",
+		       (ulong)spl_image.entry_point_os,
+		       (ulong)spl_image.entry_point);
+		spl_cleanup_before_jump(&spl_image);
 		jump_to_image = &spl_invoke_opensbi;
 	} else if (CONFIG_IS_ENABLED(OS_BOOT) && os == IH_OS_LINUX) {
 #ifdef CONFIG_SPL_OS_BOOT
@@ -1188,10 +1198,12 @@ void spl_cleanup_before_jump(struct spl_image_info *spl_image)
 
 	disable_interrupts();
 
+#ifdef CONFIG_ARM
 #ifdef CONFIG_ARM64
 	disable_serror();
 #else
 	disable_async_abort();
+#endif
 #endif
 	/*
 	 * Turn off I-cache and invalidate it

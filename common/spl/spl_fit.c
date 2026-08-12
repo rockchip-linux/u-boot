@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <cpu_func.h>
 #ifdef CONFIG_SPL_DM_KEYLAD
 #include <keylad.h>
 #endif
@@ -1058,7 +1059,7 @@ static int spl_load_kernel_fit(struct spl_image_info *spl_image,
 				return -EINVAL;
 			}
 		} else if (!strcmp(images[i], FIT_KERNEL_PROP)) {
-#if CONFIG_IS_ENABLED(OPTEE_IMAGE)
+#if CONFIG_IS_ENABLED(OPTEE_IMAGE) || CONFIG_IS_ENABLED(OPENSBI)
 			spl_image->entry_point_os = image_info.load_addr;
 #endif
 #if CONFIG_IS_ENABLED(ATF)
@@ -1073,7 +1074,7 @@ static int spl_load_kernel_fit(struct spl_image_info *spl_image,
 	debug("fdt_addr=0x%08lx, entry_point=0x%08lx, entry_point_os=0x%08lx\n",
 	      (ulong)spl_image->fdt_addr,
 	      spl_image->entry_point,
-#if CONFIG_IS_ENABLED(OPTEE_IMAGE)
+#if CONFIG_IS_ENABLED(OPTEE_IMAGE) || CONFIG_IS_ENABLED(OPENSBI)
 	      spl_image->entry_point_os);
 #endif
 #if CONFIG_IS_ENABLED(ATF)
@@ -1261,7 +1262,7 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 			if (ih_arch == IH_ARCH_ARM)
 				spl_image->flags |= SPL_ATF_AARCH32_BL33;
 			spl_image->entry_point_bl33 = image_info.load_addr;
-#elif CONFIG_IS_ENABLED(OPTEE_IMAGE)
+#elif CONFIG_IS_ENABLED(OPTEE_IMAGE) || CONFIG_IS_ENABLED(OPENSBI)
 			spl_image->entry_point_os = image_info.load_addr;
 #endif
 			ret = spl_fit_append_fdt(&image_info, info, offset, &ctx);
