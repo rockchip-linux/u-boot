@@ -10,6 +10,7 @@
 #ifndef	__ASM_GBL_DATA_H
 #define __ASM_GBL_DATA_H
 
+#include <config.h>
 #include <linux/types.h>
 #include <asm/smp.h>
 #include <asm/u-boot.h>
@@ -18,6 +19,7 @@
 /* Architecture-specific global data */
 struct arch_global_data {
 	long boot_hart;		/* boot hart id */
+	unsigned long timer_rate_hz;
 	phys_addr_t firmware_fdt_addr;
 #if CONFIG_IS_ENABLED(RISCV_ACLINT)
 	void __iomem *aclint;	/* aclint base address */
