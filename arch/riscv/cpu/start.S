@@ -215,6 +215,7 @@ wait_for_gd_init:
 #endif
 
 	mv	a0, zero		/* a0 <-- boot_flags = 0 */
+	jal	board_init_f_init_misc
 	la	t5, board_init_f
 	jalr	t5			/* jump to board_init_f() */
 
