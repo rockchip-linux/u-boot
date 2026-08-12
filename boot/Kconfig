@@ -413,6 +413,7 @@ config SPL_FIT_SOURCE
 config SPL_FIT_GENERATOR
 	string ".its file generator script for U-Boot FIT image"
 	depends on SPL_FIT || FIT
+	default "arch/riscv/mach-rockchip/make_fit_opensbi.sh" if RISCV
 	default "arch/arm/mach-rockchip/make_fit_atf.sh" if ARM64
 	default "arch/arm/mach-rockchip/make_fit_optee.sh" if !ARM64
 	help
