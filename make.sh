@@ -20,6 +20,10 @@ fi
 if [ ! -f ${CROSS_COMPILE_ARM64}gcc ]; then
 	CROSS_COMPILE_ARM64=/opt/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
 fi
+CROSS_COMPILE_RISCV=../prebuilts/gcc/linux-x86/riscv64/Xuantie-900-gcc-linux-6.6.36-musl64-x86_64-V3.3.0/bin/riscv64-unknown-linux-musl-
+if [ ! -f ${CROSS_COMPILE_RISCV}gcc ]; then
+	CROSS_COMPILE_RISCV=/opt/prebuilts/gcc/linux-x86/riscv64/Xuantie-900-gcc-linux-6.6.36-musl64-x86_64-V3.3.0/bin/riscv64-unknown-linux-musl-
+fi
 ########################################### User not touch #############################################
 # Declare global INI file searching index name for every chip, update in select_chip_info()
 RKCHIP=
@@ -120,6 +124,10 @@ function prepare()
 		ARM64_TRUSTZONE="y"
 	fi
 
+	if grep -Eq ''^CONFIG_RISCV=y'' .config ; then
+		RISCV_TRUSTZONE="y"
+	fi
+
 	if grep  -q '^CONFIG_ROCKCHIP_FIT_IMAGE_PACK=y' .config ; then
 		PLAT_TYPE="FIT"
 	elif grep  -q '^CONFIG_SPL_DECOMP_HEADER=y' .config ; then
@@ -208,7 +216,7 @@ function process_args()
 				ARG_FWVER="FWVER=$2"
 				shift 2
 				;;
-			--uboot|--fdt|--optee|--mcu|--bl31) # uboot.img components
+			--uboot|--fdt|--optee|--mcu|--bl31|--opensbi) # uboot.img components
 				mkdir -p ${REP_DIR}
 				if [ ! -f $2 ]; then
 					echo "ERROR: No $2"
@@ -222,12 +230,13 @@ function process_args()
 					cp $2 ${REP_DIR}/tee.bin
 				elif [ "$1" == "--mcu" ]; then
 					cp $2 ${REP_DIR}/mcu.bin
-				elif [ "$1" == "--bl31" ]; then
+				elif [ "$1" == "--bl31" -o "$1" == "--opensbi" ]; then
+					FIRMWARE_ELF=${1#--}.elf
 					if ! file $2 | grep 'ELF ' >/dev/null 2>&1 ; then
-						echo "ERROR: $2 is not a bl31.elf file"
+						echo "ERROR: $2 is not a ${FIRMWARE_ELF} file"
 						exit 1
 					fi
-					cp $2 ${REP_DIR}/bl31.elf
+					cp $2 ${REP_DIR}/${FIRMWARE_ELF}
 				fi
 				shift 2
 				;;
@@ -297,8 +306,11 @@ function select_toolchain()
 		if [ -f ${CC_FILE} ]; then
 			CROSS_COMPILE_ARM32=`cat ${CC_FILE}`
 			CROSS_COMPILE_ARM64=`cat ${CC_FILE}`
+			CROSS_COMPILE_RISCV=`cat ${CC_FILE}`
 		else
-			if grep -q '^CONFIG_ARM64=y' .config ; then
+			if grep -q '^CONFIG_RISCV=y' .config ; then
+				CROSS_COMPILE_RISCV=$(cd `dirname ${CROSS_COMPILE_RISCV}`; pwd)"/riscv64-unknown-linux-musl-"
+			elif grep -q '^CONFIG_ARM64=y' .config ; then
 				CROSS_COMPILE_ARM64=$(cd `dirname ${CROSS_COMPILE_ARM64}`; pwd)"/aarch64-none-linux-gnu-"
 			else
 				CROSS_COMPILE_ARM32=$(cd `dirname ${CROSS_COMPILE_ARM32}`; pwd)"/arm-none-linux-gnueabihf-"
@@ -306,7 +318,12 @@ function select_toolchain()
 		fi
 	fi
 
-	if grep -q '^CONFIG_ARM64=y' .config ; then
+	if grep -q '^CONFIG_RISCV=y' .config ; then
+		TOOLCHAIN=${CROSS_COMPILE_RISCV}
+		TOOLCHAIN_NM=${CROSS_COMPILE_RISCV}nm
+		TOOLCHAIN_OBJDUMP=${CROSS_COMPILE_RISCV}objdump
+		TOOLCHAIN_ADDR2LINE=${CROSS_COMPILE_RISCV}addr2line
+	elif grep -q '^CONFIG_ARM64=y' .config ; then
 		TOOLCHAIN=${CROSS_COMPILE_ARM64}
 		TOOLCHAIN_NM=${CROSS_COMPILE_ARM64}nm
 		TOOLCHAIN_OBJDUMP=${CROSS_COMPILE_ARM64}objdump
@@ -385,7 +402,7 @@ function select_ini_file()
 {
 	# default
 	INI_LOADER=${RKBIN}/RKBOOT/${RKCHIP_LOADER}MINIALL.ini
-	if [ "${ARM64_TRUSTZONE}" == "y" ]; then
+	if [ "${ARM64_TRUSTZONE}" == "y" ] || [ "${RISCV_TRUSTZONE}" == "y" ]; then
 		INI_TRUST=${RKBIN}/RKTRUST/${RKCHIP_TRUST}TRUST.ini
 	else
 		INI_TRUST=${RKBIN}/RKTRUST/${RKCHIP_TRUST}TOS.ini
@@ -570,10 +587,17 @@ function pack_uboot_itb_image()
 	fi
 
 	if [ "${ARM64_TRUSTZONE}" == "y" ]; then
-		BL31_ELF=`sed -n '/_bl31_/s/PATH=//p' ${INI} | tr -d '\r'`
+		FIRMWARE_NAME="bl31"
+		FIRMWARE_ELF=`sed -n '/_bl31_/s/PATH=//p' ${INI} | tr -d '\r'`
 		BL32_BIN=`sed -n '/_bl32_/s/PATH=//p' ${INI} | tr -d '\r'`
-		rm bl31.elf tee.bin -rf
-		cp ${RKBIN}/${BL31_ELF} bl31.elf
+	elif [ "${RISCV_TRUSTZONE}" == "y" ]; then
+		FIRMWARE_NAME="opensbi"
+		FIRMWARE_ELF=`sed -n '/_opensbi_/s/PATH=//p' ${INI} | tr -d '\r'`
+		BL32_BIN=`sed -n '/_tee_/s/PATH=//p' ${INI} | tr -d '\r'`
+	fi
+	if [ "${ARM64_TRUSTZONE}" == "y" ] || [ "${RISCV_TRUSTZONE}" == "y" ]; then
+		rm ${FIRMWARE_NAME}.elf tee.bin -rf
+		cp ${RKBIN}/${FIRMWARE_ELF} ${FIRMWARE_NAME}.elf
 		if grep BL32_OPTION -A 1 ${INI} | grep SEC=1 ; then
 			cp ${RKBIN}/${BL32_BIN} tee.bin
 			TEE_ADDR=`grep BL32_OPTION -A 3 ${INI} | grep ADDR= | awk -F "=" '{ printf $2 }' | tr -d '\r'`
@@ -685,13 +709,22 @@ function pack_uboot_itb_image()
 		SPL_FIT_GENERATOR=`filt_val "CONFIG_SPL_FIT_GENERATOR" .config`
 		# *.py is the legacy one.
 		if [[ ${SPL_FIT_GENERATOR} == *.py ]]; then
-			${SPL_FIT_GENERATOR} u-boot.dtb > u-boot.its
+			if ! ${SPL_FIT_GENERATOR} u-boot.dtb > u-boot.its; then
+				echo "ERROR: Failed to generate u-boot.its"
+				exit 1
+			fi
 		else
-			${SPL_FIT_GENERATOR} ${TEE_ARG} ${COMPRESSION_ARG} ${INIT_ARG} ${MCU_ARG} ${LOAD_ARG} > u-boot.its
+			if ! ${SPL_FIT_GENERATOR} ${TEE_ARG} ${COMPRESSION_ARG} ${INIT_ARG} ${MCU_ARG} ${LOAD_ARG} > u-boot.its; then
+				echo "ERROR: Failed to generate u-boot.its"
+				exit 1
+			fi
 		fi
 	fi
 
-	./tools/mkimage -f u-boot.its -E u-boot.itb >/dev/null 2>&1
+	if ! ./tools/mkimage -f u-boot.its -E u-boot.itb >/dev/null 2>&1; then
+		echo "ERROR: Failed to generate u-boot.itb"
+		exit 1
+	fi
 	echo "pack u-boot.itb okay! Input: ${INI}"
 	echo
 }
@@ -752,7 +785,7 @@ function pack_trust_image()
 
 	rm trust*.img -f
 	cd ${RKBIN}
-	if [ "${ARM64_TRUSTZONE}" == "y" ]; then
+	if [ "${ARM64_TRUSTZONE}" == "y" ] || [ "${RISCV_TRUSTZONE}" == "y" ]; then
 		${SCRIPT_ATF} --ini ${INI_TRUST} ${PLAT_SHA} ${PLAT_RSA} ${PLAT_TRUST_SIZE}
 	else
 		${SCRIPT_TOS} --ini ${INI_TRUST} --base ${DRAM_BASE} ${PLAT_TRUST_SIZE}
