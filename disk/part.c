@@ -724,9 +724,11 @@ static int part_get_info_by_name_option(struct blk_desc *desc,
 #ifndef CONFIG_SPL_BUILD
 	if (!ab_is_enabled())
 		goto lookup;
+#ifdef CONFIG_LIBAVB_USER
 	if (ab_append_part_slot(name, name_slot))
 		return -1;
 	full_name = name_slot;
+#endif
 #else
 	if (!spl_ab_is_enabled(desc))
 		goto lookup;
