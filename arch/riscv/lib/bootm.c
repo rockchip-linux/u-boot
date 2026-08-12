@@ -25,7 +25,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-__weak void board_quiesce_devices(void)
+__weak void board_quiesce_devices(void *images)
 {
 }
 
@@ -34,7 +34,7 @@ __weak void board_quiesce_devices(void)
  *
  * @fake: non-zero to do everything except actually boot
  */
-static void announce_and_cleanup(int fake)
+static void announce_and_cleanup(struct bootm_headers *images, int fake)
 {
 	printf("\nStarting kernel ...%s\n\n", fake ?
 		"(fake run for tracing)" : "");
@@ -50,7 +50,7 @@ static void announce_and_cleanup(int fake)
 	udc_disconnect();
 #endif
 
-	board_quiesce_devices();
+	board_quiesce_devices(images);
 
 	/*
 	 * Call remove function of all devices with a removal flag set.
@@ -91,7 +91,7 @@ static void boot_jump_linux(struct bootm_headers *images, int flag)
 	debug("## Transferring control to kernel (at address %08lx) ...\n",
 	      (ulong)kernel);
 
-	announce_and_cleanup(fake);
+	announce_and_cleanup(images, fake);
 
 	if (!fake) {
 		if (CONFIG_IS_ENABLED(OF_LIBFDT) && images->ft_len) {
