@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <log.h>
 #if CONFIG_IS_ENABLED(TINY_FRAMEWORK)
 #include <debug_uart.h>
 #endif
@@ -342,7 +343,7 @@ int get_bootdev_by_brom_bootsource(void)
 {
 	int bootsource = 0;
 
-	bootsource = readl(BROM_BOOTSOURCE_ID_ADDR);
+	bootsource = readl((void *)BROM_BOOTSOURCE_ID_ADDR);
 	if (bootsource > ARRAY_SIZE(bootdev_map) - 1 || bootsource < 0)
 		return 0;
 	else

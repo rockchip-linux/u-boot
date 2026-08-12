@@ -6,6 +6,7 @@
 #include <asm/io.h>
 #include <linux/bitops.h>
 
+#ifdef CONFIG_ROCKCHIP_STIMER_BASE
 #define TIMER_LOAD_COUNT_L	0x00
 #define TIMER_LOAD_COUNT_H	0x04
 #define TIMER_CONTROL_REG	0x10
@@ -34,3 +35,4 @@ __weak void rockchip_stimer_init(void)
 	       TIMER_CONTROL_REG);
 #endif
 }
+#endif

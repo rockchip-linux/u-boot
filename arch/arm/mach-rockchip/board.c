@@ -663,8 +663,10 @@ int board_init_f_init_misc(void)
 
 #ifdef CONFIG_ARM64
 	asm volatile("mrs %0, cntfrq_el0" : "=r" (gd->arch.timer_rate_hz));
-#else
+#elif defined(CONFIG_ARM)
 	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
+#else
+	gd->arch.timer_rate_hz = RISCV_SMODE_TIMER_FREQ;
 #endif
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_FPGA)

@@ -1,0 +1,185 @@
+# SPDX-License-Identifier: GPL-2.0+
+
+config ROCKCHIP_BOOT_MODE_REG
+	hex "Rockchip boot mode flag register address"
+	help
+	  The SoC enters different boot modes (defined in
+	  asm/arch-rockchip/boot_mode.h) according to the value read from this
+	  register.
+
+config ROCKCHIP_BOOTDEV
+	string "Set the boot device for multiple storage board"
+	default ""
+
+config ROCKCHIP_FIT_IMAGE
+	bool "Rockchip FIT image boot support"
+	depends on FIT
+	select CMD_BOOT_FIT
+	default n
+
+config ROCKCHIP_FIT_IMAGE_PACK
+	bool "Rockchip fit image"
+	default y
+
+config ROCKCHIP_NEW_IDB
+	bool "Rockchip new IDB header"
+	default n
+	help
+	  The new IDB header was introduced from RK356X.
+
+config ROCKCHIP_PRELOADER_ATAGS
+	bool "Rockchip pre-loader atags support"
+	default y if ARM
+
+config ROCKCHIP_PRELOADER_SERIAL
+	bool "Rockchip pre-loader serial"
+	default y if ROCKCHIP_PRELOADER_ATAGS
+
+config ROCKCHIP_RESOURCE_IMAGE
+	bool "Rockchip resource image support"
+	default y if ARM
+
+config ROCKCHIP_HWID_DTB
+	bool "Rockchip get dtb from resource image according to hw-id"
+	depends on ROCKCHIP_RESOURCE_IMAGE
+	default n
+
+config ROCKCHIP_USB_BOOT
+	bool "Rockchip USB(disk) boot support"
+	depends on USB
+	default n
+
+config ROCKCHIP_UIMAGE
+	bool "Rockchip UImage boot support"
+	depends on !FIT_SIGNATURE
+	select CMD_BOOT_UIMAGE
+	default n
+
+config ROCKCHIP_META
+	bool "Rockchip Meta"
+	depends on SPL_KERNEL_BOOT && SPL_LIBDISK_SUPPORT
+	default n
+
+config ROCKCHIP_VENDOR_PARTITION
+	bool "Rockchip vendor partition support"
+	default y if ARM
+
+config ROCKCHIP_CMD
+	string "Rockchip specific command"
+	default ""
+	help
+	  It defines a command to be run when the key is pressed if assigned.
+	  String format: "cmd key".
+	  @cmd: any U-Boot cmd.
+	  @key: any key map id, '-' standard for ignore.
+	  e.g. "sd_update 115", 115 is KEY_VOLUMEUP.
+
+config ROCKCHIP_SET_SN
+	bool "Rockchip set serial number"
+	default y if ARM
+
+config ROCKCHIP_SET_ETHADDR
+	bool "Rockchip set eth address"
+	default y if ARM
+
+config ROCKCHIP_SANITY_CPU_SWAP
+	bool "Sanity cpu swap"
+	help
+	  This enale checking current cpu mpidr and kernel
+	  dts cpu0 mpidr.
+
+config PSTORE
+	bool "Print log to linux pstore buffer"
+	default n
+
+if PSTORE
+config PERSISTENT_RAM_ADDR
+	hex "Linux pstore buffer address"
+	depends on PSTORE
+	default 0x0
+
+config PERSISTENT_RAM_SIZE
+	hex "Linux pstore buffer size"
+	depends on (PERSISTENT_RAM_ADDR != 0)
+	default 0x0
+endif
+
+config ROCKCHIP_MINIDUMP
+	bool "Minidump Save Linux Debug Data To Ram Elf"
+	default n
+	help
+	  This enable saving linux debug data to a reserved memory as a elf file.
+
+if ROCKCHIP_MINIDUMP
+config ROCKCHIP_MINIDUMP_SMEM_BASE
+	hex "The base of share memory between Uboot and Linux"
+	default 0x1f0000
+	depends on ROCKCHIP_MINIDUMP
+	help
+	  This select the base address of share memory, which is behind PSTORE.
+
+config ROCKCHIP_MINIDUMP_MAX_ELF_SIZE
+	hex "The max size of minidump elf"
+	default 0x2000000
+	depends on ROCKCHIP_MINIDUMP
+	help
+	  This is used to judge the elf program size and section size.
+
+config ROCKCHIP_MINIDUMP_MAX_ENTRIES
+	hex "The max entries of minidump region"
+	default 0x200
+	depends on ROCKCHIP_MINIDUMP
+	help
+	  This sets the max entries of minidump region.
+endif
+
+config ROCKCHIP_UART_MUX_SEL_M
+	int "UART mux select"
+	depends on TPL
+	default 0
+
+config ROCKCHIP_EMMC_IOMUX
+	bool "ROCKCHIP EMMC IOMUX"
+	default n
+	help
+	  This enable U-Boot to config EMMC iomux.
+
+config ROCKCHIP_NAND_IOMUX
+	bool "ROCKCHIP NAND IOMUX"
+	default n
+	help
+	  This enable U-Boot to config NAND iomux.
+
+config ROCKCHIP_SFC_IOMUX
+	bool "ROCKCHIP SFC QUAD SPI IOMUX"
+	default n
+	help
+	  This enable U-Boot to config SFC Quad SPI iomux.
+
+config ROCKCHIP_SDMMC_IOMUX
+	bool "ROCKCHIP SDMMC IOMUX"
+	default n
+	help
+	  This enable U-Boot to config SDMMC iomux.
+
+config BASE_DEFCONFIG
+	string "Base defconfig of config fragment"
+	default ""
+	help
+	  Indicate the base defconfig of config fragment.
+
+config CHIP_NAME
+	string "Chip label name"
+	default ""
+
+config LOADER_INI
+	string "Name of Loader ini file in rkbin repository"
+	default ""
+	help
+	  The ini file is used to pack loader image.
+
+config TRUST_INI
+	string "Name of Trust ini file in rkbin repository"
+	default ""
+	help
+	  The ini file is used to pack trust image.

@@ -76,8 +76,10 @@ int show_board_info(void)
 		}
 	}
 
+#ifdef CONFIG_ARM
 	if (!(gd->flags & GD_FLG_RELOC))
 		printf("MPIDR: 0x%lx\n", (ulong)read_mpidr() & 0xfff);
+#endif
 #ifdef CONFIG_ARM64_BOOT_AARCH32
 	if (!(gd->flags & GD_FLG_RELOC))
 		printf("CPU: AArch32\n");

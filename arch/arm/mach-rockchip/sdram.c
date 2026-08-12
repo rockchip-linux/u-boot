@@ -9,7 +9,9 @@
 #include <init.h>
 #include <log.h>
 #include <ram.h>
+#ifdef CONFIG_ARM
 #include <asm/armv8/mmu.h>
+#endif
 #include <asm/global_data.h>
 #include <asm/arch-rockchip/param.h>
 #include <asm/io.h>
@@ -29,8 +31,8 @@ size_t rockchip_sdram_size(phys_addr_t reg)
 	u32 cs1_col = 0;
 	u32 bg = 0;
 	u32 dbw, dram_type;
-	u32 sys_reg2 = readl(reg);
-	u32 sys_reg3 = readl(reg + 4);
+	u32 sys_reg2 = readl((void *)reg);
+	u32 sys_reg3 = readl((void *)(reg + 4));
 	u32 ch_num = 1 + ((sys_reg2 >> SYS_REG_NUM_CH_SHIFT)
 		       & SYS_REG_NUM_CH_MASK);
 	u32 version = (sys_reg3 >> SYS_REG_VERSION_SHIFT) &
@@ -187,8 +189,11 @@ int dram_init(void)
 
 phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 {
-	/* Make sure U-Boot only uses the space below the 4G address boundary */
-	u64 top = min_t(u64, CFG_SYS_SDRAM_BASE + SDRAM_MAX_SIZE, SZ_4G);
+	u64 top = CFG_SYS_SDRAM_BASE + SDRAM_MAX_SIZE;
+
+	/* Make sure U-Boot only uses the space below the 4G address boundary if possible */
+	if (CFG_SYS_SDRAM_BASE < SZ_4G)
+		top = min_t(u64, top, SZ_4G);
 
 	return (gd->ram_top > top) ? top : gd->ram_top;
 }

@@ -12,6 +12,7 @@
 #include <image.h>
 #include <sysmem.h>
 #include <asm/arch-rockchip/common.h>
+#include <asm/arch-rockchip/fit.h>
 #include <asm/arch-rockchip/resource.h>
 #include <linux/kernel.h>
 #include <u-boot/hash.h>
@@ -30,6 +31,7 @@ __weak int rk_board_early_fdt_fixup(void *blob)
 	return 0;
 }
 
+#ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
 static int fdt_check_hash(void *fdt_addr, u32 fdt_size,
 			  char *hash_cmp, u32 hash_size)
 {
@@ -67,6 +69,7 @@ static int fdt_check_hash(void *fdt_addr, u32 fdt_size,
 
 	return 0;
 }
+#endif
 
 #if defined(CONFIG_EARLY_DISTRO_DTB)
 static int distro_dtb_get(void *fdt_addr)
@@ -225,7 +228,7 @@ int rockchip_ram_read_dtb_file(void *img, void *fdt)
 	if (format == IMAGE_FORMAT_FIT) {
 		const void *data;
 		size_t size;
-		int noffset;
+		int noffset, ret;
 #ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
 		const char *path = "/images/resource";
 #else
@@ -238,8 +241,6 @@ int rockchip_ram_read_dtb_file(void *img, void *fdt)
 
 #ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
 		struct blk_desc *dev_desc;
-		int ret;
-
 		ret = fit_image_get_data(img, noffset, &data, &size);
 		if (ret < 0)
 			return ret;
@@ -279,4 +280,3 @@ int rockchip_ram_read_dtb_file(void *img, void *fdt)
 
 	return -EINVAL;
 }
-

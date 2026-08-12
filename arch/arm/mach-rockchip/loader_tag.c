@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#ifdef CONFIG_ARM
 #include <asm/arch-rockchip/loader_tag.h>
 
 /*
@@ -86,4 +87,9 @@ int rockchip_get_loader_tag(u32 chip_info[])
 
 	return 0;
 }
-
+#else
+int rockchip_get_loader_tag(u32 chip_info[])
+{
+	return -ENOSYS;
+}
+#endif

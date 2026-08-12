@@ -302,10 +302,13 @@ static phys_size_t ddr_mem_get_usable_size(u64 base, u64 size)
 
 struct memblock *param_parse_ddr_mem(int *out_count)
 {
-	struct udevice *dev;
 	struct memblock *mem;
+	int i, count;
+#if CONFIG_IS_ENABLED(RAM)
+	struct udevice *dev;
 	struct ram_info ram;
-	int i, ret, count;
+	int ret;
+#endif
 
 	/*
 	 * Get memory region of DDR
@@ -336,21 +339,25 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 			base = t->u.ddr_mem.bank[i];
 			size = t->u.ddr_mem.bank[i + count];
 
-			/* 0~4GB */
-			if (base < SZ_4GB) {
+			if (CFG_SYS_SDRAM_BASE >= SZ_4GB) {
 				mem[n].base = base;
 				mem[n].size = ddr_mem_get_usable_size(base, size);
-				if (base + size > SZ_4GB) {
-					n++;
-					mem[n].base_u64 = SZ_4GB;
-					mem[n].size_u64 = base + size - SZ_4GB;
-				}
 			} else {
-				/* 4GB+ */
-				mem[n].base_u64 = base;
-				mem[n].size_u64 = size;
+				/* 0~4GB */
+				if (base < SZ_4GB) {
+					mem[n].base = base;
+					mem[n].size = ddr_mem_get_usable_size(base, size);
+					if (base + size > SZ_4GB) {
+						n++;
+						mem[n].base_u64 = SZ_4GB;
+						mem[n].size_u64 = base + size - SZ_4GB;
+					}
+				} else {
+					/* 4GB+ */
+					mem[n].base_u64 = base;
+					mem[n].size_u64 = size;
+				}
 			}
-
 			assert(n < count + MEM_RESV_COUNT);
 		}
 
@@ -359,6 +366,7 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 	}
 #endif
 
+#if CONFIG_IS_ENABLED(RAM)
 	/* Leagcy */
 	ret = uclass_get_device(UCLASS_RAM, 0, &dev);
 	if (ret) {
@@ -388,6 +396,9 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 
 	*out_count = count;
 	return mem;
+#else
+	return NULL;
+#endif
 }
 
 #if !CONFIG_IS_ENABLED(BIDRAM)

@@ -74,6 +74,14 @@ int board_bidram_reserve(struct bidram *bidram)
 	struct memblock mem;
 	int ret;
 
+	/* board-specific */
+#ifdef BOARD_RESERVE_MEM_BASE
+	ret = bidram_reserve_by_name("board-specific",
+				     BOARD_RESERVE_MEM_BASE,
+				     BOARD_RESERVE_MEM_SIZE);
+	if (ret)
+		return ret;
+#endif
 	/* ATF */
 	mem = param_parse_atf_mem();
 	ret = bidram_reserve(MEM_ATF, mem.base, mem.size);

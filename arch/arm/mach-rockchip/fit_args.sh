@@ -33,7 +33,7 @@ function help()
 	echo "    -l4 [offset]  ==>   <hex>      LOAD4_LOAD_ADDR       set load4.bin load address"
 	echo "    -t [offset]   ==>   <hex>      TEE_LOAD_ADDR         set tee.bin load address"
 	echo "    (none)        ==>   <hex>      UBOOT_LOAD_ADDR       set U-Boot load address"
-	echo "    (none)        ==>   <string>   ARCH                  set arch: \"arm\", \"arm64\""
+	echo "    (none)        ==>   <string>   ARCH                  set arch: \"arm\", \"arm64\", \"riscv\""
 	echo
 }
 
@@ -123,20 +123,21 @@ if ! grep -q '^CONFIG_FIT_OMIT_UBOOT=y' .config ; then
 	UBOOT_LOAD_ADDR=`sed -n "/CONFIG_TEXT_BASE=/s/CONFIG_TEXT_BASE=//p" ${srctree}/.config`
 fi
 
-# ARCH
-U_ARCH="arm"
+# ARCH, FIT_ADDR_PREFIX
 if grep -q '^CONFIG_ARM64=y' .config ; then
 	ARCH="arm64"
 	U_ARCH="arm64"
+	FIT_ADDR_PREFIX="/bits/ 64 "
 elif grep -q '^CONFIG_ARM64_BOOT_AARCH32=y' .config ; then
 	ARCH="arm64"
-else
-	ARCH="arm"
-fi
-
-# FIT load address encoding: 64-bit platforms use /bits/ 64, 32-bit use plain format
-if [ "${U_ARCH}" == "arm64" ]; then
+	U_ARCH="arm"
+	FIT_ADDR_PREFIX=""
+elif grep -q '^CONFIG_RISCV=y' .config ; then
+	ARCH="riscv"
+	U_ARCH="riscv"
 	FIT_ADDR_PREFIX="/bits/ 64 "
 else
+	ARCH="arm"
+	U_ARCH="arm"
 	FIT_ADDR_PREFIX=""
 fi

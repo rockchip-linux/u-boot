@@ -60,6 +60,38 @@ config TARGET_ASPEED_AST2700_IBEX
 
 endchoice
 
+config ARCH_ROCKCHIP
+	bool "Support Rockchip SoCs"
+	select BLK
+	select DM
+	select DM_SERIAL
+	select OF_CONTROL
+	select SPL_DM if SPL
+	select SPL_DM_SPI if SPL
+	select SPL_DM_SPI_FLASH if SPL
+	select SYS_MALLOC_F
+	select PANIC_HANG
+	imply DM_SPI
+	imply DM_SPI_FLASH
+	imply MMC
+	imply MTD
+	imply SPI
+	imply DM_GPIO if !SUPPORT_USBPLUG
+	imply DM_I2C if !SUPPORT_USBPLUG
+	imply DM_PWM if !SUPPORT_USBPLUG
+	imply DM_REGULATOR if !SUPPORT_USBPLUG
+	imply ADC if !SUPPORT_USBPLUG
+	imply CMD_DM
+	imply DEBUG_UART_BOARD_INIT
+	imply BOOTSTD_DEFAULTS
+	imply FAT_WRITE if !SUPPORT_USBPLUG
+	imply SARADC_ROCKCHIP
+	imply SPL_SYSRESET
+	imply SPL_SYS_MALLOC_SIMPLE
+	imply SYS_NS16550
+	imply TPL_SYSRESET
+	imply USB_FUNCTION_FASTBOOT
+
 config SYS_ICACHE_OFF
 	bool "Do not enable icache"
 	help
@@ -137,6 +169,7 @@ source "arch/riscv/cpu/generic/Kconfig"
 source "arch/riscv/cpu/jh7110/Kconfig"
 source "arch/riscv/cpu/k1/Kconfig"
 source "arch/riscv/cpu/k230/Kconfig"
+source "arch/riscv/mach-rockchip/Kconfig"
 
 # architecture-specific options below
 

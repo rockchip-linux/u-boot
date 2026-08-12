@@ -39,9 +39,13 @@
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <linux/bitops.h>
+#ifdef CONFIG_RISCV
+#include <asm/system.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_ARM
 int board_return_to_bootrom(struct spl_image_info *spl_image,
 			    struct spl_boot_device *bootdev)
 {
@@ -86,6 +90,11 @@ const char *board_spl_was_booted_from(void)
 
 	return bootdevice_ofpath;
 }
+#else
+__weak void spl_rk_board_prepare_for_jump(struct spl_image_info *spl_image)
+{
+}
+#endif
 
 u32 spl_boot_device(void)
 {
@@ -110,6 +119,7 @@ u32 spl_mmc_boot_mode(struct mmc *mmc, const u32 boot_device)
 	return MMCSD_MODE_RAW;
 }
 
+#ifdef CONFIG_ROCKCHIP_STIMER_BASE
 __weak void rockchip_stimer_init(void)
 {
 	/* If Timer already enabled, don't re-init it */
@@ -127,6 +137,7 @@ __weak void rockchip_stimer_init(void)
 	writel(0xffffffff, CONFIG_ROCKCHIP_STIMER_BASE + 4);
 	writel(1, CONFIG_ROCKCHIP_STIMER_BASE + 0x10);
 }
+#endif
 
 __weak int board_early_init_f(void)
 {
@@ -268,6 +279,14 @@ void board_init_f(ulong dummy)
 	/* Init ARM arch timer in arch/arm/cpu/armv7/arch_timer.c */
 	timer_init();
 #endif
+#ifdef CONFIG_RISCV
+	/*
+	 * riscv_cpu_setup() walks the CPU uclass, so it has to run after
+	 * spl_early_init(). The timer rate is taken from the early RISC-V
+	 * timer (CSR time), which is already available.
+	 */
+	riscv_cpu_setup();
+#endif
 #if !defined(CONFIG_TPL) || defined(CONFIG_SPL_RAM)
 	debug("\nspl:init dram\n");
 	ret = dram_init();
@@ -278,7 +297,8 @@ void board_init_f(ulong dummy)
 	gd->ram_top = gd->ram_base + get_effective_memsize();
 	gd->ram_top = board_get_usable_ram_top(gd->ram_size);
 
-	if (IS_ENABLED(CONFIG_ARM64) && !CONFIG_IS_ENABLED(SYS_DCACHE_OFF)) {
+#ifdef CONFIG_ARM64
+	if (!CONFIG_IS_ENABLED(SYS_DCACHE_OFF)) {
 		ulong spl_relocaddr = gd->relocaddr;
 
 		gd->relocaddr = gd->ram_top;
@@ -286,6 +306,7 @@ void board_init_f(ulong dummy)
 		enable_caches();
 		gd->relocaddr = spl_relocaddr;
 	}
+#endif
 #endif
 	preloader_console_init();
 	/* Get hotkey and store in gd */
@@ -318,8 +339,10 @@ int board_init_f_init_misc(void)
 
 #ifdef CONFIG_ARM64
 	asm volatile("mrs %0, cntfrq_el0" : "=r" (gd->arch.timer_rate_hz));
-#else
+#elif defined(CONFIG_ARM)
 	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
+#else
+	gd->arch.timer_rate_hz = RISCV_SMODE_TIMER_FREQ;
 #endif
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_FPGA)
@@ -352,6 +375,8 @@ int board_init_f_init_misc(void)
 		gd->baudrate = CONFIG_BAUDRATE;
 		gd->serial.baudrate = CONFIG_BAUDRATE;
 		gd->serial.addr = CONFIG_DEBUG_UART_BASE;
+		gd->serial.using_pre_serial = 0;
+		gd->serial.enable = 1;
 	}
 
 	/* The highest priority to turn off (override) console */

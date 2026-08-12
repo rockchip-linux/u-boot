@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-2.0+
+#
+# Copyright (c) 2026 Rockchip Electronics Co., Ltd
+
+if ARCH_ROCKCHIP
+
+source "arch/arm/mach-rockchip/Kconfig.common"
+
+config ROCKCHIP_RK182X
+	bool "Support Rockchip RK182X"
+	select THEAD_CACHE
+	select SYS_CACHE_THEAD_CMO
+	help
+	  The Rockchip RK182X is a RISC-V (XuanTie C9xx) based SoC.
+	  This option enables the RK182X SoC code and allows the Rockchip
+	  build script (make.sh) to identify the chip for loader/trust
+	  image packing.
+endif

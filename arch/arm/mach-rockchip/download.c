@@ -25,7 +25,7 @@ void rbrom_download(void)
 		return;
 
 	printf("Enter bootrom download...");
-	writel(BOOT_BROM_DOWNLOAD, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+	writel(BOOT_BROM_DOWNLOAD, (void *)CONFIG_ROCKCHIP_BOOT_MODE_REG);
 	do_reset(NULL, 0, 0, NULL);
 	printf("failed!\n");
 }
@@ -64,4 +64,3 @@ void rockusb_download(void)
 		env_set("reboot_mode", "fastboot");
 	}
 }
-

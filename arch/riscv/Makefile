@@ -57,6 +57,17 @@ CFLAGS_EFI		+= $(ARCH_FLAGS)
 
 head-y := arch/riscv/cpu/start.o
 
+# Per-SoC machine directories (e.g. arch/riscv/mach-rockchip).
+# Each enabled machine contributes its own objects to the link and exposes
+# its include/ directory so that the <asm/arch-rockchip/*.h> headers resolve.
+machine-$(CONFIG_ARCH_ROCKCHIP)		+= rockchip
+machdirs := $(patsubst %,arch/riscv/mach-%/,$(machine-y))
+PLATFORM_CPPFLAGS += $(patsubst %,-I$(srctree)/%include,$(machdirs))
+
 libs-y += arch/riscv/cpu/
+ifneq ($(CONFIG_ARCH_ROCKCHIP),y)
 libs-y += arch/riscv/cpu/$(CPU)/
+endif
 libs-y += arch/riscv/lib/
+# Link the per-SoC machine objects built under the machdirs directories.
+libs-y += $(machdirs)

@@ -7,7 +7,7 @@
 
 # Process args and auto set variables
 source ./${srctree}/arch/arm/mach-rockchip/fit_args.sh
-rm -f ${srctree}/*.digest ${srctree}/*.bin.gz ${srctree}/bl31_0x*.bin
+rm -f ${srctree}/*.digest ${srctree}/*.bin.gz
 
 # Periph register base
 if grep -q '^CONFIG_ROCKCHIP_RK3576=y' .config ; then
@@ -39,6 +39,17 @@ else
 fi
 
 # nodes
+function append_list()
+{
+	if [ -z "$1" ]; then
+		echo "$2"
+	elif [ -z "$2" ]; then
+		echo "$1"
+	else
+		echo "$1, $2"
+	fi
+}
+
 function gen_uboot_node()
 {
 	if [ -z ${UBOOT_LOAD_ADDR} ]; then
@@ -72,7 +83,7 @@ function gen_uboot_node()
 			};
 		};"
 
-	LOADABLE_UBOOT="\"uboot\", "
+	LOADABLE_UBOOT="\"uboot\""
 }
 
 function gen_fdt_node()
@@ -122,57 +133,91 @@ function gen_kfdt_node()
 	fi
 }
 
-function gen_bl31_node()
+function gen_elf_nodes()
 {
-	${srctree}/arch/arm/mach-rockchip/decode_bl31.py
+	local TYPE="$1"
+	local NODE_PREFIX
+	local DESCRIPTION
+	local OS
+	local LOADABLE_VAR
+	local FILES
+	local LOADABLES
+	local FIRMWARE
+	local FIRMWARE_LOAD_ADDR
+	local NUM=1
 
-	NUM=1
-	for ATF in `ls -1 -S bl31_0x*.bin`
+	case "${TYPE}" in
+	bl31)
+		DESCRIPTION="ARM Trusted Firmware"
+		NODE_PREFIX="atf"
+		OS="arm-trusted-firmware"
+		LOADABLE_VAR="LOADABLE_ATF"
+		;;
+	opensbi)
+		DESCRIPTION="OpenSBI"
+		NODE_PREFIX="opensbi"
+		OS="opensbi"
+		LOADABLE_VAR="LOADABLE_OPENSBI"
+		;;
+	*)
+		echo "ERROR: Unknown firmware type '${TYPE}'" >&2
+		return 1
+		;;
+	esac
+
+	rm -f ${srctree}/${TYPE}_0x*.bin
+	${srctree}/arch/arm/mach-rockchip/decode_elf.py ${TYPE} || return 1
+	FILES=`ls -1 -S ${TYPE}_0x*.bin` || return 1
+
+	for FIRMWARE in ${FILES}
 	do
-		ATF_LOAD_ADDR=`echo ${ATF} | awk -F "_" '{ printf $2 }' | awk -F "." '{ printf $1 }'`
-		# only atf-1 support compress
-		if [ "${COMPRESSION}" != "none" -a ${NUM} -eq 1  ]; then
-			openssl dgst -sha256 -binary -out ${ATF}.digest ${ATF}
-			${COMPRESS_CMD} ${ATF}
+		FIRMWARE_LOAD_ADDR=`echo ${FIRMWARE} | awk -F "_" '{ printf $2 }' | awk -F "." '{ printf $1 }'`
+		if [ "${COMPRESSION}" != "none" -a ${NUM} -eq 1 ]; then
+			openssl dgst -sha256 -binary -out ${FIRMWARE}.digest ${FIRMWARE}
+			${COMPRESS_CMD} ${FIRMWARE}
 
-			echo "		atf-${NUM} {
-			description = \"ARM Trusted Firmware\";
-			data = /incbin/(\"./${ATF}${SUFFIX}\");
+			echo "		${NODE_PREFIX}-${NUM} {
+			description = \"${DESCRIPTION}\";
+			data = /incbin/(\"./${FIRMWARE}${SUFFIX}\");
 			type = \"firmware\";
 			arch = \"${ARCH}\";
-			os = \"arm-trusted-firmware\";
+			os = \"${OS}\";
 			compression = \"${COMPRESSION}\";
-			load = ${FIT_ADDR_PREFIX}<"${ATF_LOAD_ADDR}">;
-			hash {
+			load = ${FIT_ADDR_PREFIX}<"${FIRMWARE_LOAD_ADDR}">;"
+			echo "			hash {
 				algo = \"sha256\";
 			};
 			digest {
-				value = /incbin/(\"./${ATF}.digest\");
+				value = /incbin/(\"./${FIRMWARE}.digest\");
 				algo = \"sha256\";
 			};
 		};"
 		else
-			echo "		atf-${NUM} {
-			description = \"ARM Trusted Firmware\";
-			data = /incbin/(\"./${ATF}\");
+			echo "		${NODE_PREFIX}-${NUM} {
+			description = \"${DESCRIPTION}\";
+			data = /incbin/(\"./${FIRMWARE}\");
 			type = \"firmware\";
 			arch = \"${ARCH}\";
-			os = \"arm-trusted-firmware\";
+			os = \"${OS}\";
 			compression = \"none\";
-			load = ${FIT_ADDR_PREFIX}<"${ATF_LOAD_ADDR}">;
-			hash {
+			load = ${FIT_ADDR_PREFIX}<"${FIRMWARE_LOAD_ADDR}">;"
+			echo "			hash {
 				algo = \"sha256\";
 			};
 		};"
 		fi
 
-		if [ ${NUM} -eq 2 ]; then
-			LOADABLE_ATF=${LOADABLE_ATF}"\"atf-${NUM}\""
-		elif [ ${NUM} -gt 2 ]; then
-			LOADABLE_ATF=${LOADABLE_ATF}", \"atf-${NUM}\""
+		if [ ${NUM} -gt 1 ]; then
+			LOADABLES=`append_list "${LOADABLES}" "\"${NODE_PREFIX}-${NUM}\""`
 		fi
 		NUM=`expr ${NUM} + 1`
 	done
+	printf -v "${LOADABLE_VAR}" '%s' "${LOADABLES}"
+}
+
+function gen_bl31_node()
+{
+	gen_elf_nodes "bl31"
 }
 
 function gen_bl32_node()
@@ -216,7 +261,7 @@ function gen_bl32_node()
 				algo = \"sha256\";
 			};
 		};"
-	LOADABLE_TEE=", \"optee\""
+	LOADABLE_TEE="\"optee\""
 	FIRMWARE_TEE="firmware = \"optee\";"
 	FIRMWARE_SIGN="\"firmware\""
 }
@@ -353,43 +398,96 @@ function gen_loadable_node()
 			};
 		};"
 
-		LOADABLE_OTHER=${LOADABLE_OTHER}", \"${LOAD}\""
+		LOADABLE_OTHER=`append_list "${LOADABLE_OTHER}" "\"${LOAD}\""`
 	done
+}
+
+function gen_opensbi_node()
+{
+	gen_elf_nodes "opensbi"
 }
 
 function gen_header()
 {
+	local TYPE="${1:-atf}"
+	local FIRMWARE
+
+	case "${TYPE}" in
+	atf)
+		FIRMWARE="ATF"
+		;;
+	opensbi)
+		FIRMWARE="OpenSBI"
+		;;
+	*)
+		echo "ERROR: Unknown firmware type '${TYPE}'" >&2
+		return 1
+		;;
+	esac
+
 echo "
 /*
  * Copyright (C) 2020 Rockchip Electronic Co.,Ltd
  *
- * Simple U-boot fit source file containing ATF/OP-TEE/U-Boot/dtb/MCU
+ * Simple U-boot fit source file containing ${FIRMWARE}/OP-TEE/U-Boot/dtb/MCU
  */
 
 /dts-v1/;
 
 / {
-	description = \"FIT Image with ATF/OP-TEE/U-Boot/MCU\";
+	description = \"FIT Image with ${FIRMWARE}/OP-TEE/U-Boot/MCU\";
 	#address-cells = <1>;
 
 	images {
 "
 }
 
-function gen_arm64_configurations()
+function gen_riscv_header()
 {
-PLATFORM=`sed -n "/CONFIG_DEFAULT_DEVICE_TREE/p" .config | awk -F "=" '{ print $2 }' | awk -F "/" '{ print $2 }' | tr -d '"'`
-if grep -q '^CONFIG_FIT_ENABLE_RSASSA_PSS_SUPPORT=y' .config ; then
-	ALGO_PADDING="				padding = \"pss\";"
-fi
-if grep -q '^CONFIG_FIT_ENABLE_RSA4096_SUPPORT=y' .config ; then
-	ALGO_NAME="				algo = \"sha256,rsa4096\";"
-else
-	ALGO_NAME="				algo = \"sha256,rsa2048\";"
-fi
-if [ -z "${LOADABLE_ATF}" ]; then
-	LOADABLE_UBOOT="\"uboot\""
-fi
+	gen_header "opensbi"
+}
+
+function gen_firmware_configurations()
+{
+	local TYPE="$1"
+	local PLATFORM
+	local FIRMWARE
+	local LOADABLE_FIRMWARE
+	local ALGO_PADDING
+	local ALGO_NAME
+	local LOADABLES
+
+	PLATFORM=`sed -n "/CONFIG_DEFAULT_DEVICE_TREE/p" .config | awk -F "=" '{ print $2 }' | tr -d '"'`
+	PLATFORM=${PLATFORM##*/}
+	case "${TYPE}" in
+	arm64)
+		FIRMWARE="atf-1"
+		LOADABLE_FIRMWARE="${LOADABLE_ATF}"
+		;;
+	riscv)
+		FIRMWARE="opensbi-1"
+		LOADABLE_FIRMWARE="${LOADABLE_OPENSBI}"
+		;;
+	*)
+		echo "ERROR: Unknown configuration type '${TYPE}'" >&2
+		return 1
+		;;
+	esac
+	if [ -z "${LOADABLE_FIRMWARE}" ]; then
+		LOADABLE_UBOOT="\"uboot\""
+	fi
+
+	if grep -q '^CONFIG_FIT_ENABLE_RSASSA_PSS_SUPPORT=y' .config ; then
+		ALGO_PADDING="				padding = \"pss\";"
+	fi
+	if grep -q '^CONFIG_FIT_ENABLE_RSA4096_SUPPORT=y' .config ; then
+		ALGO_NAME="				algo = \"sha256,rsa4096\";"
+	else
+		ALGO_NAME="				algo = \"sha256,rsa2048\";"
+	fi
+	LOADABLES=`append_list "${LOADABLE_UBOOT}" "${LOADABLE_FIRMWARE}"`
+	LOADABLES=`append_list "${LOADABLES}" "${LOADABLE_TEE}"`
+	LOADABLES=`append_list "${LOADABLES}" "${LOADABLE_OTHER}"`
 
 echo "	};
 
@@ -398,8 +496,8 @@ echo "	};
 		conf {
 			description = \"${PLATFORM}\";
 			rollback-index = <0x0>;
-			firmware = \"atf-1\";
-			loadables = ${LOADABLE_UBOOT}${LOADABLE_ATF}${LOADABLE_TEE}${LOADABLE_OTHER};
+			firmware = \"${FIRMWARE}\";
+			loadables = ${LOADABLES};
 			${STANDALONE_MCU}
 			${FDT}
 			signature {
@@ -412,6 +510,11 @@ echo "	};
 	};
 };
 "
+}
+
+function gen_arm64_configurations()
+{
+	gen_firmware_configurations "arm64"
 }
 
 function gen_arm_configurations()
@@ -427,7 +530,8 @@ else
 fi
 if [ ! -z "${LOADABLE_UBOOT}" ] || [ ! -z "${LOADABLE_OTHER}" ]; then
 	LOADABLE_UBOOT="\"uboot\""
-	LOADABLES="loadables = ${LOADABLE_UBOOT}${LOADABLE_OTHER};"
+	LOADABLE_LIST=`append_list "${LOADABLE_UBOOT}" "${LOADABLE_OTHER}"`
+	LOADABLES="loadables = ${LOADABLE_LIST};"
 	if [ -z ${FIRMWARE_SIGN} ]; then
 		LOADABLES_SIGN="\"loadables\""
 	else
@@ -456,4 +560,9 @@ echo "	};
 	};
 };
 "
+}
+
+function gen_riscv_configurations()
+{
+	gen_firmware_configurations "riscv"
 }

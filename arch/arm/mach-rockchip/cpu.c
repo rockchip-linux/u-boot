@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#ifdef CONFIG_ARM
 #include <asm/arch-rockchip/cpu.h>
 
 static int bsoc_id = 0;
@@ -18,3 +19,4 @@ int board_soc_id(void)
 {
 	return bsoc_id;
 }
+#endif
