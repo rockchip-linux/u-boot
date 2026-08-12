@@ -107,7 +107,7 @@ static int initr_reloc(void)
 	return 0;
 }
 
-#if defined(CONFIG_ARM) || defined(CONFIG_RISCV)
+#if defined(CONFIG_ARM)
 static void print_cr(void)
 {
 	u32 reg;
@@ -126,7 +126,11 @@ static void print_cr(void)
 		puts("I");
 	putc('\n');
 }
+#else
+static void print_cr(void) {}
+#endif
 
+#if defined(CONFIG_ARM) || defined(CONFIG_RISCV)
 /*
  * Some of these functions are needed purely because the functions they
  * call return void. If we change them to return 0, these stubs can go away.
