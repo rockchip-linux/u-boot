@@ -594,6 +594,7 @@ static int dwmci_setup_bus(struct dwmci_host *host, u32 freq)
 	return 0;
 }
 
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 #ifdef CONFIG_DM_MMC
 static int dwmci_execute_tuning(struct udevice *dev, u32 opcode)
 {
@@ -609,6 +610,7 @@ static int dwmci_execute_tuning(struct mmc *mmc, u32 opcode)
 
 	return host->execute_tuning(host, opcode);
 }
+#endif
 
 #ifdef CONFIG_DM_MMC
 static int dwmci_set_ios(struct udevice *dev)
@@ -779,7 +781,9 @@ const struct dm_mmc_ops dm_dwmci_ops = {
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
 	.get_cd         = dwmci_get_cd,
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 	.execute_tuning	= dwmci_execute_tuning,
+#endif
 };
 
 #else
@@ -788,7 +792,9 @@ static const struct mmc_ops dwmci_ops = {
 	.set_ios	= dwmci_set_ios,
 	.get_cd         = dwmci_get_cd,
 	.init		= dwmci_init,
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 	.execute_tuning	= dwmci_execute_tuning,
+#endif
 };
 #endif
 

@@ -56,12 +56,14 @@ retry:
 	    cmd->cmdidx != MMC_CMD_WRITE_MULTIPLE_BLOCK &&
 	    cmd->cmdidx != MMC_CMD_STOP_TRANSMISSION ) {
 		/* execute tuning at last retry. */
+#if CONFIG_IS_ENABLED(MMC_SUPPORTS_TUNING)
 		if (retry_time == 1 &&
 		    mmc->selected_mode == MMC_HS_200 &&
 		    ops->execute_tuning) {
 			u32 opcode = MMC_CMD_SEND_TUNING_BLOCK_HS200;
 			ops->execute_tuning(mmc->dev, opcode);
 		}
+#endif
 		if (retry_time-- > 0)
 			goto retry;
 		printf("MMC error: The cmd index is %d, ret is %d\n", cmd->cmdidx, ret);
