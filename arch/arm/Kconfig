@@ -634,6 +634,7 @@ config S5P
 
 choice
 	prompt "Target select"
+	optional
 	default TARGET_HIKEY
 
 config ARCH_AT91
@@ -2079,40 +2080,6 @@ config ARCH_STM32MP
 	  chain.
 	  SPL is the unsecure FSBL for the basic boot chain.
 
-config ARCH_ROCKCHIP
-	bool "Support Rockchip SoCs"
-	select BLK
-	select DM
-	select DM_SERIAL
-	select ENABLE_ARM_SOC_BOOT0_HOOK
-	select OF_CONTROL
-	select SPL_DM if SPL
-	select SPL_DM_SPI if SPL
-	select SPL_DM_SPI_FLASH if SPL
-	select SYS_MALLOC_F
-	select SYS_THUMB_BUILD if !ARM64
-	select PANIC_HANG
-	imply DM_SPI
-	imply DM_SPI_FLASH
-	imply MMC
-	imply MTD
-	imply SPI
-	imply DM_GPIO if !SUPPORT_USBPLUG
-	imply DM_I2C if !SUPPORT_USBPLUG
-	imply DM_PWM if !SUPPORT_USBPLUG
-	imply DM_REGULATOR if !SUPPORT_USBPLUG
-	imply ADC if !SUPPORT_USBPLUG
-	imply CMD_DM
-	imply DEBUG_UART_BOARD_INIT
-	imply BOOTSTD_DEFAULTS
-	imply FAT_WRITE if !SUPPORT_USBPLUG
-	imply SARADC_ROCKCHIP
-	imply SPL_SYSRESET
-	imply SPL_SYS_MALLOC_SIMPLE
-	imply SYS_NS16550
-	imply TPL_SYSRESET
-	imply USB_FUNCTION_FASTBOOT
-
 config ARCH_OCTEONTX
 	bool "Support OcteonTX SoCs"
 	select CLK
@@ -2204,6 +2171,42 @@ config ARCH_GXP
 	imply CMD_DM
 
 endchoice
+
+# Declared outside the choice to avoid clashing with the RISC-V
+# ARCH_ROCKCHIP definition in arch/riscv/Kconfig.
+config ARCH_ROCKCHIP
+	bool "Support Rockchip SoCs"
+	select BLK
+	select DM
+	select DM_SERIAL
+	select ENABLE_ARM_SOC_BOOT0_HOOK
+	select OF_CONTROL
+	select SPL_DM if SPL
+	select SPL_DM_SPI if SPL
+	select SPL_DM_SPI_FLASH if SPL
+	select SYS_MALLOC_F
+	select SYS_THUMB_BUILD if !ARM64
+	select PANIC_HANG
+	imply DM_SPI
+	imply DM_SPI_FLASH
+	imply MMC
+	imply MTD
+	imply SPI
+	imply DM_GPIO if !SUPPORT_USBPLUG
+	imply DM_I2C if !SUPPORT_USBPLUG
+	imply DM_PWM if !SUPPORT_USBPLUG
+	imply DM_REGULATOR if !SUPPORT_USBPLUG
+	imply ADC if !SUPPORT_USBPLUG
+	imply CMD_DM
+	imply DEBUG_UART_BOARD_INIT
+	imply BOOTSTD_DEFAULTS
+	imply FAT_WRITE if !SUPPORT_USBPLUG
+	imply SARADC_ROCKCHIP
+	imply SPL_SYSRESET
+	imply SPL_SYS_MALLOC_SIMPLE
+	imply SYS_NS16550
+	imply TPL_SYSRESET
+	imply USB_FUNCTION_FASTBOOT
 
 config SUPPORT_PASSING_ATAGS
 	bool "Support pre-devicetree ATAG-based booting"
