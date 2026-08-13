@@ -36,7 +36,7 @@ struct vop2_zpos {
 struct rockchip_vp {
 	bool enable;
 	bool xmirror_en;
-	bool sharp_en;
+	bool sharp_disabled;
 	bool has_extra_layer;	/* the vp1 layer can merge into vp0 layer after overlay */
 	/**
 	 * @bypass_mode: help ensure the output data is consistent with the input data.

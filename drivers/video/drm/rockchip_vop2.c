@@ -4028,7 +4028,7 @@ static void rockchip_vop2_sharp_init(struct vop2 *vop2, struct display_state *st
 	struct resource sharp_regs;
 	int ret;
 
-	if (!(vp_data->feature & VOP_FEATURE_POST_SHARP) || !vp->sharp_en)
+	if (!(vp_data->feature & VOP_FEATURE_POST_SHARP) || vp->sharp_disabled)
 		return;
 
 	ret = ofnode_read_resource_byname(cstate->node, "sharp_regs", &sharp_regs);

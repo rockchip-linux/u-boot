@@ -2333,8 +2333,8 @@ static int rockchip_display_probe(struct udevice *dev)
 					s->crtc_state.crtc->vps[vp_id].xmirror_en =
 						ofnode_read_bool(vp_node, "xmirror-enable");
 
-					s->crtc_state.crtc->vps[vp_id].sharp_en =
-						!ofnode_read_bool(vp_node, "sharp-disabled");
+					s->crtc_state.crtc->vps[vp_id].sharp_disabled =
+						ofnode_read_bool(vp_node, "sharp-disabled");
 
 					s->crtc_state.crtc->vps[vp_id].primary_plane_id = -1;
 
