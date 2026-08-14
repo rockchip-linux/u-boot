@@ -433,8 +433,8 @@ static int sgm4154x_set_prechrg_curr(struct sgm41542 *charger, int uA)
 	    charger->device_id == SGM41512S_CHIP_VENDOR_ID ||
 	    charger->device_id == SGM41513_CHIP_VENDOR_ID ||
 	    charger->device_id == SGM41513X_CHIP_VENDOR_ID) {
-		for (i = 1; i < 16; i++) {
-			if (uA >= IPRECHG_CURRENT_STABLE[i])
+		for (i = 1; i < ARRAY_SIZE(IPRECHG_CURRENT_STABLE); i++) {
+			if (uA < IPRECHG_CURRENT_STABLE[i])
 				break;
 		}
 		reg_val = i - 1;
