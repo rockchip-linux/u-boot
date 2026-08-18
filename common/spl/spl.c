@@ -619,8 +619,11 @@ static void spl_setup_relocate(void)
 	gd->fdt_blob = gd->new_fdt;
 
 	gd->reloc_off = gd->relocaddr - (unsigned long)__image_copy_start;
-	printf("Relocate from 0x%08lx to 0x%08lx.\n",
-	       (unsigned long)__image_copy_start, gd->relocaddr);
+
+	puts("\n");
+	printf("Relocation Offset: 0x%08lx\n", gd->reloc_off);
+	printf("Relocate from 0x%08lx to 0x%08lx.\n", (unsigned long)__image_copy_start,
+		gd->relocaddr);
 }
 #else
 static void spl_setup_relocate(void)
@@ -847,8 +850,8 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	int ret, os;
 
 	debug(">>" PHASE_PROMPT "board_init_r()\n");
-	gd->flags |= GD_FLG_RELOC;
-
+	if (gd->reloc_off > 0)
+		gd->flags |= GD_FLG_RELOC;
 	spl_initr_dm();
 
 	spl_set_bd();
