@@ -78,6 +78,8 @@ void show_regs (struct pt_regs *regs)
 	"UK12_32",	"UK13_32",	"UK14_32",	"SYS_32",
 	};
 
+	show_stacktrace_header();
+
 	flags = condition_codes (regs);
 
 	if (gd->flags & GD_FLG_RELOC) {
@@ -113,7 +115,6 @@ void show_regs (struct pt_regs *regs)
 	iomem_show_by_compatible("-grf", 0, 0x400);
 	iomem_show_by_compatible("-pmugrf", 0, 0x400);
 #endif
-
 	dump_core_stack(regs);
 }
 

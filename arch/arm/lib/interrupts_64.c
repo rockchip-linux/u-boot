@@ -119,13 +119,22 @@ void show_regs(struct pt_regs *regs)
 		[51] = "a Software Step debug event",
 		[52] = "a Watchpoint debug event",
 		[53] = "a Watchpoint debug event",
-		[56] = "execution of a Software Breakpoint instructio",
+		[56] = "execution of a Software Breakpoint instruction",
+		[60] = "execution of a Software Breakpoint instruction",
 	};
 
 	printf("\n");
 
 	/* PC/LR/SP ... */
-	printf("* Reason:        Exception from %s\n", esr_bits_ec[REG_BITS(regs->esr, 26, 0x3f)]);
+	show_stacktrace_header();
+	{
+		unsigned int ec = REG_BITS(regs->esr, 26, 0x3f);
+		const char *reason = "an unknown reason";
+
+		if (ec < ARRAY_SIZE(esr_bits_ec) && esr_bits_ec[ec])
+			reason = esr_bits_ec[ec];
+		printf("* Reason:        Exception from %s\n", reason);
+	}
 	if (gd->flags & GD_FLG_RELOC) {
 		printf("* PC         =   %016lx\n", regs->elr - gd->reloc_off);
 		printf("* LR         =   %016lx\n", regs->regs[30] - gd->reloc_off);
@@ -158,6 +167,8 @@ void show_regs(struct pt_regs *regs)
 void show_regs(struct pt_regs *regs)
 {
 	int i;
+
+	show_stacktrace_header();
 
 	if (gd->flags & GD_FLG_RELOC) {
 		printf("ELR:     %lx\n", regs->elr - gd->reloc_off);

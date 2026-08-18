@@ -6,12 +6,27 @@
 #include <common.h>
 #include <config.h>
 #include <stacktrace.h>
+#include <timestamp.h>
+#include <version.h>
+#include <version_string.h>
 #include <asm/global_data.h>
 #include <asm/ptrace.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 struct pt_regs;
+
+void show_stacktrace_header(void)
+{
+	printf("=== Backtrace ===\n");
+#if defined(CONFIG_TPL_BUILD)
+	printf("U-Boot TPL " PLAIN_VERSION " (" U_BOOT_DATE " - " U_BOOT_TIME ")\n");
+#elif defined(CONFIG_SPL_BUILD)
+	printf("U-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " U_BOOT_TIME ")\n");
+#else
+	printf("%s\n", version_string);
+#endif
+}
 
 struct stackframe {
 	uint64_t fp;
@@ -102,19 +117,20 @@ void dump_core_stack(struct pt_regs *regs)
 		printf("	[< %08lx >]\n", pc);
 	} while (walk_stackframe(&frame));
 
-	printf("\nCopy info from \"Call trace...\" to a file(eg. dump.txt), and run\n"
+	printf("\nCopy info from \"=== Backtrace ===...\" to a file(eg. dump.txt), and run\n"
 	       "command in your U-Boot project: "
 	       "./scripts/stacktrace.sh dump.txt %s\n\n", build);
 }
 
 void dump_stack(void)
 {
-	struct pt_regs regs;
+	struct pt_regs regs = { 0 };
 
 	regs.regs[29] = read_fp();
 	regs.regs[30] = read_lr();
 	regs.sp = read_sp();
 	regs.elr = read_pc();
 
+	show_stacktrace_header();
 	dump_core_stack(&regs);
 }
