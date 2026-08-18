@@ -3023,8 +3023,10 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 		if (!cstate->yuv_overlay) {
 			r2y_convert_mode.is_input_yuv = false;
 			if (!post_r2y_en) {
-				/* do rgb full/limited range convert in r2y */
-				if (conn_state->color_range != DRM_COLOR_YCBCR_FULL_RANGE)
+				/* do rgb range and colorspace convert in r2y */
+				if (conn_state->color_range != DRM_COLOR_YCBCR_FULL_RANGE ||
+				    (conn_state->color_encoding != DRM_COLOR_YCBCR_BT709 &&
+				     !has_bt2020_plane))
 					post_r2r_en = true;
 			}
 		} else {
@@ -3067,8 +3069,8 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 			r2y_convert_mode.is_output_full_range =
 				r2y_convert_mode.is_input_full_range;
 
-		/* r2y csc do r2r, colorspace will not be changed */
-		if (post_r2y_en)
+		/* r2y csc do r2y and r2r range convert */
+		if (post_r2y_en || post_r2r_en)
 			r2y_convert_mode.output_color_encoding = conn_state->color_encoding;
 		else
 			r2y_convert_mode.output_color_encoding =
