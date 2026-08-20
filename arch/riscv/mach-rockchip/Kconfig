@@ -15,4 +15,6 @@ config ROCKCHIP_RK182X
 	  This option enables the RK182X SoC code and allows the Rockchip
 	  build script (make.sh) to identify the chip for loader/trust
 	  image packing.
+
+source "arch/riscv/mach-rockchip/rk182x/Kconfig"
 endif

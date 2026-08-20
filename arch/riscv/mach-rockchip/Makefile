@@ -6,6 +6,8 @@
 # RISC-V specific; ARM startup, CPU, MMU and SoC-specific objects stay excluded.
 rockchip_common := ../../arm/mach-rockchip
 
+obj-$(CONFIG_ROCKCHIP_RK182X) += rk182x/
+
 ifdef CONFIG_SPL_BUILD
 obj-y += $(rockchip_common)/spl.o
 obj-y += $(rockchip_common)/spl-boot-order.o

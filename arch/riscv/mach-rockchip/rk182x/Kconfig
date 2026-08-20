@@ -1,0 +1,39 @@
+if ROCKCHIP_RK182X
+
+config SYS_BOARD
+	default "evb_rk182x"
+
+config SYS_VENDOR
+	default "rockchip"
+
+config SYS_CPU
+	default "generic"
+
+config SYS_CONFIG_NAME
+	default "rk182x_common"
+
+config TEXT_BASE
+	default 0x81000000 if SPL
+	default 0x540400000 if RISCV_SMODE
+
+config SPL_TEXT_BASE
+	default 0x82000000
+
+config SPL_OPENSBI_LOAD_ADDR
+	default 0x540200000
+
+config ROCKCHIP_BOOT_MODE_REG
+	default 0x1030010200
+
+config BOARD_SPECIFIC_OPTIONS # dummy
+	def_bool y
+	select ARCH_EARLY_INIT_R
+	select SUPPORT_SPL
+	imply CPU_RISCV
+	imply RISCV_TIMER
+	imply SPL_REGMAP
+	imply SPL_SYSCON
+	imply CMD_CPU
+	imply SPL_CPU_SUPPORT
+	imply SPL_MMC
+endif
