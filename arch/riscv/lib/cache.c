@@ -88,6 +88,10 @@ __weak void flush_dcache_all(void)
 {
 }
 
+__weak void invalidate_dcache_all(void)
+{
+}
+
 __weak void flush_dcache_range(unsigned long start, unsigned long end)
 {
 	cbo_flush(start, end);
