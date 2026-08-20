@@ -22,6 +22,8 @@
 #define mb()		RISCV_FENCE(iorw,iorw)
 #define rmb()		RISCV_FENCE(ir,ir)
 #define wmb()		RISCV_FENCE(ow,ow)
+#define dsb()		mb()
+#define isb()		__asm__ __volatile__ ("fence.i" ::: "memory")
 
 /* These barriers do not need to enforce ordering on devices, just memory. */
 #define __smp_mb()	RISCV_FENCE(rw,rw)
