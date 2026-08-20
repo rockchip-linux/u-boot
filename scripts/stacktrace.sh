@@ -44,17 +44,17 @@ fi
 case "${TPL_SPL}" in
 tpl)
 	SYM_NAME=u-boot-tpl.sym
-	ELF_ARGS=(elf tpl)
+	ELF_ARGS=(elf-S tpl)
 	EXPECTED_BUILD=tpl
 	;;
 spl)
 	SYM_NAME=u-boot-spl.sym
-	ELF_ARGS=(elf spl)
+	ELF_ARGS=(elf-S spl)
 	EXPECTED_BUILD=spl
 	;;
 ""|none)
 	SYM_NAME=u-boot.sym
-	ELF_ARGS=(elf)
+	ELF_ARGS=(elf-S)
 	EXPECTED_BUILD=uboot
 	;;
 *)
@@ -297,7 +297,7 @@ if (( frame_pc_dec % 2 != 0 )); then
 	frame_pc_dec=$((frame_pc_dec - 1))
 fi
 frame_pc_hex=$(printf 'obase=16;%s\n' "${frame_pc_dec}" | bc | tr '[:upper:]' '[:lower:]')
-PC_INSTR=$(./make.sh "${ELF_ARGS[@]}" | grep -5 -m 1 "${frame_pc_hex}:" |
+PC_INSTR=$(./make.sh "${ELF_ARGS[@]}" | grep -16 -m 1 "${frame_pc_hex}:" |
 	awk -v pc="${frame_pc_hex}" '
 	{
 		instruction=$0;
