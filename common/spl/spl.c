@@ -1205,6 +1205,11 @@ void spl_cleanup_before_jump(struct spl_image_info *spl_image)
 	disable_async_abort();
 #endif
 #endif
+
+#ifdef CONFIG_SPL_SYS_CACHES_KEEP_ENABLED
+	invalidate_icache_all();
+	flush_dcache_all();
+#else
 	/*
 	 * Turn off I-cache and invalidate it
 	 */
@@ -1217,6 +1222,7 @@ void spl_cleanup_before_jump(struct spl_image_info *spl_image)
 	 */
 	dcache_disable();
 	invalidate_dcache_all();
+#endif
 
 	dsb();
 	isb();

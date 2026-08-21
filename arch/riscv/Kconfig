@@ -99,6 +99,17 @@ config SPL_ZERO_MEM_BEFORE_USE
 	  Zero stack/GD/malloc area in SPL before using them, this is needed for
 	  Sifive core devices that uses L2 cache to store SPL.
 
+config SYS_CACHES_KEEP_ENABLED
+	bool "Keep dcache and icache enabled in U-Boot"
+	help
+	  Keep dcache and icache enabled in U-Boot.
+
+config SPL_SYS_CACHES_KEEP_ENABLED
+	bool "Keep dcache and icache enabled in SPL"
+	depends on SPL
+	help
+	  Keep dcache and icache enabled in SPL.
+
 # board-specific options below
 source "board/andestech/ae350/Kconfig"
 source "board/aspeed/ibex_ast2700/Kconfig"

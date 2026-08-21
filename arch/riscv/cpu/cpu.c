@@ -742,7 +742,21 @@ __weak int cleanup_before_linux(void)
 {
 	disable_interrupts();
 
+#ifdef CONFIG_SYS_CACHES_KEEP_ENABLED
 	cache_flush();
+#else
+	/*
+	 * Turn off I-cache and invalidate it
+	 */
+	icache_disable();
+	invalidate_icache_all();
 
+	/*
+	 * Turn off D-cache
+	 * dcache_disable() in turn flushes the d-cache and disables MMU
+	 */
+	dcache_disable();
+	invalidate_dcache_all();
+#endif
 	return 0;
 }
