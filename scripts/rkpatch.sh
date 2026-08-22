@@ -17,8 +17,8 @@ case $1 in
 	echo "    6. enable CONFIG_BOOTSTAGE_PRINTF_TIMESTAMP"
 	echo "    7. armv7 start.S: print entry warning"
 	echo "    8. armv8 start.S: print entry warning"
-	echo "    9. enable CONFIG_ROCKCHIP_CRASH_DUMP"
-	echo "   10. enable CONFIG_ROCKCHIP_CRC"
+	echo "    9. riscv start.S: print entry warning"
+	echo "   10. enable CONFIG_ROCKCHIP_CRASH_DUMP"
 	echo "   11. firmware bootflow debug() -> printf()"
 	echo "   12. bootstage timing report"
 	echo "   13. starting kernel halt dump"
@@ -26,8 +26,6 @@ case $1 in
 	echo "Enabled in .config: "
 	grep '^CONFIG_IRQ_TIMER_DUMP=y' .config > /dev/null \
 	&& echo "    CONFIG_IRQ_TIMER_DUMP"
-	grep '^CONFIG_ROCKCHIP_CRC=y' .config > /dev/null \
-	&& echo "    CONFIG_ROCKCHIP_CRC"
 	grep '^CONFIG_BOOTSTAGE_PRINTF_TIMESTAMP=y' .config > /dev/null \
 	&& echo "    CONFIG_BOOTSTAGE_PRINTF_TIMESTAMP"
 	grep '^CONFIG_ROCKCHIP_CRASH_DUMP=y' .config > /dev/null \
@@ -74,12 +72,13 @@ case $1 in
 	echo "DEBUG [8]: armv8 start.S entry warning 'UUUU...'"
 	;;
 9)
-	sed -i 's/\# CONFIG_ROCKCHIP_CRASH_DUMP is not set/CONFIG_ROCKCHIP_CRASH_DUMP=y/g' .config
-	echo "DEBUG [9]: CONFIG_ROCKCHIP_CRASH_DUMP is enabled"
+	sed -i '/mv\ts1, a1/{n;s/^$/#ifndef CONFIG_SPL_BUILD\n\tli\tt0, CONFIG_DEBUG_UART_BASE\n\tli\tt1, 100\n1:\n\tli\tt2, 0x55\n\tSREG\tt2, 0(t0)\n\taddi\tt1, t1, -1\n\tbnez\tt1, 1b\n\tfence\tiorw, iorw\n#endif/;}' \
+	./arch/riscv/cpu/start.S
+	echo "DEBUG [9]: riscv start.S entry warning 'UUUU...'"
 	;;
 10)
-	sed -i 's/\# CONFIG_ROCKCHIP_CRC is not set/CONFIG_ROCKCHIP_CRC=y/g' .config
-	echo "DEBUG [10]: CONFIG_ROCKCHIP_CRC is enabled"
+	sed -i 's/\# CONFIG_ROCKCHIP_CRASH_DUMP is not set/CONFIG_ROCKCHIP_CRASH_DUMP=y/g' .config
+	echo "DEBUG [10]: CONFIG_ROCKCHIP_CRASH_DUMP is enabled"
 	;;
 11)
 	sed -i 's/\<debug\>/printf/g' boot/fdt_support.c
