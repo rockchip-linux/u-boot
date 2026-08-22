@@ -11,7 +11,7 @@
 
 static void atags_stat(void)
 {
-	u32 start = ATAGS_PHYS_BASE, end = ATAGS_PHYS_BASE + ATAGS_SIZE;
+	ulong start = ATAGS_PHYS_BASE, end = ATAGS_PHYS_BASE + ATAGS_SIZE;
 	u32 in_use = 0, in_available = 0;
 	struct tag *t;
 
@@ -31,7 +31,7 @@ static void atags_stat(void)
 	in_available = ATAGS_SIZE - in_use;
 
 	printf("ATAGS state:\n");
-	printf("              addr = 0x%08x ~ 0x%08x\n", start, end);
+	printf("              addr = 0x%08lx ~ 0x%08lx\n", start, end);
 	printf("        Total size = 0x%08x\n", ATAGS_SIZE);
 	printf("       in use size = 0x%08x\n", in_use);
 	printf("    available size = 0x%08x\n", in_available);
