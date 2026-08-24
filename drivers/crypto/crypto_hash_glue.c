@@ -31,7 +31,12 @@ static int crypto_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx
 {
 	struct crypto_hash_ctx *hctx;
 	const struct hash_ops *ops;
-	int ret = -EINVAL;
+	int ret = -ENOSYS;
+
+	if (!dev || !ctxp)
+		return ret;
+
+	*ctxp = NULL;
 
 	hctx = calloc(1, sizeof(struct crypto_hash_ctx));
 	if (!hctx)
@@ -45,7 +50,7 @@ static int crypto_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx
 	}
 
 	ops = &hctx->impl->hash;
-	if (!ops->hash_init)
+	if (!ops || !ops->hash_init)
 		goto exit;
 
 	ret = ops->hash_init(hctx->impl->dev, algo, &hctx->sha_ctx);
@@ -60,12 +65,17 @@ static int crypto_hash_update(struct udevice *dev, void *ctx, const void *ibuf, 
 	const struct hash_ops *ops;
 	int ret = -EINVAL;
 
+	if (!dev || !ctx || !ibuf || !ilen)
+		goto exit;
+
 	if (!hctx || !hctx->impl || !hctx->sha_ctx)
 		goto exit;
 
 	ops = &hctx->impl->hash;
-	if (!ops->hash_update)
+	if (!ops || !ops->hash_update) {
+		ret = -ENOSYS;
 		goto exit;
+	}
 
 	ret = ops->hash_update(hctx->impl->dev, hctx->sha_ctx, ibuf, ilen);
 exit:
@@ -78,17 +88,22 @@ static int crypto_hash_finish(struct udevice *dev, void *ctx, void *obuf)
 	const struct hash_ops *ops;
 	int ret = -EINVAL;
 
+	if (!dev || !ctx || !obuf)
+		goto exit;
+
 	if (!hctx || !hctx->impl || !hctx->sha_ctx)
 		goto exit;
 
 	ops = &hctx->impl->hash;
-	if (!ops->hash_finish)
+	if (!ops || !ops->hash_finish) {
+		ret = -ENOSYS;
 		goto exit;
+	}
 
 	ret = ops->hash_finish(hctx->impl->dev, hctx->sha_ctx, obuf);
 	free(hctx);
 exit:
-	return 0;
+	return ret;
 }
 
 static int crypto_hash_digest_wd(struct udevice *dev, enum HASH_ALGO algo,
@@ -99,6 +114,9 @@ static int crypto_hash_digest_wd(struct udevice *dev, enum HASH_ALGO algo,
 	uint32_t chunk;
 	void *ctx;
 	int rc;
+
+	if (!dev || !ibuf || !ilen || !obuf || !chunk_sz)
+		return -EINVAL;
 
 	rc = crypto_hash_init(dev, algo, &ctx);
 	if (rc)

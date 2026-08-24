@@ -28,12 +28,12 @@ static int crypto_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_
 	DMSG("enter");
 	impl = crypto_get_impl(CRYPTO_TYPE_ASYM, ASYM_ALGO_RSA, CRYPTO_MODE_NONE);
 	if (!impl) {
-		DMSG("crypto_get_impl CRYPTO_TYPE_HASH faild\n");
-		return -EINVAL;
+		DMSG("crypto_get_impl CRYPTO_TYPE_ASYM RSA faild\n");
+		return -ENOSYS;
 	}
 
 	ops = &impl->asym.rsa;
-	if (!ops->mod_exp)
+	if (!ops ||!ops->mod_exp)
 		return -ENOSYS;
 
 	return ops->mod_exp(impl->dev, sig, sig_len, prop, out);

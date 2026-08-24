@@ -32,7 +32,12 @@ static int crypto_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
 {
 	struct crypto_hmac_ctx *hctx;
 	const struct hmac_ops *ops;
-	int ret = -EINVAL;
+	int ret = -ENOSYS;
+
+	if (!dev || !ctxp)
+		return ret;
+
+	*ctxp = NULL;
 
 	hctx = calloc(1, sizeof(struct crypto_hmac_ctx));
 	if (!hctx)
@@ -46,7 +51,7 @@ static int crypto_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
 	}
 
 	ops = &hctx->impl->hmac;
-	if (!ops->hmac_init)
+	if (!ops || !ops->hmac_init)
 		goto exit;
 
 	ret = ops->hmac_init(hctx->impl->dev, algo, key, keylen, &hctx->sha_ctx);
@@ -61,12 +66,17 @@ static int crypto_hmac_update(struct udevice *dev, void *ctx, const void *ibuf, 
 	const struct hmac_ops *ops;
 	int ret = -EINVAL;
 
+	if (!dev || !ctx || !ibuf || !ilen)
+		goto exit;
+
 	if (!hctx || !hctx->impl || !hctx->sha_ctx)
 		goto exit;
 
 	ops = &hctx->impl->hmac;
-	if (!ops->hmac_update)
+	if (!ops || !ops->hmac_update) {
+		ret = -ENOSYS;
 		goto exit;
+	}
 
 	ret = ops->hmac_update(hctx->impl->dev, hctx->sha_ctx, ibuf, ilen);
 exit:
@@ -79,17 +89,22 @@ static int crypto_hmac_finish(struct udevice *dev, void *ctx, void *obuf)
 	const struct hmac_ops *ops;
 	int ret = -EINVAL;
 
+	if (!dev || !ctx || !obuf)
+		goto exit;
+
 	if (!hctx || !hctx->impl || !hctx->sha_ctx)
 		goto exit;
 
 	ops = &hctx->impl->hmac;
-	if (!ops->hmac_finish)
+	if (!ops || !ops->hmac_finish) {
+		ret = -ENOSYS;
 		goto exit;
+	}
 
 	ret = ops->hmac_finish(hctx->impl->dev, hctx->sha_ctx, obuf);
 	free(hctx);
 exit:
-	return 0;
+	return ret;
 }
 
 static int crypto_hmac_digest_wd(struct udevice *dev, enum HMAC_ALGO algo,

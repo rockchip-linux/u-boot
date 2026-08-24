@@ -31,8 +31,8 @@ int crypto_ecdsa_verify(struct udevice *dev, const struct ecdsa_public_key *pubk
 	DMSG("enter");
 	impl = crypto_get_impl(CRYPTO_TYPE_ASYM, ASYM_ALGO_ECC, CRYPTO_MODE_NONE);
 	if (!impl) {
-		DMSG("crypto_get_impl CRYPTO_TYPE_HASH faild\n");
-		return -EINVAL;
+		DMSG("crypto_get_impl CRYPTO_TYPE_ASYM ECC faild\n");
+		return -ENOSYS;
 	}
 
 	ops = &impl->asym.ecc;
