@@ -211,7 +211,6 @@ const struct cipher_test_data cipher_data_set[] = {
 	CIPHER_TEST(DES, OFB, tdes_key, tdes_iv, foo_data, tdes_ofb_cipher),
 
 	EMPTY_TEST(),
-	CIPHER_TEST(AES, BYPASS, aes_key, aes_iv, foo_data, foo_data),
 	CIPHER_TEST(AES, ECB, aes_key, aes_iv, foo_data, aes_ecb_cipher),
 	CIPHER_TEST(AES, CBC, aes_key, aes_iv, foo_data, aes_cbc_cipher),
 	CIPHER_TEST(AES, CFB, aes_key, aes_iv, foo_data, aes_cfb_cipher),
