@@ -10,6 +10,8 @@
 #include <log.h>
 #include <mapmem.h>
 #include <asm/global_data.h>
+#include <bidram.h>
+#include <image.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -132,9 +134,23 @@ int board_fix_fdt(void *fdt)
 }
 #endif
 
+__weak int board_fdt_fixup(void *blob)
+{
+	return 0;
+}
+
 int arch_fixup_fdt(void *blob)
 {
+	struct bd_info *bd = gd->bd;
+	u64 dram_start[CONFIG_NR_DRAM_BANKS];
+	u64 dram_size[CONFIG_NR_DRAM_BANKS];
+	int bank;
 	int err;
+
+	err = board_fdt_fixup(blob);
+	if (err)
+		return err;
+
 #ifdef CONFIG_EFI_LOADER
 	u32 size;
 	int chosen_offset;
@@ -164,6 +180,27 @@ int arch_fixup_fdt(void *blob)
 	err = riscv_fdt_copy_resv_mem_node(gd->fdt_blob, blob);
 	if (err < 0)
 		return err;
+
+	/* show info: "/reserved-memory" */
+#ifndef CONFIG_XPL_BUILD
+	boot_mem_rsv_regions(blob);
+#endif
+
+	/* Display memory bank */
+	printf("\n");
+#if CONFIG_IS_ENABLED(BIDRAM)
+	bidram_fixup();
+#endif
+	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
+		dram_start[bank] = bd->bi_dram[bank].start;
+		dram_size[bank] = bd->bi_dram[bank].size;
+		if (dram_size[bank] == 0)
+			continue;
+
+		printf("Adding bank: 0x%08llx - 0x%08llx (size: 0x%08llx)\n",
+		       dram_start[bank], dram_start[bank] + dram_size[bank],
+		       dram_size[bank]);
+	}
 
 	return 0;
 }
