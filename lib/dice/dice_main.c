@@ -653,6 +653,9 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 	int valid_otp_uds = 0;
 	int i, err = 0;
 
+#if DICE_DEBUG
+	printf("dice_measure: %s\n", name);
+#endif
 	DiceCtx[0] = (void *)DICE_BUF_ADDR;
 #ifdef CONFIG_DICE_WIDEVINE
 	DiceCtx[1] = (void *)DICE_BUF_ADDR + DICE_BUF_SIZE / DICE_CNT;
