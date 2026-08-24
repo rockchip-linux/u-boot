@@ -1115,6 +1115,9 @@ static int hw_cipher_init(u32 chn, const u8 *key, const u8 *twk_key,
 	if (rk_mode >= CIPHER_MODE_NUM)
 		return -EINVAL;
 
+	if (rk_mode == CIPHER_MODE_BYPASS)
+		return -ENOSYS;
+
 	switch (algo) {
 	case CIPHER_ALGO_DES:
 		if (key_len > DES_BLOCK_SIZE)
@@ -1536,6 +1539,9 @@ static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	default:
 		return false;
 	}
+
+	if (version == 0)
+		return false;
 
 	if (mode == CRYPTO_MODE_NONE && version)
 		return true;
