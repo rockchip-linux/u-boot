@@ -1661,13 +1661,30 @@ static u32 ree_fs_new_write(size_t num_params,
 	uint8_t *old_file_data = 0;
 	uint32_t page_size = get_page_size();
 
+	if (num_params == 3) {
+		data = tee_supp_param_to_va(params + 1);
+		if (!data)
+			return TEE_ERROR_BAD_PARAMETERS;
+		len = params[1].u.rmem.size;
+
+		uint32_t expected_crc = params[2].u.value.a;
+		uint32_t actual_crc = rkss_crc32(data, len, 0);
+		if (actual_crc != expected_crc) {
+			printf("%s: write CRC mismatch: expected=0x%08x actual=0x%08x\n",
+			       __func__, expected_crc, actual_crc);
+			return TEE_ERROR_SECURITY;
+		}
+	} else if (num_params == 2) {
+		data = tee_supp_param_to_va(params + 1);
+		if (!data)
+			return TEE_ERROR_BAD_PARAMETERS;
+		len = params[1].u.rmem.size;
+	} else {
+		return TEE_ERROR_BAD_PARAMETERS;
+	}
+
 	fd = params[0].u.value.b;
 	offs = params[0].u.value.c;
-
-	data = tee_supp_param_to_va(params + 1);
-	if (!data)
-		return TEE_ERROR_BAD_PARAMETERS;
-	len = params[1].u.rmem.size;
 
 	debug("%s: fd:%d, len:%zu, offs:%ld\n",
 		__func__, fd, len, offs);
