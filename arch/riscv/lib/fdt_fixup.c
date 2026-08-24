@@ -177,7 +177,11 @@ int arch_fixup_fdt(void *blob)
 #endif
 
 	/* Copy the reserved-memory node to the DT used by OS */
+#ifdef CONFIG_DM_KERNEL_DTB
+	err = riscv_fdt_copy_resv_mem_node(gd->ufdt_blob, blob);
+#else
 	err = riscv_fdt_copy_resv_mem_node(gd->fdt_blob, blob);
+#endif
 	if (err < 0)
 		return err;
 
