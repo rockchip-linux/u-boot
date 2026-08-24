@@ -391,6 +391,7 @@ static int display_use_force_mode(struct display_state *state)
 	return 0;
 }
 
+#if defined(CONFIG_I2C_EDID)
 static int display_get_edid_mode(struct display_state *state)
 {
 	int ret = 0;
@@ -425,6 +426,7 @@ static int display_get_edid_mode(struct display_state *state)
 
 	return ret;
 }
+#endif
 
 static int display_mode_valid(struct display_state *state)
 {
