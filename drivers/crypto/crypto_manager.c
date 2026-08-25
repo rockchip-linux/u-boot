@@ -161,8 +161,10 @@ void crypto_impl_unregister(const struct crypto_impl *impl)
 
 	head = &crypto_algo_lists[impl->type];
 	node = crypto_list_find_driver(head, crypto_get_driver_name(impl), 0);
-	if (node)
+	if (node) {
 		list_del(&node->list);
+		free(node);
+	}
 }
 
 const struct crypto_impl *crypto_get_impl(enum crypto_type type, u32 algo, u32 mode)
@@ -202,7 +204,7 @@ const struct crypto_impl *crypto_get_impl(enum crypto_type type, u32 algo, u32 m
 		}
 	}
 
-	DMSG("using impl %s\n", crypto_get_driver_name(best_fit_algt));
+	DMSG("using impl %s\n", best_fit_algt ? crypto_get_driver_name(best_fit_algt) : "(none)");
 	return best_fit_algt;
 }
 
@@ -380,11 +382,11 @@ void crypto_dump_best(bool dump_tree)
 
 	impl = crypto_get_impl(CRYPTO_TYPE_HASH, HASH_ALGO_SHA256, CRYPTO_MODE_NONE);
 	if (impl)
-		printf("%s", impl->name);
+		printf("%s", crypto_get_driver_name(impl));
 
 	impl = crypto_get_impl(CRYPTO_TYPE_ASYM, ASYM_ALGO_RSA, CRYPTO_MODE_NONE);
 	if (impl)
-		printf(", %s", impl->name);
+		printf(", %s", crypto_get_driver_name(impl));
 
 	printf("\n");
 
