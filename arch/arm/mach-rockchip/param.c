@@ -335,9 +335,16 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 			return 0;
 		}
 
-		for (i = 0, n = 0; i < count; i++, n++) {
+		for (i = 0, n = 0; i < count; i++) {
 			base = t->u.ddr_mem.bank[i];
 			size = t->u.ddr_mem.bank[i + count];
+			debug("bank[%d]: 0x%08llx - 0x%08llx\n", i, base, base + size);
+
+			if (CONFIG_NR_DRAM_BANKS == 1) {
+				/* Must match base address */
+				if (base != CFG_SYS_SDRAM_BASE)
+					continue;
+			}
 
 			if (CFG_SYS_SDRAM_BASE >= SZ_4GB) {
 				mem[n].base = base;
@@ -359,6 +366,7 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 				}
 			}
 			assert(n < count + MEM_RESV_COUNT);
+			n++;
 		}
 
 		*out_count = n;
