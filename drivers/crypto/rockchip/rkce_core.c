@@ -35,8 +35,8 @@ struct rkce_hardware {
 #define RST_TIMEOUT_MS		100
 #define TD_PUSH_TIMEOUT_MS	3000
 
-#define IP_VERSION_MASK		(0xfU >> 28)
-#define IP_VERSION_RKCE		(0x1U >> 28)
+#define IP_VERSION_MASK		(0xfU << 28)
+#define IP_VERSION_RKCE		(0x1U << 28)
 #define GET_IP_VERSION(ver)	((ver) & IP_VERSION_MASK)
 
 #define IS_SYMM_TD(td_type)	((td_type) == RKCE_TD_TYPE_SYMM || \
@@ -250,7 +250,9 @@ static int rkce_init(void *rkce_hw)
 	if (ret)
 		goto exit;
 
-	rkce_soft_reset(rkce_hw, RKCE_RESET_SYMM | RKCE_RESET_HASH | RKCE_RESET_PKA);
+	ret = rkce_soft_reset(rkce_hw, RKCE_RESET_SYMM | RKCE_RESET_HASH | RKCE_RESET_PKA);
+	if (ret)
+		goto exit;
 
 	/* clear symm interrupt register */
 	rkce_reg->SYMM_INT_EN = 0;
