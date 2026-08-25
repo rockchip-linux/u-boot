@@ -21,23 +21,13 @@
 #define DMSG(format, ...)
 #endif
 
-static const struct crypto_impl *crypto_get_cipher_impl(struct udevice *dev, enum CIPHER_ALGO algo)
-{
-	const struct crypto_impl *impl;
-	impl = crypto_get_impl(CRYPTO_TYPE_CIPHER, algo, CRYPTO_MODE_NONE);
-	if (!impl)
-		return NULL;
-
-	return impl;
-}
-
 static int crypto_cipher_crypt(struct udevice *dev, cipher_context *ctx,
 			       const u8 *in, u8 *out, u32 len, bool enc)
 {
 	const struct crypto_impl *impl;
 	const struct cipher_ops *ops;
 
-	impl = crypto_get_cipher_impl(dev, ctx->algo);
+	impl = crypto_get_impl(CRYPTO_TYPE_CIPHER, ctx->algo, CRYPTO_MODE_NONE);
 	if (!impl)
 		return -ENOSYS;
 
@@ -54,7 +44,7 @@ static int crypto_cipher_mac(struct udevice *dev, cipher_context *ctx,
 	const struct crypto_impl *impl;
 	const struct cipher_ops *ops;
 
-	impl = crypto_get_cipher_impl(dev, ctx->algo);
+	impl = crypto_get_impl(CRYPTO_TYPE_CIPHER, ctx->algo, CRYPTO_MODE_NONE);
 	if (!impl)
 		return -ENOSYS;
 
@@ -72,7 +62,7 @@ static int crypto_cipher_ae(struct udevice *dev, cipher_context *ctx,
 	const struct crypto_impl *impl;
 	const struct cipher_ops *ops;
 
-	impl = crypto_get_cipher_impl(dev, ctx->algo);
+	impl = crypto_get_impl(CRYPTO_TYPE_CIPHER, ctx->algo, CRYPTO_MODE_NONE);
 	if (!impl)
 		return -ENOSYS;
 
@@ -89,7 +79,7 @@ static int crypto_cipher_fw_crypt(struct udevice *dev, cipher_fw_context *ctx,
 	const struct crypto_impl *impl;
 	const struct cipher_ops *ops;
 
-	impl = crypto_get_cipher_impl(dev, ctx->algo);
+	impl = crypto_get_impl(CRYPTO_TYPE_CIPHER, ctx->algo, CRYPTO_MODE_NONE);
 	if (!impl)
 		return -ENOSYS;
 
@@ -105,7 +95,7 @@ static ulong crypto_cipher_keytable_addr(struct udevice *dev)
 	const struct crypto_impl *impl;
 	const struct cipher_ops *ops;
 
-	impl = crypto_get_cipher_impl(dev, CIPHER_ALGO_AES);
+	impl = crypto_get_impl(CRYPTO_TYPE_CIPHER, CIPHER_ALGO_AES, CRYPTO_MODE_NONE);
 	if (!impl)
 		return 0;
 
@@ -121,7 +111,7 @@ static bool crypto_cipher_is_secure(struct udevice *dev)
 	const struct crypto_impl *impl;
 	const struct cipher_ops *ops;
 
-	impl = crypto_get_cipher_impl(dev, CIPHER_ALGO_AES);
+	impl = crypto_get_impl(CRYPTO_TYPE_CIPHER, CIPHER_ALGO_AES, CRYPTO_MODE_NONE);
 	if (!impl)
 		return false;
 
