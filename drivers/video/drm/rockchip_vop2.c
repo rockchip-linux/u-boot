@@ -122,6 +122,7 @@
 #define BT656_DCLK_POL				6
 #define RK3588_HDMI_DUAL_EN_SHIFT		8
 #define RK3588_EDP_DUAL_EN_SHIFT		8
+#define BT1120_YC_SWAP_SHIFT			9
 #define RK3588_DP_DUAL_EN_SHIFT			9
 #define RK3568_MIPI_DUAL_EN_SHIFT		10
 #define RK3588_MIPI_DSI0_MODE_SEL_SHIFT		11
@@ -5447,7 +5448,7 @@ static unsigned long rk3562_setup_interface(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
-	bool dclk_inv;
+	bool dclk_inv, yc_swap = false;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 val;
 
@@ -5464,6 +5465,34 @@ static unsigned long rk3562_setup_interface(struct display_state *state)
 				GRF_RGB_DCLK_INV_SHIFT, dclk_inv);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, RK3562_IF_PIN_POL_MASK,
 				IF_CTRL_RGB_LVDS_PIN_POL_SHIFT, val, false);
+	}
+
+	if (conn_state->output_if & VOP_OUTPUT_IF_BT1120) {
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RGB_EN_SHIFT,
+				1, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, BT1120_EN_SHIFT,
+				1, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK, RGB_MUX_SHIFT,
+				cstate->crtc_id, false);
+		vop2_grf_writel(vop2, vop2->grf, RK3562_GRF_IOC_VO_IO_CON, EN_MASK,
+				GRF_RGB_DCLK_INV_SHIFT, !dclk_inv);
+		yc_swap = is_yc_swap(conn_state->bus_format);
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK, BT1120_YC_SWAP_SHIFT,
+				yc_swap, false);
+	}
+
+	if (conn_state->output_if & VOP_OUTPUT_IF_BT656) {
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RGB_EN_SHIFT,
+				1, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, BT656_EN_SHIFT,
+				1, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK, RGB_MUX_SHIFT,
+				cstate->crtc_id, false);
+		vop2_grf_writel(vop2, vop2->grf, RK3562_GRF_IOC_VO_IO_CON, EN_MASK,
+				GRF_RGB_DCLK_INV_SHIFT, !dclk_inv);
+		yc_swap = is_yc_swap(conn_state->bus_format);
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK, BT656_YC_SWAP,
+				yc_swap, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_LVDS0) {
