@@ -177,7 +177,7 @@ static void crypto_flush_cacheline(ulong addr, ulong size)
 	flush_cache(aligned_input, aligned_len);
 }
 
-static void crypto_invalidate_cacheline(uint32_t addr, uint32_t size)
+static void crypto_invalidate_cacheline(ulong addr, ulong size)
 {
 	ulong alignment = CONFIG_SYS_CACHELINE_SIZE;
 	ulong aligned_input, aligned_len;
@@ -215,7 +215,6 @@ static u32 rk_hash_get_cemode(u32 algo)
 		[HASH_ALGO_SHA512] = RKCE_HASH_ALGO_SHA512,
 		[HASH_ALGO_SM3]    = RKCE_HASH_ALGO_SM3,
 		[HASH_ALGO_SHA224] = RKCE_HASH_ALGO_SHA224,
-		[HASH_ALGO_SHA384]     = RKCE_HASH_ALGO_SHA384,
 		[HASH_ALGO_SHA512_224] = RKCE_HASH_ALGO_SHA512_224,
 		[HASH_ALGO_SHA512_256] = RKCE_HASH_ALGO_SHA512_256,
 	};
@@ -416,6 +415,9 @@ static int rk_hash_finish(struct udevice *dev, void *ctx, void *digest)
 {
 	struct rkce_sha_contex *hash_ctx = ctx;
 	int ret;
+
+	if (!digest)
+		return -EINVAL;
 
 	ret = rk_hash_update(dev, ctx, NULL, 0);
 	if (ret == 0)
@@ -697,6 +699,8 @@ static void *rkce_cipher_ctx_alloc(void)
 	if (!hw_ctx)
 		return NULL;
 
+	memset(hw_ctx, 0x00, sizeof(*hw_ctx));
+
 	hw_ctx->td = rkce_cma_alloc(sizeof(struct rkce_symm_td));
 	if (!hw_ctx->td)
 		goto error;
@@ -847,6 +851,9 @@ static int rk_crypto_cipher(struct udevice *dev, cipher_context *ctx,
 	bool use_otpkey = false;
 	int ret = 0;
 
+	if (!ctx)
+		return -EINVAL;
+
 	rk_crypto_soft_reset(dev, RKCE_RESET_SYMM);
 
 	if (!ctx->key && ctx->key_len)
@@ -860,7 +867,9 @@ static int rk_crypto_cipher(struct udevice *dev, cipher_context *ctx,
 	if (!hw_ctx)
 		return -ENOMEM;
 
-	rkce_init_symm_td(hw_ctx->td, hw_ctx->td_buf);
+	ret = rkce_init_symm_td(hw_ctx->td, hw_ctx->td_buf);
+	if (ret)
+		goto exit;
 
 	hw_ctx->td->ctrl.td_type   = RKCE_TD_TYPE_SYMM;
 	hw_ctx->td->ctrl.is_dec    = !enc;
