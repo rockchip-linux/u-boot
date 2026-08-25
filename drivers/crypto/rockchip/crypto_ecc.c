@@ -13,7 +13,7 @@
 #define WORDS2BYTES(words)	((words) * 4)
 
 #define RK_ECP_IS_BIGNUM_INVALID(b) (!b || !b->d || b->size > RK_ECP_MAX_WORDS)
-#define RK_ECP_IS_POINT_INVALID(p) (RK_ECP_IS_BIGNUM_INVALID(p->x) && \
+#define RK_ECP_IS_POINT_INVALID(p) (RK_ECP_IS_BIGNUM_INVALID(p->x) || \
 				    RK_ECP_IS_BIGNUM_INVALID(p->y))
 
 /*************************************************************/
