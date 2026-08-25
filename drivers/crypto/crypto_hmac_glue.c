@@ -32,10 +32,10 @@ static int crypto_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
 {
 	struct crypto_hmac_ctx *hctx;
 	const struct hmac_ops *ops;
-	int ret = -ENOSYS;
+	int ret;
 
 	if (!dev || !ctxp)
-		return ret;
+		return -ENOSYS;
 
 	*ctxp = NULL;
 
@@ -46,17 +46,26 @@ static int crypto_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
 	hctx->algo = algo;
 	hctx->impl = crypto_get_impl(CRYPTO_TYPE_HMAC, algo, CRYPTO_MODE_NONE);
 	if (!hctx->impl) {
-		printf("crypto-hash: No available algo '%s'\n", hmac_algo_name(algo));
-		goto exit;
+		printf("crypto-hmac: No available algo '%s'\n", hmac_algo_name(algo));
+		ret = -ENOSYS;
+		goto err_free;
 	}
 
 	ops = &hctx->impl->hmac;
-	if (!ops || !ops->hmac_init)
-		goto exit;
+	if (!ops || !ops->hmac_init) {
+		ret = -ENOSYS;
+		goto err_free;
+	}
 
 	ret = ops->hmac_init(hctx->impl->dev, algo, key, keylen, &hctx->sha_ctx);
+	if (ret)
+		goto err_free;
+
 	*ctxp = hctx;
-exit:
+	return 0;
+
+err_free:
+	free(hctx);
 	return ret;
 }
 
@@ -132,7 +141,7 @@ static int crypto_hmac_digest_wd(struct udevice *dev, enum HMAC_ALGO algo,
 
 			rc = crypto_hmac_update(dev, ctx, cur, chunk);
 			if (rc)
-				return rc;
+				goto err;
 
 			cur += chunk;
 			schedule();
@@ -140,10 +149,14 @@ static int crypto_hmac_digest_wd(struct udevice *dev, enum HMAC_ALGO algo,
 	} else {
 		rc = crypto_hmac_update(dev, ctx, ibuf, ilen);
 		if (rc)
-			return rc;
+			goto err;
 	}
 
 	return crypto_hmac_finish(dev, ctx, obuf);
+
+err:
+	free(ctx);
+	return rc;
 }
 
 static int crypto_hmac_digest(struct udevice *dev, enum HMAC_ALGO algo,

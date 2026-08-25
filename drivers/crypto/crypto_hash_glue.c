@@ -31,10 +31,10 @@ static int crypto_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx
 {
 	struct crypto_hash_ctx *hctx;
 	const struct hash_ops *ops;
-	int ret = -ENOSYS;
+	int ret;
 
 	if (!dev || !ctxp)
-		return ret;
+		return -ENOSYS;
 
 	*ctxp = NULL;
 
@@ -46,16 +46,25 @@ static int crypto_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx
 	hctx->impl = crypto_get_impl(CRYPTO_TYPE_HASH, algo, CRYPTO_MODE_NONE);
 	if (!hctx->impl) {
 		printf("crypto-hash: No available algo '%s'\n", hash_algo_name(algo));
-		goto exit;
+		ret = -ENOSYS;
+		goto err_free;
 	}
 
 	ops = &hctx->impl->hash;
-	if (!ops || !ops->hash_init)
-		goto exit;
+	if (!ops || !ops->hash_init) {
+		ret = -ENOSYS;
+		goto err_free;
+	}
 
 	ret = ops->hash_init(hctx->impl->dev, algo, &hctx->sha_ctx);
+	if (ret)
+		goto err_free;
+
 	*ctxp = hctx;
-exit:
+	return 0;
+
+err_free:
+	free(hctx);
 	return ret;
 }
 
@@ -133,7 +142,7 @@ static int crypto_hash_digest_wd(struct udevice *dev, enum HASH_ALGO algo,
 
 			rc = crypto_hash_update(dev, ctx, cur, chunk);
 			if (rc)
-				return rc;
+				goto err;
 
 			cur += chunk;
 			schedule();
@@ -141,10 +150,14 @@ static int crypto_hash_digest_wd(struct udevice *dev, enum HASH_ALGO algo,
 	} else {
 		rc = crypto_hash_update(dev, ctx, ibuf, ilen);
 		if (rc)
-			return rc;
+			goto err;
 	}
 
 	return crypto_hash_finish(dev, ctx, obuf);
+
+err:
+	free(ctx);
+	return rc;
 }
 
 static int crypto_hash_digest(struct udevice *dev, enum HASH_ALGO algo,
