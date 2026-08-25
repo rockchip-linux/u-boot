@@ -28,6 +28,9 @@ int crypto_ecdsa_verify(struct udevice *dev, const struct ecdsa_public_key *pubk
 	const struct crypto_impl *impl = NULL;
 	const struct ecdsa_ops *ops = NULL;
 
+	if (!pubkey || !hash || !signature)
+		return -EINVAL;
+
 	DMSG("enter");
 	impl = crypto_get_impl(CRYPTO_TYPE_ASYM, ASYM_ALGO_ECC, CRYPTO_MODE_NONE);
 	if (!impl) {

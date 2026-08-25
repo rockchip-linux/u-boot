@@ -25,6 +25,9 @@ static int crypto_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_
 	const struct crypto_impl *impl = NULL;
 	const struct mod_exp_ops *ops = NULL;
 
+	if (!sig || !prop || !out)
+		return -EINVAL;
+
 	DMSG("enter");
 	impl = crypto_get_impl(CRYPTO_TYPE_ASYM, ASYM_ALGO_RSA, CRYPTO_MODE_NONE);
 	if (!impl) {

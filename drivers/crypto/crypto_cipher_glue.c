@@ -58,7 +58,7 @@ static int crypto_cipher_mac(struct udevice *dev, cipher_context *ctx,
 	if (!impl)
 		return -ENOSYS;
 
-	ops = &impl->cipher;;
+	ops = &impl->cipher;
 	if (!ops || !ops->cipher_mac)
 		return -ENOSYS;
 

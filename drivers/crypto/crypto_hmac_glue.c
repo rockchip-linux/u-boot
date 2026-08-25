@@ -126,6 +126,9 @@ static int crypto_hmac_digest_wd(struct udevice *dev, enum HMAC_ALGO algo,
 	void *ctx;
 	int rc;
 
+	if (!dev || !ibuf || !ilen || !obuf || !chunk_sz)
+		return -EINVAL;
+
 	rc = crypto_hmac_init(dev, algo, key, keylen, &ctx);
 	if (rc)
 		return rc;
