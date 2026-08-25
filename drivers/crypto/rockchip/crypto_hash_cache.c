@@ -21,7 +21,7 @@ static int hash_cache_calc(struct crypto_hash_cache *hash_cache, const u8 *data,
 		hash_cache->cache = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE,
 						   HASH_CACHE_SIZE);
 		if (!hash_cache->cache)
-			goto error;
+			return -ENOMEM;
 
 		hash_cache->cache_size = 0;
 	}
@@ -49,7 +49,7 @@ static int hash_cache_calc(struct crypto_hash_cache *hash_cache, const u8 *data,
 						  &hash_cache->is_started,
 						  is_last);
 				if (ret)
-					goto error;
+					goto exit;
 			}
 			break;
 		}
@@ -65,16 +65,15 @@ static int hash_cache_calc(struct crypto_hash_cache *hash_cache, const u8 *data,
 		ret = direct_calc(hash_cache->user_data, hash_cache->cache,
 				  HASH_CACHE_SIZE, &hash_cache->is_started, 0);
 		if (ret)
-			goto error;
+			goto exit;
 
 		data += tmp_len;
 		data_len -= tmp_len;
 		hash_cache->cache_size = 0;
 	}
 
+exit:
 	return ret;
-error:
-	return -EINVAL;
 }
 
 void crypto_flush_cacheline(ulong addr, ulong size)
@@ -186,5 +185,5 @@ error:
 		hash_cache->cache = NULL;
 	}
 
-	return -EINVAL;
+	return ret;
 }

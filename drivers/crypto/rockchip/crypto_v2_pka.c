@@ -820,6 +820,9 @@ int rk_abs_add(void *a, void *b, void *c)
 	u32 error = CRYPT_OK;
 	struct mpa_num *m_a, *m_b, *m_c;
 
+	if (!a || !b || !c)
+		return CRYPT_ERROR;
+
 	m_a = (struct mpa_num *)a;
 	m_b = (struct mpa_num *)b;
 	m_c = (struct mpa_num *)c;
@@ -906,16 +909,15 @@ int rk_exptmod_np(void *m, void *e, void *n, void *np, void *d)
 	m_np = (struct mpa_num *)np;
 	m_d = (struct mpa_num *)d;
 
+	if (!m || !e || !n || !d || rk_mpanum_size(m_n) == 0) {
+		return CRYPT_ERROR;
+	}
+
 	if (rk_mpa_alloc(&tmpa, NULL, RK_MAX_RSA_BWORDS) != 0)
 		return CRYPT_ERROR;
 
 	error = rk_mod(m, n, tmpa);
 	if (error) {
-		error = CRYPT_ERROR;
-		goto exit;
-	}
-
-	if (!m || !e || !n || !d || rk_mpanum_size(m_n) == 0) {
 		error = CRYPT_ERROR;
 		goto exit;
 	}
