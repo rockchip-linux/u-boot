@@ -27,11 +27,23 @@
 #define ATAG_MAX		0x544100ff
 
 /* Tag size and offset */
+#ifndef ATAGS_SIZE
 #define ATAGS_SIZE		(0x2000)	/* 8K */
+#endif
+#ifndef ATAGS_OFFSET
 #define ATAGS_OFFSET		(0x200000 - ATAGS_SIZE)/* [2M-8K, 2M] */
+#endif
 
 /* Tag sdram position!! */
+#ifdef PLAT_ATAGS_PHYS_BASE
+#define ATAGS_PHYS_BASE		PLAT_ATAGS_PHYS_BASE
+#else
 #define ATAGS_PHYS_BASE		(CFG_SYS_SDRAM_BASE + ATAGS_OFFSET)
+#endif
+
+#ifndef ATAGS_PHYS_BASE
+"ERROR: ATAGS_PHYS_BASE is not defined!!"
+#endif
 
 /* tag_bootdev.devtype */
 #define BOOT_TYPE_UNKNOWN	0
