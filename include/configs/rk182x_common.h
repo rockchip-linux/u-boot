@@ -11,14 +11,16 @@
 #include "rockchip-common.h"
 
 #define CFG_IRAM_BASE			0x1040000000
-
-#define CFG_SYS_SDRAM_BASE		0x540000000
+#define CFG_SYS_SDRAM_BASE		0x540000000	/* node5 */
 #define SDRAM_MAX_SIZE			(SZ_64M + SZ_4M)
 #define RISCV_SMODE_TIMER_FREQ		24000000
 
 /* Offset 0~4M for preserved + opensbi */
 #define BOARD_RESERVE_MEM_BASE		CFG_SYS_SDRAM_BASE
 #define BOARD_RESERVE_MEM_SIZE		SZ_4M
+
+/* atags is original used by RT-Thread, we have to reuse it */
+#define PLAT_ATAGS_PHYS_BASE		0x400001000
 
 #ifndef ROCKCHIP_DEVICE_SETTINGS
 #define ROCKCHIP_DEVICE_SETTINGS
