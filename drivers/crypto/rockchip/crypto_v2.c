@@ -506,7 +506,6 @@ static int rk_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx)
 
 	tmp_ctx->hash_cache = crypto_hash_cache_alloc(rk_hash_direct_calc, priv, DATA_ADDR_ALIGN_SIZE, DATA_LEN_ALIGN_SIZE);
 	if (!tmp_ctx->hash_cache) {
-		free(tmp_ctx);
 		return -ENOMEM;
 	}
 
@@ -618,7 +617,7 @@ int rk_hash_finish(struct udevice *dev, void *ctx, void *digest)
 	int ret = -EINVAL;
 
 	if (!dev || !digest)
-		goto exit;
+		return -EINVAL;
 
 	if (!tmp_ctx ||
 	    tmp_ctx->digest_size == 0 ||
@@ -701,13 +700,13 @@ int rk_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
 	u32 reg_ctrl = 0;
 	int ret;
 
-	rk_crypto_enable_clk(dev);
-
 	if (!key || !keylen || keylen > 64)
 		return -EINVAL;
 
 	if (algo >= HMAC_ALGO_NUM)
 		return -EINVAL;
+
+	rk_crypto_enable_clk(dev);
 
 	clear_key_regs();
 
@@ -1359,7 +1358,7 @@ exit:
 		align_free(dma_in);
 	if (out && dma_out != out)
 		align_free(dma_out);
-	if (aad && aad != aad_tmp)
+	if (aad_tmp && (!aad || aad != aad_tmp))
 		align_free(aad_tmp);
 
 	return ret;
