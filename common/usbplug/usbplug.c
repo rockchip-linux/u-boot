@@ -15,6 +15,7 @@
 #include <dm/ofnode.h>
 #include <dm/root.h>
 #include <dm/uclass-internal.h>
+#include <dm/util.h>
 #include <hang.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -125,6 +126,14 @@ void board_init_r(gd_t *new_gd, ulong dest_addr)
 #ifdef CONFIG_DM
 	initr_dm();
 #endif
+	if (CONFIG_IS_ENABLED(DM_STATS)) {
+		struct dm_stats mem;
+
+		dm_dump_tree(NULL, false, false);
+		dm_get_mem(&mem);
+		dm_dump_mem(&mem);
+	}
+
 	/* Setup chipselects, entering usb-plug mode */
 	board_init();
 	hang();
