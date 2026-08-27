@@ -925,6 +925,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	if (CONFIG_IS_ENABLED(DM_STATS)) {
 		struct dm_stats mem;
 
+		dm_dump_tree(NULL, false, false);
 		dm_get_mem(&mem);
 		dm_dump_mem(&mem);
 	}
