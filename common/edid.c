@@ -3950,7 +3950,7 @@ int add_cea_modes(struct hdmi_edid_data *data, struct edid *edid)
 {
 	const u8 *cea;
 	const u8 *db, *hdmi = NULL, *video = NULL;
-	u8 dbl, hdmi_len, video_len = 0;
+	u8 dbl, hdmi_len = 0, video_len = 0;
 	int i, count = 0, modes = 0;
 	int ext_index = 0;
 
